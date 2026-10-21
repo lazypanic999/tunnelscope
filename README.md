@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: project initialization. No diagnostic implementation or installable release is available yet.**
+**Status: early prototype. A bounded UDP sender/receiver is available from source. MTU diagnosis, disabled fragmentation and a Linux failure lab are not implemented yet. No packaged release is available.**
 
 ## The problem
 
@@ -35,7 +35,35 @@ Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible 
 
 ## Getting started
 
-There is no installation command yet. The first deliverable is the M0 lab, not a dashboard. Implementation and reproducible instructions will be added as each milestone is completed.
+Requires Python 3.10 or newer. No third-party packages are needed. Start with a local experiment in two terminals, from the repository directory.
+
+Terminal 1 (receiver):
+
+```sh
+python tunnelscope.py receive
+```
+
+Terminal 2 (sender):
+
+```sh
+python tunnelscope.py probe 127.0.0.1 --sizes 64,512,1200,1400 --count 3 --output report.json
+```
+
+The receiver exits after 100 datagrams or 30 seconds without a datagram. Restart it if it has already exited. `--max-packets` and `--idle-timeout` change these limits.
+
+Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
+
+`acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a local socket error. Fragmentation currently follows OS defaults, so even a large successful datagram does not establish the path MTU. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
+
+The receiver binds to loopback by default. For your own two-host lab, use `--bind <receiver-lab-IPv4>` and probe that address. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
+
+Run checks:
+
+```sh
+python -m unittest discover -s tests -v
+```
+
+Türkçe ilk deney: [İlk adım rehberi](docs/ilk-deney.md).
 
 ## Prior art and scope
 
@@ -51,4 +79,4 @@ TunnelScope, küçük veriler giderken büyük verilerin neden takıldığını 
 
 İlk hedefimiz, iki Linux ortamı arasında farklı boyutlarda kontrollü testler yapıp sonuçları raporlamak. Her başarısız testi MTU sorunu saymayacağız; gözlemlediklerimizi tahminlerimizden ayıracağız.
 
-Proje henüz başlangıç aşamasında. İlk görev: sorunu küçük bir laboratuvarda oluşturmak, ölçmek ve açıklamak.
+İlk çalışan parça: farklı boyutlarda UDP verisi gönderen ve küçük bir onay mesajıyla teslimi kontrol eden Python aracı. Henüz MTU teşhisi yapmıyor. Sonraki görev: paket parçalanmasını kontrol etmek ve sorunu küçük bir Linux laboratuvarında oluşturmak.

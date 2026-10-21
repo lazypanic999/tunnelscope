@@ -63,8 +63,6 @@ Run checks:
 python -m unittest discover -s tests -v
 ```
 
-Türkçe ilk deney: [İlk adım rehberi](docs/ilk-deney.md).
-
 ## Prior art and scope
 
 Existing tools such as ping, tracepath and packet analyzers already provide important building blocks. TunnelScope will explore whether controlled two-endpoint tests and evidence-oriented reporting make this investigation easier. It is not a replacement for a full packet analyzer.
@@ -72,11 +70,3 @@ Existing tools such as ping, tracepath and packet analyzers already provide impo
 ## Contributing
 
 Early feedback is welcome through GitHub Issues, especially reproducible examples where small traffic succeeds and larger transfers fail. Describe the environment, expected behavior and observed behavior. Use synthetic or sanitized examples; do not attach credentials or private packet captures.
-
-## Türkçe özet
-
-TunnelScope, küçük veriler giderken büyük verilerin neden takıldığını araştırmayı kolaylaştırmayı amaçlayan açık kaynak bir ağ teşhis projesidir.
-
-İlk hedefimiz, iki Linux ortamı arasında farklı boyutlarda kontrollü testler yapıp sonuçları raporlamak. Her başarısız testi MTU sorunu saymayacağız; gözlemlediklerimizi tahminlerimizden ayıracağız.
-
-İlk çalışan parça: farklı boyutlarda UDP verisi gönderen ve küçük bir onay mesajıyla teslimi kontrol eden Python aracı. Henüz MTU teşhisi yapmıyor. Sonraki görev: paket parçalanmasını kontrol etmek ve sorunu küçük bir Linux laboratuvarında oluşturmak.

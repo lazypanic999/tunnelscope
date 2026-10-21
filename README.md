@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="tunnelscope-logo.png" alt="TunnelScope monochrome vortex emblem" width="200">
+</p>
+
 # TunnelScope
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.

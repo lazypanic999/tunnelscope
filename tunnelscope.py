@@ -1,16 +1,44 @@
 """Small, bounded UDP delivery experiments. This is not an MTU detector yet."""
 
 import argparse
+import errno
 import json
 import secrets
 import socket
 import struct
+import sys
 import time
 from pathlib import Path
 
 MAGIC = b"TS01"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
+# Linux UAPI values, used when Python does not expose the constants.
+IP_MTU_DISCOVER = getattr(socket, "IP_MTU_DISCOVER", 10)
+IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
+IP_MTU = getattr(socket, "IP_MTU", 14)
+
+
+def require_df_support(dont_fragment):
+    if dont_fragment and not sys.platform.startswith("linux"):
+        raise ValueError("--dont-fragment currently requires Linux (including WSL2)")
+
+
+def configure_fragmentation(sock, dont_fragment):
+    if dont_fragment:
+        # Fail the experiment if the option cannot be enabled; never fall back.
+        sock.setsockopt(socket.IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO)
+
+
+def socket_failure(error, sock, dont_fragment):
+    result = {"status": "socket_error", "error": str(error), "errno": error.errno}
+    if dont_fragment and error.errno == errno.EMSGSIZE:
+        result["status"] = "packet_too_large"
+        try:
+            result["kernel_reported_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
+        except OSError:
+            pass
+    return result
 
 
 def bounded_int(low, high):
@@ -51,7 +79,8 @@ def receive(bind, port, max_packets, idle_timeout):
             sock.sendto(HEADER.pack(ACK, token, len(data)), peer)
 
 
-def probe(host, port, sizes, count, timeout):
+def probe(host, port, sizes, count, timeout, dont_fragment=False):
+    require_df_support(dont_fragment)
     address = socket.gethostbyname(host)
     results = []
     for size in sizes:
@@ -61,6 +90,8 @@ def probe(host, port, sizes, count, timeout):
             result = {"payload_bytes": size, "attempt": attempt}
             # A new connected socket isolates replies from earlier attempts.
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                # Configuration failures are fatal, not delivery observations.
+                configure_fragmentation(sock, dont_fragment)
                 try:
                     sock.connect((address, port))
                     start = time.monotonic()
@@ -78,15 +109,15 @@ def probe(host, port, sizes, count, timeout):
                 except socket.timeout:
                     result["status"] = "timeout"
                 except OSError as error:
-                    result.update(status="socket_error", error=str(error))
+                    result.update(socket_failure(error, sock, dont_fragment))
             results.append(result)
             time.sleep(0.05)
     return {
         "schema_version": 1,
         "target": {"host": host, "ipv4": address, "port": port},
-        "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout},
-        "fragmentation": "OS default; fragmentation is allowed",
-        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. This report does not determine path MTU.",
+        "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
+        "fragmentation": "disabled: Linux IP_PMTUDISC_DO" if dont_fragment else "OS default; fragmentation behavior is not controlled",
+        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
         "results": results,
     }
 
@@ -106,17 +137,19 @@ def main():
     sender.add_argument("--count", type=bounded_int(1, 10), default=3)
     sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     sender.add_argument("--output", type=Path)
+    sender.add_argument("--dont-fragment", action="store_true", help="Linux IPv4 only: set DF and reject datagrams above the known path MTU")
     args = parser.parse_args()
     try:
         if args.command == "receive":
             receive(args.bind, args.port, args.max_packets, args.idle_timeout)
         else:
-            report = probe(args.host, args.port, args.sizes, args.count, args.timeout)
+            require_df_support(args.dont_fragment)
+            report = probe(args.host, args.port, args.sizes, args.count, args.timeout, args.dont_fragment)
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")
             print(rendered)
-    except OSError as error:
+    except (OSError, ValueError) as error:
         parser.exit(1, f"Error: {error}\n")
     except KeyboardInterrupt:
         parser.exit(130, "Stopped.\n")

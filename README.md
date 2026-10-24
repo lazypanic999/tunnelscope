@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: early prototype. A bounded UDP sender/receiver is available from source. MTU diagnosis, disabled fragmentation and a Linux failure lab are not implemented yet. No packaged release is available.**
+**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode and a reproducible link-MTU boundary lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
 
 ## The problem
 
@@ -27,7 +27,7 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports wil
 ## Milestones
 
 - [ ] **M0 - Reproduce the problem:** build a small Linux network-namespace lab and record a healthy baseline and a controlled MTU failure.
-- [ ] **M1 - Probe and receive:** implement bounded, identifiable probes and acknowledgements between two endpoints.
+- [x] **M1 - Probe and receive:** implement bounded, identifiable probes and acknowledgements between two endpoints.
 - [ ] **M2 - Explain the evidence:** export JSON and distinguish successful delivery, explicit errors and inconclusive timeouts.
 - [ ] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
 
@@ -53,7 +53,29 @@ The receiver exits after 100 datagrams or 30 seconds without a datagram. Restart
 
 Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
 
-`acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a local socket error. Fragmentation currently follows OS defaults, so even a large successful datagram does not establish the path MTU. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
+`acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
+
+### Linux IPv4 Don't Fragment mode
+
+```sh
+python tunnelscope.py probe 192.0.2.2 --sizes 64,1252,1253,1400 --count 1 --dont-fragment --output report.json
+```
+
+Use the address of your lab receiver; `192.0.2.2` is an example. This mode sets `IP_MTU_DISCOVER=IP_PMTUDISC_DO` on each sender socket. The kernel sets DF and rejects datagrams above its currently known path MTU. It does not bypass cached PMTU information or search automatically for a boundary. The flag requires Linux, including WSL2. Other platforms reject it; socket-option errors stop the experiment rather than silently reverting to defaults.
+
+In DF mode, `EMSGSIZE` is reported as `packet_too_large`, with its numeric `errno`. When available, `kernel_reported_mtu_bytes` contains the connected socket's `IP_MTU` value. That value is kernel knowledge, not an independently measured end-to-end MTU. Timeouts remain inconclusive. The JSON schema version remains 1 with additive fields and the new `packet_too_large` status; consumers must handle it explicitly.
+
+### Reproduce a known MTU boundary
+
+On Linux with root access and iproute2 installed:
+
+```sh
+sudo python3 labs/mtu_boundary.py > mtu-boundary.json
+```
+
+The lab creates two temporary network namespaces connected by a veth pair with MTU 1280. It probes both directions and checks that 1252-byte UDP payloads succeed while 1253-byte payloads fail in DF mode (20-byte IPv4 header + 8-byte UDP header). It changes no host interface MTU or host route and removes its namespaces on completion or ordinary interruption. As with any process, forced termination such as SIGKILL can prevent cleanup.
+
+This validates a directly attached link boundary, not an unknown multi-hop bottleneck or a PMTU black hole. See the [validation record](docs/validation/mtu-boundary.md) and [captured example report](examples/mtu-boundary.json). The broader M0 failure scenarios remain open.
 
 The receiver binds to loopback by default. For your own two-host lab, use `--bind <receiver-lab-IPv4>` and probe that address. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
 
@@ -61,6 +83,12 @@ Run checks:
 
 ```sh
 python -m unittest discover -s tests -v
+```
+
+Privileged Linux integration check (also run by CI on Ubuntu):
+
+```sh
+sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 python3 -m unittest discover -s tests -v
 ```
 
 ## Prior art and scope

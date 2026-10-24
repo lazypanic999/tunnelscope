@@ -1,0 +1,113 @@
+{
+  "lab": "direct-veth-ipv4-df",
+  "link_mtu_bytes": 1280,
+  "ipv4_header_bytes": 20,
+  "udp_header_bytes": 8,
+  "expected_payload_boundary_bytes": 1252,
+  "directions": [
+    {
+      "schema_version": 1,
+      "target": {
+        "host": "192.0.2.2",
+        "ipv4": "192.0.2.2",
+        "port": 9471
+      },
+      "settings": {
+        "payload_sizes": [
+          64,
+          1252,
+          1253,
+          1400
+        ],
+        "count": 1,
+        "timeout_seconds": 1,
+        "dont_fragment": true
+      },
+      "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+      "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
+      "results": [
+        {
+          "payload_bytes": 64,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.205
+        },
+        {
+          "payload_bytes": 1252,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.241
+        },
+        {
+          "payload_bytes": 1253,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        },
+        {
+          "payload_bytes": 1400,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        }
+      ],
+      "direction": "a-to-b"
+    },
+    {
+      "schema_version": 1,
+      "target": {
+        "host": "192.0.2.1",
+        "ipv4": "192.0.2.1",
+        "port": 9471
+      },
+      "settings": {
+        "payload_sizes": [
+          64,
+          1252,
+          1253,
+          1400
+        ],
+        "count": 1,
+        "timeout_seconds": 1,
+        "dont_fragment": true
+      },
+      "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+      "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
+      "results": [
+        {
+          "payload_bytes": 64,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.17
+        },
+        {
+          "payload_bytes": 1252,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.416
+        },
+        {
+          "payload_bytes": 1253,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        },
+        {
+          "payload_bytes": 1400,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        }
+      ],
+      "direction": "b-to-a"
+    }
+  ]
+}

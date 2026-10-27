@@ -34,6 +34,7 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports sep
 Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible later directions. They are not currently supported features.
 
 For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](docs/demo.md).
+The [two-VM validation record](docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
 
 ## Getting started
 

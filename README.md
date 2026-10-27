@@ -29,9 +29,11 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports wil
 - [x] **M0 - Reproduce the problem:** build a small Linux network-namespace lab and record a healthy baseline and a controlled MTU failure.
 - [x] **M1 - Probe and receive:** implement bounded, identifiable probes and acknowledgements between two endpoints.
 - [x] **M2 - Explain the evidence:** export JSON and distinguish successful delivery, explicit errors and inconclusive timeouts.
-- [ ] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
+- [x] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
 
 Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible later directions. They are not currently supported features.
+
+For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](docs/demo.md).
 
 ## Getting started
 

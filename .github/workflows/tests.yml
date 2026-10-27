@@ -15,6 +15,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
-      - name: Validate isolated Linux MTU boundary
+      - name: Validate isolated Linux MTU labs
         if: runner.os == 'Linux'
         run: sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 python3 -m unittest discover -s tests -v

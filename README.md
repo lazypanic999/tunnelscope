@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
+**Status: v0.1 installable prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No public package release is available.**
 
 ## The problem
 
@@ -35,10 +35,22 @@ Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible 
 
 For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](docs/demo.md).
 The [two-VM validation record](docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
+The [v0.1 scope](docs/v0.1-scope.md) lists what the installable prototype does and does not cover.
+
+## Install locally
+
+From the repository root, in a Python 3.10+ virtual environment:
+
+```sh
+python3 -m pip install .
+tunnelscope --help
+```
+
+The package installs the `tunnelscope` command. It has no third-party runtime dependencies. Building it requires setuptools; no package has been published to PyPI. The laboratory scripts still run from a source checkout.
 
 ## Getting started
 
-Requires Python 3.10 or newer. No third-party packages are needed. Start with a local experiment in two terminals, from the repository directory.
+Requires Python 3.10 or newer. No third-party runtime packages are needed. Start with a local experiment in two terminals, from the repository directory. Use `tunnelscope` in place of `python tunnelscope.py` after installing the package.
 
 Terminal 1 (receiver):
 

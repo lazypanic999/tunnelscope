@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tunnelscope"
+version = "0.1.0"
+description = "Evidence-based MTU and packet-size diagnostics for Linux networks"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["network", "mtu", "pmtu", "diagnostics"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+[project.urls]
+Repository = "https://github.com/lazypanic999/tunnelscope"
+
+[project.scripts]
+tunnelscope = "tunnelscope:main"
+
+[tool.setuptools]
+py-modules = ["tunnelscope"]

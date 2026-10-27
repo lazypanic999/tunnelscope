@@ -5,3 +5,6 @@ reports/
 /report.json
 /mtu-boundary.json
 /output/
+/build/
+/dist/
+*.egg-info/

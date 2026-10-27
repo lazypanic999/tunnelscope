@@ -1,0 +1,4 @@
+include tunnelscope-logo-blue.png
+recursive-include docs *.md *.png
+recursive-include examples *.json
+recursive-include labs *.py

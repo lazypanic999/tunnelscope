@@ -1,6 +1,7 @@
 """Small, bounded UDP delivery experiments. This is not an MTU detector yet."""
 
 import argparse
+from datetime import datetime, timezone
 import errno
 import json
 import secrets
@@ -19,6 +20,10 @@ IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
 IP_MTU = getattr(socket, "IP_MTU", 14)
 SIOCGIFADDR = 0x8915
 SIOCGIFMTU = 0x8921
+
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
 
 
 def require_df_support(dont_fragment):
@@ -64,22 +69,29 @@ def sizes_arg(value):
 
 def receive(bind, port, max_packets, idle_timeout, output=None):
     observations = []
+    exit_reason = "max_packets"
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.bind((bind, port))
         sock.settimeout(idle_timeout)
+        started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
         try:
             for _ in range(max_packets):
                 try:
                     data, peer = sock.recvfrom(8193)
                 except socket.timeout:
+                    exit_reason = "idle_timeout"
                     break
                 if not 32 <= len(data) <= 8192:
                     continue
                 magic, token, declared_size = HEADER.unpack_from(data)
                 if magic != MAGIC or declared_size != len(data):
                     continue
-                observation = {"probe_id": token.hex(), "payload_bytes": len(data), "source_ipv4": peer[0]}
+                observation = {
+                    "probe_id": token.hex(), "run_id": data[HEADER.size:HEADER.size + 8].hex(),
+                    "payload_bytes": len(data), "source_ipv4": peer[0],
+                    "received_at_utc": utc_now(),
+                }
                 observations.append(observation)
                 # A fixed small acknowledgement does not echo the large payload.
                 try:
@@ -88,12 +100,21 @@ def receive(bind, port, max_packets, idle_timeout, output=None):
                 except OSError as error:
                     observation["ack_send_status"] = "socket_error"
                     observation["ack_send_errno"] = error.errno
+        except KeyboardInterrupt:
+            exit_reason = "interrupted"
+            raise
+        except OSError:
+            exit_reason = "socket_error"
+            raise
         finally:
             if output is not None:
                 report = {
                     "schema_version": 1,
                     "kind": "receiver_observations",
                     "receiver": {"bind_ipv4": sock.getsockname()[0], "port": sock.getsockname()[1]},
+                    "started_at_utc": started_at_utc,
+                    "finished_at_utc": utc_now(),
+                    "exit_reason": exit_reason,
                     "observations": observations,
                     "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
                 }
@@ -180,13 +201,15 @@ def source_snapshot(sock):
 
 def probe(host, port, sizes, count, timeout, dont_fragment=False):
     require_df_support(dont_fragment)
+    started_at_utc = utc_now()
+    run_id = secrets.token_bytes(8)
     address = socket.gethostbyname(host)
     results = []
     source = None
     for size in sizes:
         for attempt in range(1, count + 1):
             token = secrets.token_bytes(16)
-            payload = HEADER.pack(MAGIC, token, size) + bytes(size - HEADER.size)
+            payload = HEADER.pack(MAGIC, token, size) + run_id + bytes(size - HEADER.size - len(run_id))
             result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
             # A new connected socket isolates replies from earlier attempts.
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -218,6 +241,9 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
     return {
         "schema_version": 1,
         "kind": "probe",
+        "run_id": run_id.hex(),
+        "started_at_utc": started_at_utc,
+        "finished_at_utc": utc_now(),
         "source": source,
         "target": {"host": host, "ipv4": address, "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
@@ -244,8 +270,34 @@ def correlate_reports(probe_report, receiver_report):
             bytes.fromhex(row["probe_id"])
         except ValueError as error:
             raise ValueError("reports need hexadecimal probe IDs") from error
+    for row in received:
+        value = row.get("run_id")
+        if value is not None:
+            if not isinstance(value, str) or len(value) != 16:
+                raise ValueError("invalid receiver run ID")
+            try:
+                bytes.fromhex(value)
+            except ValueError as error:
+                raise ValueError("invalid receiver run ID") from error
     if len({row["probe_id"] for row in sent}) != len(sent) or len({row["probe_id"] for row in received}) != len(received):
         raise ValueError("duplicate probe ID in report")
+    run_id = probe_report.get("run_id")
+    if run_id is not None:
+        if not isinstance(run_id, str) or len(run_id) != 16:
+            raise ValueError("invalid probe run ID")
+        try:
+            bytes.fromhex(run_id)
+        except ValueError as error:
+            raise ValueError("invalid probe run ID") from error
+    receiver_run_ids = {row.get("run_id") for row in received}
+    if run_id is None or (received and None in receiver_run_ids):
+        run_id_check = "unavailable_legacy_report"
+    elif not received:
+        run_id_check = "unverified_no_receiver_observations"
+    elif run_id not in receiver_run_ids:
+        raise ValueError("receiver report has observations from a different run")
+    else:
+        run_id_check = "matched"
     observations = {row["probe_id"]: row for row in received}
     sent_ids = {row["probe_id"] for row in sent}
     matched = []
@@ -253,6 +305,8 @@ def correlate_reports(probe_report, receiver_report):
         observation = observations.get(row["probe_id"])
         if observation is not None and observation["payload_bytes"] != row["payload_bytes"]:
             raise ValueError("matching probe IDs have different payload sizes")
+        if observation is not None and run_id_check == "matched" and observation["run_id"] != run_id:
+            raise ValueError("matching probe ID has a different run ID")
         matched.append({
             "probe_id": row["probe_id"],
             "payload_bytes": row["payload_bytes"],
@@ -260,9 +314,25 @@ def correlate_reports(probe_report, receiver_report):
             "receiver_observed": observation is not None,
             "ack_send_status": observation.get("ack_send_status") if observation else None,
         })
+    target = probe_report.get("target")
+    receiver = receiver_report.get("receiver")
+    target = target if isinstance(target, dict) else {}
+    receiver = receiver if isinstance(receiver, dict) else {}
+    target_ip, bind_ip = target.get("ipv4"), receiver.get("bind_ipv4")
+    endpoint_checks = {
+        "target_port_matches_receiver": target.get("port") == receiver.get("port") if isinstance(target.get("port"), int) and isinstance(receiver.get("port"), int) else None,
+        "target_ipv4_matches_receiver_bind": target_ip == bind_ip if isinstance(target_ip, str) and isinstance(bind_ip, str) and bind_ip != "0.0.0.0" else None,
+    }
     return {
         "schema_version": 1,
         "kind": "probe_receiver_correlation",
+        "pairing": {
+            "run_id_check": run_id_check,
+            "endpoint_checks": endpoint_checks,
+            "probe_window_utc": [probe_report.get("started_at_utc"), probe_report.get("finished_at_utc")],
+            "receiver_window_utc": [receiver_report.get("started_at_utc"), receiver_report.get("finished_at_utc")],
+            "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized",
+        },
         "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery.",
         "summary": {
             "sent_probes": len(sent),

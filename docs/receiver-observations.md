@@ -2,8 +2,9 @@
 
 In v0.2, a cooperating receiver can save the probe IDs and payload sizes it
 observed. The sender also includes each 128-bit random probe ID in its JSON
-results. Correlation answers whether that particular probe reached the receiver
-and whether the receiver attempted to send an acknowledgement.
+results. From v0.2.1, the sender puts one random run ID in every payload, and
+both reports record it. Correlation answers whether a particular probe reached
+the receiver and whether the receiver attempted to send an acknowledgement.
 
 Start the receiver on endpoint B and give it an output path:
 
@@ -37,7 +38,18 @@ filtered, sent to another endpoint or missed because capture started late.
 `unmatched_receiver_observations` counts valid probes seen by the receiver that
 were not present in the sender file. It can reveal a mixed or incorrect pairing.
 
+`pairing.run_id_check` is `matched` when the receiver observed this sender run.
+The command rejects a receiver file containing only observations from another
+run. An empty receiver file cannot establish which run it covered and is marked
+`unverified_no_receiver_observations`. `pairing.endpoint_checks` compares the
+target port and, unless the receiver bound to `0.0.0.0`, the target IPv4 address.
+Mismatches need review; address translation can legitimately change them.
+The two UTC capture windows and the receiver's `exit_reason` help review
+coverage, but the command does not compare clocks across hosts because they
+may be unsynchronized.
+
 The reports are unauthenticated. Use them only in a controlled environment and
 pair the files from the same run. Reports created before v0.2 do not contain
-probe IDs and cannot be correlated. Receiver observation is complementary to
+probe IDs and cannot be correlated. v0.2 reports can still be correlated by
+probe ID, but their run ID check is unavailable. Receiver observation is complementary to
 running probes in the reverse direction; it does not replace that test.

@@ -149,6 +149,12 @@ class DeliveryTests(unittest.TestCase):
                 correlation = json.loads(correlation_path.read_text(encoding="utf-8"))
                 self.assertEqual([row["probe_id"] for row in probe["results"]],
                                  [row["probe_id"] for row in receiver["observations"]])
+                self.assertEqual({row["run_id"] for row in receiver["observations"]}, {probe["run_id"]})
+                self.assertEqual(correlation["pairing"]["run_id_check"], "matched")
+                self.assertTrue(correlation["pairing"]["endpoint_checks"]["target_port_matches_receiver"])
+                self.assertTrue(correlation["pairing"]["endpoint_checks"]["target_ipv4_matches_receiver_bind"])
+                self.assertLessEqual(probe["started_at_utc"], probe["finished_at_utc"])
+                self.assertLessEqual(receiver["started_at_utc"], receiver["finished_at_utc"])
                 self.assertEqual(correlation["summary"], {
                     "sent_probes": 2, "receiver_observed": 2,
                     "timed_out_but_receiver_observed": 0,
@@ -176,6 +182,19 @@ class DeliveryTests(unittest.TestCase):
         receiver["observations"][0]["payload_bytes"] = 64
         with self.assertRaisesRegex(ValueError, "different payload sizes"):
             tunnelscope.correlate_reports(probe, receiver)
+
+    def test_correlation_rejects_receiver_report_from_different_run(self):
+        probe = {"schema_version": 1, "run_id": "11" * 8, "results": [
+            {"probe_id": "ab" * 16, "payload_bytes": 64, "status": "timeout"},
+        ]}
+        receiver = {"schema_version": 1, "kind": "receiver_observations", "observations": [
+            {"probe_id": "cd" * 16, "run_id": "22" * 8, "payload_bytes": 64},
+        ]}
+        with self.assertRaisesRegex(ValueError, "different run"):
+            tunnelscope.correlate_reports(probe, receiver)
+        receiver["observations"] = []
+        result = tunnelscope.correlate_reports(probe, receiver)
+        self.assertEqual(result["pairing"]["run_id_check"], "unverified_no_receiver_observations")
 
 
 if __name__ == "__main__":

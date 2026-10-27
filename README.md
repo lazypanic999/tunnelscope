@@ -38,6 +38,7 @@ For a quick walkthrough of both controlled failure modes, see the [two-minute Li
 The [two-VM validation record](docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
 The [v0.1 scope](docs/v0.1-scope.md) lists what the installable prototype does and does not cover.
 The [v0.2 receiver workflow](docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
+The [two-VM correlation record](docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
 
 ## Install locally
 

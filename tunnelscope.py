@@ -79,6 +79,25 @@ def receive(bind, port, max_packets, idle_timeout):
             sock.sendto(HEADER.pack(ACK, token, len(data)), peer)
 
 
+def summarize_results(sizes, results):
+    """Keep delivery, explicit errors and missing replies distinct per payload size."""
+    summary = []
+    for size in dict.fromkeys(sizes):
+        counts = {status: 0 for status in ("acknowledged", "packet_too_large", "timeout", "socket_error")}
+        for result in results:
+            if result["payload_bytes"] == size:
+                counts[result["status"]] += 1
+        observed = [status for status, count in counts.items() if count]
+        assessment = {
+            "acknowledged": "delivery_observed",
+            "packet_too_large": "kernel_rejected_df_payload",
+            "timeout": "inconclusive",
+            "socket_error": "socket_error",
+        }[observed[0]] if len(observed) == 1 else "mixed_observations"
+        summary.append({"payload_bytes": size, "status_counts": counts, "assessment": assessment})
+    return summary
+
+
 def probe(host, port, sizes, count, timeout, dont_fragment=False):
     require_df_support(dont_fragment)
     address = socket.gethostbyname(host)
@@ -118,6 +137,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
         "fragmentation": "disabled: Linux IP_PMTUDISC_DO" if dont_fragment else "OS default; fragmentation behavior is not controlled",
         "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
+        "summary": {"by_payload_size": summarize_results(sizes, results)},
         "results": results,
     }
 

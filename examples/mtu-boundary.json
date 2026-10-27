@@ -55,7 +55,51 @@
           "kernel_reported_mtu_bytes": 1280
         }
       ],
-      "direction": "a-to-b"
+      "direction": "a-to-b",
+      "summary": {
+        "by_payload_size": [
+          {
+            "payload_bytes": 64,
+            "status_counts": {
+              "acknowledged": 1,
+              "packet_too_large": 0,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "delivery_observed"
+          },
+          {
+            "payload_bytes": 1252,
+            "status_counts": {
+              "acknowledged": 1,
+              "packet_too_large": 0,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "delivery_observed"
+          },
+          {
+            "payload_bytes": 1253,
+            "status_counts": {
+              "acknowledged": 0,
+              "packet_too_large": 1,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "kernel_rejected_df_payload"
+          },
+          {
+            "payload_bytes": 1400,
+            "status_counts": {
+              "acknowledged": 0,
+              "packet_too_large": 1,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "kernel_rejected_df_payload"
+          }
+        ]
+      }
     },
     {
       "schema_version": 1,
@@ -107,7 +151,51 @@
           "kernel_reported_mtu_bytes": 1280
         }
       ],
-      "direction": "b-to-a"
+      "direction": "b-to-a",
+      "summary": {
+        "by_payload_size": [
+          {
+            "payload_bytes": 64,
+            "status_counts": {
+              "acknowledged": 1,
+              "packet_too_large": 0,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "delivery_observed"
+          },
+          {
+            "payload_bytes": 1252,
+            "status_counts": {
+              "acknowledged": 1,
+              "packet_too_large": 0,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "delivery_observed"
+          },
+          {
+            "payload_bytes": 1253,
+            "status_counts": {
+              "acknowledged": 0,
+              "packet_too_large": 1,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "kernel_rejected_df_payload"
+          },
+          {
+            "payload_bytes": 1400,
+            "status_counts": {
+              "acknowledged": 0,
+              "packet_too_large": 1,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "assessment": "kernel_rejected_df_payload"
+          }
+        ]
+      }
     }
   ]
 }

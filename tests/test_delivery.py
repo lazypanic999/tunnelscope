@@ -21,6 +21,7 @@ class DeliveryTests(unittest.TestCase):
             report = tunnelscope.probe("127.0.0.1", port, [32, 1400, 8192], 1, 1)
             self.assertEqual([r["status"] for r in report["results"]], ["acknowledged"] * 3)
             self.assertEqual([r["payload_bytes"] for r in report["results"]], [32, 1400, 8192])
+            self.assertEqual([row["assessment"] for row in report["summary"]["by_payload_size"]], ["delivery_observed"] * 3)
             self.assertEqual(json.loads(json.dumps(report))["schema_version"], 1)
             self.assertEqual(process.wait(timeout=4), 0)
         finally:
@@ -42,6 +43,7 @@ class DeliveryTests(unittest.TestCase):
             try:
                 report = tunnelscope.probe("127.0.0.1", server.getsockname()[1], [64], 1, 1)
                 self.assertEqual(report["results"][0]["status"], "timeout")
+                self.assertEqual(report["summary"]["by_payload_size"][0]["assessment"], "inconclusive")
             finally:
                 worker.join(timeout=4)
 
@@ -49,6 +51,20 @@ class DeliveryTests(unittest.TestCase):
         result = subprocess.run([sys.executable, str(Path(tunnelscope.__file__)), "probe", "127.0.0.1", "--sizes", "99999"], capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 2)
         self.assertIn("32..8192", result.stderr)
+
+    def test_summary_keeps_mixed_outcomes_and_repeated_sizes(self):
+        results = [
+            {"payload_bytes": 64, "status": "acknowledged"},
+            {"payload_bytes": 64, "status": "timeout"},
+            {"payload_bytes": 1400, "status": "packet_too_large"},
+            {"payload_bytes": 1400, "status": "socket_error"},
+        ]
+        summary = tunnelscope.summarize_results([64, 1400, 64], results)
+        self.assertEqual([row["payload_bytes"] for row in summary], [64, 1400])
+        self.assertEqual([row["assessment"] for row in summary], ["mixed_observations"] * 2)
+        self.assertEqual(summary[0]["status_counts"], {
+            "acknowledged": 1, "packet_too_large": 0, "timeout": 1, "socket_error": 0,
+        })
 
 
 if __name__ == "__main__":

@@ -57,6 +57,7 @@ class FragmentationTests(unittest.TestCase):
         self.assertEqual(len(report["directions"]), 2)
         for direction in report["directions"]:
             self.assertEqual([r["status"] for r in direction["results"]], ["acknowledged", "acknowledged", "packet_too_large", "packet_too_large"])
+            self.assertEqual([row["assessment"] for row in direction["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "kernel_rejected_df_payload", "kernel_rejected_df_payload"])
 
 
 if __name__ == "__main__":

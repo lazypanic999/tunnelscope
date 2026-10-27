@@ -17,6 +17,8 @@ ACK = b"TA01"
 IP_MTU_DISCOVER = getattr(socket, "IP_MTU_DISCOVER", 10)
 IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
 IP_MTU = getattr(socket, "IP_MTU", 14)
+SIOCGIFADDR = 0x8915
+SIOCGIFMTU = 0x8921
 
 
 def require_df_support(dont_fragment):
@@ -98,10 +100,40 @@ def summarize_results(sizes, results):
     return summary
 
 
+def source_snapshot(sock):
+    """Capture sender-side route and interface facts after connecting a socket."""
+    source = {"ipv4": sock.getsockname()[0]}
+    if not sys.platform.startswith("linux"):
+        return source
+    try:
+        source["kernel_route_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
+    except OSError:
+        pass
+    try:
+        import fcntl
+        for _, name in socket.if_nameindex():
+            request = struct.pack("256s", name.encode())
+            try:
+                address = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), SIOCGIFADDR, request)[20:24])
+            except OSError:
+                continue
+            if address == source["ipv4"]:
+                source["interface"] = name
+                try:
+                    source["interface_mtu_bytes"] = struct.unpack_from("I", fcntl.ioctl(sock.fileno(), SIOCGIFMTU, request), 16)[0]
+                except OSError:
+                    pass
+                break
+    except OSError:
+        pass
+    return source
+
+
 def probe(host, port, sizes, count, timeout, dont_fragment=False):
     require_df_support(dont_fragment)
     address = socket.gethostbyname(host)
     results = []
+    source = None
     for size in sizes:
         for attempt in range(1, count + 1):
             token = secrets.token_bytes(16)
@@ -113,6 +145,8 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
                 configure_fragmentation(sock, dont_fragment)
                 try:
                     sock.connect((address, port))
+                    if source is None:
+                        source = source_snapshot(sock)
                     start = time.monotonic()
                     deadline = start + timeout
                     sock.send(payload)
@@ -133,12 +167,65 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
             time.sleep(0.05)
     return {
         "schema_version": 1,
+        "source": source,
         "target": {"host": host, "ipv4": address, "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
         "fragmentation": "disabled: Linux IP_PMTUDISC_DO" if dont_fragment else "OS default; fragmentation behavior is not controlled",
         "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
         "summary": {"by_payload_size": summarize_results(sizes, results)},
         "results": results,
+    }
+
+
+def combine_reports(a_to_b, b_to_a):
+    """Keep two independently gathered directions and their outcomes separate."""
+    for label, report in (("a-to-b", a_to_b), ("b-to-a", b_to_a)):
+        if not isinstance(report, dict) or report.get("schema_version") != 1:
+            raise ValueError(f"{label}: expected a schema_version 1 probe report")
+        if not isinstance(report.get("target"), dict) or not isinstance(report.get("results"), list):
+            raise ValueError(f"{label}: missing probe target or results")
+        summary = report.get("summary")
+        if not isinstance(summary, dict) or not isinstance(summary.get("by_payload_size"), list):
+            raise ValueError(f"{label}: missing per-size summary")
+        if any(
+            not isinstance(row, dict)
+            or not isinstance(row.get("payload_bytes"), int)
+            or not isinstance(row.get("assessment"), str)
+            for row in summary["by_payload_size"]
+        ):
+            raise ValueError(f"{label}: invalid per-size summary")
+    sizes = dict.fromkeys(
+        row["payload_bytes"]
+        for report in (a_to_b, b_to_a)
+        for row in report["summary"]["by_payload_size"]
+    )
+    assessments = []
+    for size in sizes:
+        row = {"payload_bytes": size}
+        for label, report in (("a_to_b", a_to_b), ("b_to_a", b_to_a)):
+            match = next((item for item in report["summary"]["by_payload_size"] if item["payload_bytes"] == size), None)
+            row[label] = match["assessment"] if match else None
+        assessments.append(row)
+    first_source, second_source = a_to_b.get("source"), b_to_a.get("source")
+    if (isinstance(first_source, dict) and isinstance(second_source, dict)
+            and isinstance(first_source.get("ipv4"), str) and isinstance(second_source.get("ipv4"), str)):
+        reversed_endpoints = (
+            first_source.get("ipv4") == b_to_a["target"].get("ipv4")
+            and second_source.get("ipv4") == a_to_b["target"].get("ipv4")
+        )
+        endpoint_check = "reversed_ipv4_match" if reversed_endpoints else "ipv4_mismatch_or_translation"
+    else:
+        endpoint_check = "unavailable"
+    return {
+        "schema_version": 1,
+        "kind": "bidirectional_comparison",
+        "endpoint_check": endpoint_check,
+        "interpretation": "Each direction is a separate delivery experiment. A timeout remains inconclusive; differing outcomes do not by themselves identify the cause.",
+        "comparison": {"by_payload_size": assessments},
+        "directions": [
+            {"direction": "a-to-b", "report": a_to_b},
+            {"direction": "b-to-a", "report": b_to_a},
+        ],
     }
 
 
@@ -158,13 +245,22 @@ def main():
     sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     sender.add_argument("--output", type=Path)
     sender.add_argument("--dont-fragment", action="store_true", help="Linux IPv4 only: set DF and reject datagrams above the known path MTU")
+    combined = commands.add_parser("combine", help="combine two independently measured directions")
+    combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
+    combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
+    combined.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         if args.command == "receive":
             receive(args.bind, args.port, args.max_packets, args.idle_timeout)
-        else:
+        elif args.command == "probe":
             require_df_support(args.dont_fragment)
             report = probe(args.host, args.port, args.sizes, args.count, args.timeout, args.dont_fragment)
+        else:
+            a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
+            b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
+            report = combine_reports(a_to_b, b_to_a)
+        if args.command != "receive":
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")

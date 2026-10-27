@@ -2,6 +2,8 @@
 
 Recorded on 2026-10-24 using Python 3.12.3 and Linux kernel
 6.6.87.2-microsoft-standard-WSL2 (Ubuntu on WSL2).
+The example JSON was recaptured on 2026-10-27 to include sender-side source
+and interface metadata; the boundary outcomes were unchanged.
 
 ## Setup
 

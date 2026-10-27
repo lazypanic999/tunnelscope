@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
+**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
 
 ## The problem
 
@@ -55,9 +55,19 @@ The receiver exits after 100 datagrams or 30 seconds without a datagram. Restart
 
 Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
 
+Each probe report includes a `source` snapshot taken from the first connected sender socket. It records the local IPv4 address. On Linux, it also records the selected interface and its link MTU when discoverable, plus `kernel_route_mtu_bytes` when the kernel supplies it. The link MTU and kernel route MTU are different facts; neither is an independently measured end-to-end path MTU. A failed connection may leave `source` as `null`, and optional fields may be absent.
+
 `acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
 
 JSON reports also include `summary.by_payload_size`. Each entry counts `acknowledged`, `packet_too_large`, `timeout` and `socket_error` attempts separately. Its `assessment` is `delivery_observed`, `kernel_rejected_df_payload`, `inconclusive`, `socket_error` or `mixed_observations`. Repeated payload sizes share one entry, while individual attempts remain in `results`. The summary does not infer an exact path MTU or turn a timeout into a diagnosis.
+
+To compare directions, run `probe` once from A to B and once from B to A, then combine the two JSON files:
+
+```sh
+python tunnelscope.py combine a-to-b.json b-to-a.json --output bidirectional.json
+```
+
+The command preserves the two reports and aligns per-size assessments; it does not initiate a remote measurement. See the [two-endpoint workflow](docs/bidirectional.md) for the receiver and sender steps. `endpoint_check` compares the recorded IPv4 addresses but cannot authenticate endpoints or account for address translation.
 
 ### Linux IPv4 Don't Fragment mode
 

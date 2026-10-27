@@ -4,3 +4,4 @@ __pycache__/
 reports/
 /report.json
 /mtu-boundary.json
+/output/

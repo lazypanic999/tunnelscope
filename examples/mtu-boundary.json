@@ -7,6 +7,12 @@
   "directions": [
     {
       "schema_version": 1,
+      "source": {
+        "ipv4": "192.0.2.1",
+        "kernel_route_mtu_bytes": 1280,
+        "interface": "ts-a",
+        "interface_mtu_bytes": 1280
+      },
       "target": {
         "host": "192.0.2.2",
         "ipv4": "192.0.2.2",
@@ -25,37 +31,6 @@
       },
       "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
       "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
-      "results": [
-        {
-          "payload_bytes": 64,
-          "attempt": 1,
-          "status": "acknowledged",
-          "rtt_ms": 0.205
-        },
-        {
-          "payload_bytes": 1252,
-          "attempt": 1,
-          "status": "acknowledged",
-          "rtt_ms": 0.241
-        },
-        {
-          "payload_bytes": 1253,
-          "attempt": 1,
-          "status": "packet_too_large",
-          "error": "[Errno 90] Message too long",
-          "errno": 90,
-          "kernel_reported_mtu_bytes": 1280
-        },
-        {
-          "payload_bytes": 1400,
-          "attempt": 1,
-          "status": "packet_too_large",
-          "error": "[Errno 90] Message too long",
-          "errno": 90,
-          "kernel_reported_mtu_bytes": 1280
-        }
-      ],
-      "direction": "a-to-b",
       "summary": {
         "by_payload_size": [
           {
@@ -99,10 +74,47 @@
             "assessment": "kernel_rejected_df_payload"
           }
         ]
-      }
+      },
+      "results": [
+        {
+          "payload_bytes": 64,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.435
+        },
+        {
+          "payload_bytes": 1252,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.327
+        },
+        {
+          "payload_bytes": 1253,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        },
+        {
+          "payload_bytes": 1400,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        }
+      ],
+      "direction": "a-to-b"
     },
     {
       "schema_version": 1,
+      "source": {
+        "ipv4": "192.0.2.2",
+        "kernel_route_mtu_bytes": 1280,
+        "interface": "ts-b",
+        "interface_mtu_bytes": 1280
+      },
       "target": {
         "host": "192.0.2.1",
         "ipv4": "192.0.2.1",
@@ -121,37 +133,6 @@
       },
       "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
       "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
-      "results": [
-        {
-          "payload_bytes": 64,
-          "attempt": 1,
-          "status": "acknowledged",
-          "rtt_ms": 0.17
-        },
-        {
-          "payload_bytes": 1252,
-          "attempt": 1,
-          "status": "acknowledged",
-          "rtt_ms": 0.416
-        },
-        {
-          "payload_bytes": 1253,
-          "attempt": 1,
-          "status": "packet_too_large",
-          "error": "[Errno 90] Message too long",
-          "errno": 90,
-          "kernel_reported_mtu_bytes": 1280
-        },
-        {
-          "payload_bytes": 1400,
-          "attempt": 1,
-          "status": "packet_too_large",
-          "error": "[Errno 90] Message too long",
-          "errno": 90,
-          "kernel_reported_mtu_bytes": 1280
-        }
-      ],
-      "direction": "b-to-a",
       "summary": {
         "by_payload_size": [
           {
@@ -195,7 +176,38 @@
             "assessment": "kernel_rejected_df_payload"
           }
         ]
-      }
+      },
+      "results": [
+        {
+          "payload_bytes": 64,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.253
+        },
+        {
+          "payload_bytes": 1252,
+          "attempt": 1,
+          "status": "acknowledged",
+          "rtt_ms": 0.326
+        },
+        {
+          "payload_bytes": 1253,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        },
+        {
+          "payload_bytes": 1400,
+          "attempt": 1,
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280
+        }
+      ],
+      "direction": "b-to-a"
     }
   ]
 }

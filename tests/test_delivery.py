@@ -2,6 +2,7 @@ import json
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -21,6 +22,7 @@ class DeliveryTests(unittest.TestCase):
             report = tunnelscope.probe("127.0.0.1", port, [32, 1400, 8192], 1, 1)
             self.assertEqual([r["status"] for r in report["results"]], ["acknowledged"] * 3)
             self.assertEqual([r["payload_bytes"] for r in report["results"]], [32, 1400, 8192])
+            self.assertEqual(report["source"]["ipv4"], "127.0.0.1")
             self.assertEqual([row["assessment"] for row in report["summary"]["by_payload_size"]], ["delivery_observed"] * 3)
             self.assertEqual(json.loads(json.dumps(report))["schema_version"], 1)
             self.assertEqual(process.wait(timeout=4), 0)
@@ -65,6 +67,43 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(summary[0]["status_counts"], {
             "acknowledged": 1, "packet_too_large": 0, "timeout": 1, "socket_error": 0,
         })
+
+    def test_combine_preserves_both_directions_and_unmatched_sizes(self):
+        forward = {
+            "schema_version": 1, "source": {"ipv4": "192.0.2.1"},
+            "target": {"ipv4": "192.0.2.2"}, "results": [],
+            "summary": {"by_payload_size": [
+                {"payload_bytes": 64, "assessment": "delivery_observed"},
+                {"payload_bytes": 1400, "assessment": "inconclusive"},
+            ]},
+        }
+        reverse = {
+            "schema_version": 1, "source": {"ipv4": "192.0.2.2"},
+            "target": {"ipv4": "192.0.2.1"}, "results": [],
+            "summary": {"by_payload_size": [
+                {"payload_bytes": 64, "assessment": "delivery_observed"},
+            ]},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            first, second, output = (Path(directory) / name for name in ("a.json", "b.json", "combined.json"))
+            first.write_text(json.dumps(forward), encoding="utf-8")
+            second.write_text(json.dumps(reverse), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(Path(tunnelscope.__file__)), "combine", str(first), str(second), "--output", str(output)],
+                capture_output=True, text=True, timeout=5,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            combined = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
+        self.assertEqual([row["direction"] for row in combined["directions"]], ["a-to-b", "b-to-a"])
+        self.assertEqual(combined["comparison"]["by_payload_size"], [
+            {"payload_bytes": 64, "a_to_b": "delivery_observed", "b_to_a": "delivery_observed"},
+            {"payload_bytes": 1400, "a_to_b": "inconclusive", "b_to_a": None},
+        ])
+
+    def test_combine_rejects_non_probe_input(self):
+        with self.assertRaisesRegex(ValueError, "schema_version 1 probe report"):
+            tunnelscope.combine_reports({}, {})
 
 
 if __name__ == "__main__":

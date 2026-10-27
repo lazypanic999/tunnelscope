@@ -59,6 +59,11 @@ class FragmentationTests(unittest.TestCase):
         for direction in report["directions"]:
             self.assertEqual([r["status"] for r in direction["results"]], ["acknowledged", "acknowledged", "packet_too_large", "packet_too_large"])
             self.assertEqual([row["assessment"] for row in direction["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "kernel_rejected_df_payload", "kernel_rejected_df_payload"])
+            self.assertEqual(direction["source"]["interface_mtu_bytes"], 1280)
+            self.assertIn(direction["source"]["interface"], ("ts-a", "ts-b"))
+        combined = tunnelscope.combine_reports(*report["directions"])
+        self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
+        self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")
 
     @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
     def test_routed_blackhole_keeps_timeouts_inconclusive(self):

@@ -8,6 +8,12 @@
   "interpretation": "Small probes were acknowledged; large probes timed out with ICMP feedback blocked. A timeout alone does not identify the cause on an unknown path.",
   "probe": {
     "schema_version": 1,
+    "source": {
+      "ipv4": "192.0.2.1",
+      "kernel_route_mtu_bytes": 1500,
+      "interface": "ts-s",
+      "interface_mtu_bytes": 1500
+    },
     "target": {
       "host": "198.51.100.2",
       "ipv4": "198.51.100.2",
@@ -75,13 +81,13 @@
         "payload_bytes": 64,
         "attempt": 1,
         "status": "acknowledged",
-        "rtt_ms": 0.189
+        "rtt_ms": 0.367
       },
       {
         "payload_bytes": 1252,
         "attempt": 1,
         "status": "acknowledged",
-        "rtt_ms": 0.162
+        "rtt_ms": 0.185
       },
       {
         "payload_bytes": 1253,

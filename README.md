@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="tunnelscope-logo.png" alt="TunnelScope monochrome vortex emblem" width="200">
+  <img src="tunnelscope-logo.png" alt="TunnelScope blue compass and vortex logo" width="400">
 </p>
 
 # TunnelScope

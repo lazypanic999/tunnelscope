@@ -43,6 +43,9 @@ The known router configuration explains why larger DF probes do not reach the
 receiver and why the sender receives no packet-too-large feedback. The probe
 report still labels these outcomes `timeout` and `inconclusive`: the same
 observation on an unknown path would not prove an MTU problem.
+The probe's evidence section lists a possible PMTU-feedback black hole as a
+hypothesis and asks for ICMP and receiver/path observations; the lab's known
+topology and blocked-rule counter supply context unavailable to a normal probe.
 
 This is a controlled Linux demonstration, not evidence that TunnelScope can
 automatically find a path MTU or diagnose a black hole in an arbitrary network.

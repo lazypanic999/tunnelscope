@@ -48,6 +48,8 @@ with `a-to-b` and `b-to-a` labels supplied by the command order. Its
 `comparison.by_payload_size` aligns each direction's assessment for the same
 UDP payload size. A missing size has a `null` assessment. The command does not
 turn two timeouts into a diagnosis.
+Each embedded report's `evidence` describes that one run; `combine` preserves
+it without retroactively treating the other file as verified evidence.
 
 `endpoint_check` is `reversed_ipv4_match` when both recorded source IPv4
 addresses equal the opposite report's target address. It is

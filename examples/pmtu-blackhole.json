@@ -76,18 +76,67 @@
         }
       ]
     },
+    "evidence": {
+      "observations": [
+        {
+          "payload_bytes": 64,
+          "status": "acknowledged",
+          "attempts": 1
+        },
+        {
+          "payload_bytes": 1252,
+          "status": "acknowledged",
+          "attempts": 1
+        },
+        {
+          "payload_bytes": 1253,
+          "status": "timeout",
+          "attempts": 1
+        },
+        {
+          "payload_bytes": 1400,
+          "status": "timeout",
+          "attempts": 1
+        }
+      ],
+      "hypotheses": [
+        {
+          "code": "size_related_delivery_problem_possible",
+          "basis": {
+            "largest_acknowledged_payload_bytes": 1252,
+            "smallest_timed_out_payload_bytes": 1253
+          }
+        },
+        {
+          "code": "pmtu_feedback_black_hole_possible",
+          "basis": {
+            "largest_acknowledged_payload_bytes": 1252,
+            "smallest_timed_out_payload_bytes": 1253
+          },
+          "alternatives": [
+            "size_dependent_filtering",
+            "ordinary_packet_loss"
+          ]
+        }
+      ],
+      "missing_evidence": [
+        "same_sized_reverse_payload_test",
+        "receiver_or_path_packet_observation",
+        "icmp_feedback_observation"
+      ]
+    },
     "results": [
       {
         "payload_bytes": 64,
         "attempt": 1,
         "status": "acknowledged",
-        "rtt_ms": 0.367
+        "rtt_ms": 0.357
       },
       {
         "payload_bytes": 1252,
         "attempt": 1,
         "status": "acknowledged",
-        "rtt_ms": 0.185
+        "rtt_ms": 0.32
       },
       {
         "payload_bytes": 1253,

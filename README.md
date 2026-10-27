@@ -22,7 +22,7 @@ TunnelScope aims to help network engineers, system administrators and learners i
 - JSON reports containing probe sizes, outcomes, relevant interface information and test settings.
 - A reproducible Linux lab demonstrating healthy delivery, explicit packet-too-large feedback and a possible PMTU black hole.
 
-A failed probe alone will not be labeled as proof of an MTU problem. Reports will separate observations, hypotheses and missing evidence. An observed working packet size will not automatically be presented as the exact path MTU.
+A failed probe alone will not be labeled as proof of an MTU problem. Reports separate observations, hypotheses and missing evidence. An observed working packet size is not presented as the exact path MTU.
 
 ## Milestones
 
@@ -60,6 +60,8 @@ Each probe report includes a `source` snapshot taken from the first connected se
 `acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
 
 JSON reports also include `summary.by_payload_size`. Each entry counts `acknowledged`, `packet_too_large`, `timeout` and `socket_error` attempts separately. Its `assessment` is `delivery_observed`, `kernel_rejected_df_payload`, `inconclusive`, `socket_error` or `mixed_observations`. Repeated payload sizes share one entry, while individual attempts remain in `results`. The summary does not infer an exact path MTU or turn a timeout into a diagnosis.
+
+The `evidence` section lists counted observations, tentative hypotheses and missing checks separately. A clean pattern where every acknowledged size is below every timed-out size suggests a possible size-related delivery problem; in DF mode it also lists a possible PMTU-feedback black hole. Filtering and ordinary loss remain alternative explanations. Mixed or reversed size patterns produce no such hypothesis. Missing evidence calls out same-sized reverse traffic, receiver/path observation for timeouts, ICMP feedback visibility in DF mode and fragmentation control when DF is off. These are prompts for investigation, not automatic root-cause findings.
 
 To compare directions, run `probe` once from A to B and once from B to A, then combine the two JSON files:
 

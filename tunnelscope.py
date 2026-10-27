@@ -100,6 +100,36 @@ def summarize_results(sizes, results):
     return summary
 
 
+def explain_evidence(by_payload_size, dont_fragment):
+    """State observations, tentative size patterns and evidence still needed."""
+    observations = [
+        {"payload_bytes": row["payload_bytes"], "status": status, "attempts": count}
+        for row in by_payload_size
+        for status, count in row["status_counts"].items()
+        if count
+    ]
+    acknowledged = [row["payload_bytes"] for row in by_payload_size if row["status_counts"]["acknowledged"]]
+    timed_out = [row["payload_bytes"] for row in by_payload_size if row["status_counts"]["timeout"]]
+    hypotheses = []
+    if acknowledged and timed_out and max(acknowledged) < min(timed_out):
+        basis = {"largest_acknowledged_payload_bytes": max(acknowledged), "smallest_timed_out_payload_bytes": min(timed_out)}
+        hypotheses.append({"code": "size_related_delivery_problem_possible", "basis": basis})
+        if dont_fragment:
+            hypotheses.append({
+                "code": "pmtu_feedback_black_hole_possible",
+                "basis": basis,
+                "alternatives": ["size_dependent_filtering", "ordinary_packet_loss"],
+            })
+    missing_evidence = ["same_sized_reverse_payload_test"]
+    if timed_out:
+        missing_evidence.append("receiver_or_path_packet_observation")
+        if dont_fragment:
+            missing_evidence.append("icmp_feedback_observation")
+    if not dont_fragment:
+        missing_evidence.append("controlled_fragmentation_behavior")
+    return {"observations": observations, "hypotheses": hypotheses, "missing_evidence": missing_evidence}
+
+
 def source_snapshot(sock):
     """Capture sender-side route and interface facts after connecting a socket."""
     source = {"ipv4": sock.getsockname()[0]}
@@ -165,6 +195,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
                     result.update(socket_failure(error, sock, dont_fragment))
             results.append(result)
             time.sleep(0.05)
+    by_payload_size = summarize_results(sizes, results)
     return {
         "schema_version": 1,
         "source": source,
@@ -172,7 +203,8 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
         "fragmentation": "disabled: Linux IP_PMTUDISC_DO" if dont_fragment else "OS default; fragmentation behavior is not controlled",
         "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
-        "summary": {"by_payload_size": summarize_results(sizes, results)},
+        "summary": {"by_payload_size": by_payload_size},
+        "evidence": explain_evidence(by_payload_size, dont_fragment),
         "results": results,
     }
 

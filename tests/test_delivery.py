@@ -24,6 +24,8 @@ class DeliveryTests(unittest.TestCase):
             self.assertEqual([r["payload_bytes"] for r in report["results"]], [32, 1400, 8192])
             self.assertEqual(report["source"]["ipv4"], "127.0.0.1")
             self.assertEqual([row["assessment"] for row in report["summary"]["by_payload_size"]], ["delivery_observed"] * 3)
+            self.assertEqual(report["evidence"]["hypotheses"], [])
+            self.assertIn("controlled_fragmentation_behavior", report["evidence"]["missing_evidence"])
             self.assertEqual(json.loads(json.dumps(report))["schema_version"], 1)
             self.assertEqual(process.wait(timeout=4), 0)
         finally:
@@ -67,6 +69,16 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(summary[0]["status_counts"], {
             "acknowledged": 1, "packet_too_large": 0, "timeout": 1, "socket_error": 0,
         })
+
+    def test_evidence_does_not_infer_boundary_from_mixed_sizes(self):
+        rows = tunnelscope.summarize_results([64, 1400], [
+            {"payload_bytes": 64, "status": "timeout"},
+            {"payload_bytes": 1400, "status": "acknowledged"},
+        ])
+        evidence = tunnelscope.explain_evidence(rows, True)
+        self.assertEqual(evidence["hypotheses"], [])
+        self.assertIn({"payload_bytes": 64, "status": "timeout", "attempts": 1}, evidence["observations"])
+        self.assertIn("icmp_feedback_observation", evidence["missing_evidence"])
 
     def test_combine_preserves_both_directions_and_unmatched_sizes(self):
         forward = {

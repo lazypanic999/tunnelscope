@@ -61,6 +61,7 @@ class FragmentationTests(unittest.TestCase):
             self.assertEqual([row["assessment"] for row in direction["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "kernel_rejected_df_payload", "kernel_rejected_df_payload"])
             self.assertEqual(direction["source"]["interface_mtu_bytes"], 1280)
             self.assertIn(direction["source"]["interface"], ("ts-a", "ts-b"))
+            self.assertEqual(direction["evidence"]["hypotheses"], [])
         combined = tunnelscope.combine_reports(*report["directions"])
         self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
         self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")
@@ -78,6 +79,9 @@ class FragmentationTests(unittest.TestCase):
         probe = report["probe"]
         self.assertEqual([row["status"] for row in probe["results"]], ["acknowledged", "acknowledged", "timeout", "timeout"])
         self.assertEqual([row["assessment"] for row in probe["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "inconclusive", "inconclusive"])
+        self.assertEqual([item["code"] for item in probe["evidence"]["hypotheses"]], ["size_related_delivery_problem_possible", "pmtu_feedback_black_hole_possible"])
+        self.assertIn("ordinary_packet_loss", probe["evidence"]["hypotheses"][1]["alternatives"])
+        self.assertIn("icmp_feedback_observation", probe["evidence"]["missing_evidence"])
 
 
 if __name__ == "__main__":

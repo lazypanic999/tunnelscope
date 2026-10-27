@@ -75,18 +75,46 @@
           }
         ]
       },
+      "evidence": {
+        "observations": [
+          {
+            "payload_bytes": 64,
+            "status": "acknowledged",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1252,
+            "status": "acknowledged",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1253,
+            "status": "packet_too_large",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1400,
+            "status": "packet_too_large",
+            "attempts": 1
+          }
+        ],
+        "hypotheses": [],
+        "missing_evidence": [
+          "same_sized_reverse_payload_test"
+        ]
+      },
       "results": [
         {
           "payload_bytes": 64,
           "attempt": 1,
           "status": "acknowledged",
-          "rtt_ms": 0.435
+          "rtt_ms": 0.37
         },
         {
           "payload_bytes": 1252,
           "attempt": 1,
           "status": "acknowledged",
-          "rtt_ms": 0.327
+          "rtt_ms": 0.294
         },
         {
           "payload_bytes": 1253,
@@ -177,18 +205,46 @@
           }
         ]
       },
+      "evidence": {
+        "observations": [
+          {
+            "payload_bytes": 64,
+            "status": "acknowledged",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1252,
+            "status": "acknowledged",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1253,
+            "status": "packet_too_large",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1400,
+            "status": "packet_too_large",
+            "attempts": 1
+          }
+        ],
+        "hypotheses": [],
+        "missing_evidence": [
+          "same_sized_reverse_payload_test"
+        ]
+      },
       "results": [
         {
           "payload_bytes": 64,
           "attempt": 1,
           "status": "acknowledged",
-          "rtt_ms": 0.253
+          "rtt_ms": 0.314
         },
         {
           "payload_bytes": 1252,
           "attempt": 1,
           "status": "acknowledged",
-          "rtt_ms": 0.326
+          "rtt_ms": 0.188
         },
         {
           "payload_bytes": 1253,

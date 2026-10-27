@@ -55,8 +55,9 @@ evidence before calling a timeout a PMTU black hole.
 
 ## 3. Inspect the JSON evidence
 
-Each probe report keeps individual attempts in `results` and counts outcomes
-per payload size in `summary.by_payload_size`. The routed lab also records
+Each probe report keeps individual attempts in `results`, counts outcomes
+per payload size in `summary.by_payload_size`, and separates observations,
+possible explanations and missing checks in `evidence`. The routed lab also records
 `blocked_feedback_packets` from its isolated firewall rule. Compare your run
 with the [direct-link example](../examples/mtu-boundary.json) and the
 [blocked-feedback example](../examples/pmtu-blackhole.json).

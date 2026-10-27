@@ -70,3 +70,8 @@ cached path knowledge. Neither field alone proves the end-to-end path MTU.
 The report contains a source snapshot, not a live record of route changes
 during later attempts. When a socket cannot connect, `source` can be `null`.
 The probe protocol is unauthenticated and unencrypted; use a controlled lab.
+
+For each direction, you can also save observations at the receiving endpoint
+and use `tunnelscope correlate` to check which individual probes arrived. See
+the [receiver observation workflow](receiver-observations.md). This provides
+different evidence from a reverse-direction probe.

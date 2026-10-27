@@ -117,6 +117,66 @@ class DeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "schema_version 1 probe report"):
             tunnelscope.combine_reports({}, {})
 
+    def test_receiver_report_correlates_with_probe_cli(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            receiver_path = directory / "receiver.json"
+            probe_path = directory / "probe.json"
+            correlation_path = directory / "correlation.json"
+            process = subprocess.Popen(
+                [sys.executable, str(Path(tunnelscope.__file__)), "receive", "--port", "0",
+                 "--max-packets", "2", "--output", str(receiver_path)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            try:
+                port = int(process.stdout.readline().strip().rsplit(":", 1)[1])
+                sent = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "probe", "127.0.0.1",
+                     "--port", str(port), "--sizes", "64,1400", "--count", "1",
+                     "--output", str(probe_path)],
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(sent.returncode, 0, sent.stderr)
+                self.assertEqual(process.wait(timeout=4), 0)
+                correlated = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "correlate", str(probe_path),
+                     str(receiver_path), "--output", str(correlation_path)],
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(correlated.returncode, 0, correlated.stderr)
+                receiver = json.loads(receiver_path.read_text(encoding="utf-8"))
+                probe = json.loads(probe_path.read_text(encoding="utf-8"))
+                correlation = json.loads(correlation_path.read_text(encoding="utf-8"))
+                self.assertEqual([row["probe_id"] for row in probe["results"]],
+                                 [row["probe_id"] for row in receiver["observations"]])
+                self.assertEqual(correlation["summary"], {
+                    "sent_probes": 2, "receiver_observed": 2,
+                    "timed_out_but_receiver_observed": 0,
+                    "unmatched_receiver_observations": 0,
+                })
+                self.assertEqual([row["ack_send_status"] for row in correlation["results"]], ["sent"] * 2)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+                process.stdout.close()
+                process.stderr.close()
+
+    def test_correlation_marks_receiver_observed_timeout_without_claiming_cause(self):
+        probe = {"schema_version": 1, "results": [
+            {"probe_id": "ab" * 16, "payload_bytes": 1400, "status": "timeout"},
+        ]}
+        receiver = {"schema_version": 1, "kind": "receiver_observations", "observations": [
+            {"probe_id": "ab" * 16, "payload_bytes": 1400, "ack_send_status": "sent"},
+        ]}
+        result = tunnelscope.correlate_reports(probe, receiver)
+        self.assertEqual(result["summary"]["timed_out_but_receiver_observed"], 1)
+        self.assertTrue(result["results"][0]["receiver_observed"])
+        self.assertNotIn("cause", result["results"][0])
+        receiver["observations"][0]["payload_bytes"] = 64
+        with self.assertRaisesRegex(ValueError, "different payload sizes"):
+            tunnelscope.correlate_reports(probe, receiver)
+
 
 if __name__ == "__main__":
     unittest.main()

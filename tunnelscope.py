@@ -62,23 +62,42 @@ def sizes_arg(value):
     return sizes
 
 
-def receive(bind, port, max_packets, idle_timeout):
+def receive(bind, port, max_packets, idle_timeout, output=None):
+    observations = []
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.bind((bind, port))
         sock.settimeout(idle_timeout)
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
-        for _ in range(max_packets):
-            try:
-                data, peer = sock.recvfrom(8193)
-            except socket.timeout:
-                break
-            if not 32 <= len(data) <= 8192:
-                continue
-            magic, token, declared_size = HEADER.unpack_from(data)
-            if magic != MAGIC or declared_size != len(data):
-                continue
-            # A fixed small acknowledgement does not echo the large payload.
-            sock.sendto(HEADER.pack(ACK, token, len(data)), peer)
+        try:
+            for _ in range(max_packets):
+                try:
+                    data, peer = sock.recvfrom(8193)
+                except socket.timeout:
+                    break
+                if not 32 <= len(data) <= 8192:
+                    continue
+                magic, token, declared_size = HEADER.unpack_from(data)
+                if magic != MAGIC or declared_size != len(data):
+                    continue
+                observation = {"probe_id": token.hex(), "payload_bytes": len(data), "source_ipv4": peer[0]}
+                observations.append(observation)
+                # A fixed small acknowledgement does not echo the large payload.
+                try:
+                    sock.sendto(HEADER.pack(ACK, token, len(data)), peer)
+                    observation["ack_send_status"] = "sent"
+                except OSError as error:
+                    observation["ack_send_status"] = "socket_error"
+                    observation["ack_send_errno"] = error.errno
+        finally:
+            if output is not None:
+                report = {
+                    "schema_version": 1,
+                    "kind": "receiver_observations",
+                    "receiver": {"bind_ipv4": sock.getsockname()[0], "port": sock.getsockname()[1]},
+                    "observations": observations,
+                    "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
+                }
+                output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
 def summarize_results(sizes, results):
@@ -168,7 +187,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
         for attempt in range(1, count + 1):
             token = secrets.token_bytes(16)
             payload = HEADER.pack(MAGIC, token, size) + bytes(size - HEADER.size)
-            result = {"payload_bytes": size, "attempt": attempt}
+            result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
             # A new connected socket isolates replies from earlier attempts.
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
                 # Configuration failures are fatal, not delivery observations.
@@ -198,6 +217,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
     by_payload_size = summarize_results(sizes, results)
     return {
         "schema_version": 1,
+        "kind": "probe",
         "source": source,
         "target": {"host": host, "ipv4": address, "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
@@ -206,6 +226,51 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
         "summary": {"by_payload_size": by_payload_size},
         "evidence": explain_evidence(by_payload_size, dont_fragment),
         "results": results,
+    }
+
+
+def correlate_reports(probe_report, receiver_report):
+    """Match sent probe IDs to receiver observations without claiming a cause for loss."""
+    if not isinstance(probe_report, dict) or probe_report.get("schema_version") != 1 or not isinstance(probe_report.get("results"), list):
+        raise ValueError("expected a schema_version 1 probe report")
+    if not isinstance(receiver_report, dict) or receiver_report.get("schema_version") != 1 or receiver_report.get("kind") != "receiver_observations" or not isinstance(receiver_report.get("observations"), list):
+        raise ValueError("expected a schema_version 1 receiver observations report")
+    sent = probe_report["results"]
+    received = receiver_report["observations"]
+    for row in sent + received:
+        if not isinstance(row, dict) or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
+            raise ValueError("reports need valid probe IDs and payload sizes")
+        try:
+            bytes.fromhex(row["probe_id"])
+        except ValueError as error:
+            raise ValueError("reports need hexadecimal probe IDs") from error
+    if len({row["probe_id"] for row in sent}) != len(sent) or len({row["probe_id"] for row in received}) != len(received):
+        raise ValueError("duplicate probe ID in report")
+    observations = {row["probe_id"]: row for row in received}
+    sent_ids = {row["probe_id"] for row in sent}
+    matched = []
+    for row in sent:
+        observation = observations.get(row["probe_id"])
+        if observation is not None and observation["payload_bytes"] != row["payload_bytes"]:
+            raise ValueError("matching probe IDs have different payload sizes")
+        matched.append({
+            "probe_id": row["probe_id"],
+            "payload_bytes": row["payload_bytes"],
+            "sender_status": row.get("status"),
+            "receiver_observed": observation is not None,
+            "ack_send_status": observation.get("ack_send_status") if observation else None,
+        })
+    return {
+        "schema_version": 1,
+        "kind": "probe_receiver_correlation",
+        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery.",
+        "summary": {
+            "sent_probes": len(sent),
+            "receiver_observed": sum(row["receiver_observed"] for row in matched),
+            "timed_out_but_receiver_observed": sum(row["sender_status"] == "timeout" and row["receiver_observed"] for row in matched),
+            "unmatched_receiver_observations": len(observations.keys() - sent_ids),
+        },
+        "results": matched,
     }
 
 
@@ -269,6 +334,7 @@ def main():
     receiver.add_argument("--port", type=bounded_int(0, 65535), default=9471)
     receiver.add_argument("--max-packets", type=bounded_int(1, 1000), default=100)
     receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30)
+    receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
     sender.add_argument("--port", type=bounded_int(1, 65535), default=9471)
@@ -281,17 +347,25 @@ def main():
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
     combined.add_argument("--output", type=Path)
+    correlated = commands.add_parser("correlate", help="match a probe report with receiver observations")
+    correlated.add_argument("probe_report", type=Path)
+    correlated.add_argument("receiver_report", type=Path)
+    correlated.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         if args.command == "receive":
-            receive(args.bind, args.port, args.max_packets, args.idle_timeout)
+            receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output)
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
             report = probe(args.host, args.port, args.sizes, args.count, args.timeout, args.dont_fragment)
-        else:
+        elif args.command == "combine":
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
             report = combine_reports(a_to_b, b_to_a)
+        else:
+            probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
+            receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
+            report = correlate_reports(probe_report, receiver_report)
         if args.command != "receive":
             rendered = json.dumps(report, indent=2)
             if args.output:

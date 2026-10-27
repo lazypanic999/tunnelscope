@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.1 installable prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No public package release is available.**
+**Status: v0.2 installable prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and two controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No public package release is available.**
 
 ## The problem
 
@@ -30,12 +30,14 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports sep
 - [x] **M1 - Probe and receive:** implement bounded, identifiable probes and acknowledgements between two endpoints.
 - [x] **M2 - Explain the evidence:** export JSON and distinguish successful delivery, explicit errors and inconclusive timeouts.
 - [x] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
+- [x] **M4 - Observe at the receiver:** record which identified probes reached the cooperating receiver and correlate them with sender outcomes.
 
 Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible later directions. They are not currently supported features.
 
 For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](docs/demo.md).
 The [two-VM validation record](docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
 The [v0.1 scope](docs/v0.1-scope.md) lists what the installable prototype does and does not cover.
+The [v0.2 receiver workflow](docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
 
 ## Install locally
 

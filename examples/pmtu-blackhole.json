@@ -1,0 +1,98 @@
+{
+  "lab": "routed-ipv4-df-blocked-icmp",
+  "sender_link_mtu_bytes": 1500,
+  "router_egress_mtu_bytes": 1280,
+  "blocked_feedback": "router ICMP fragmentation-needed (type 3, code 4)",
+  "blocked_feedback_packets": 2,
+  "known_egress_payload_boundary_bytes": 1252,
+  "interpretation": "Small probes were acknowledged; large probes timed out with ICMP feedback blocked. A timeout alone does not identify the cause on an unknown path.",
+  "probe": {
+    "schema_version": 1,
+    "target": {
+      "host": "198.51.100.2",
+      "ipv4": "198.51.100.2",
+      "port": 9471
+    },
+    "settings": {
+      "payload_sizes": [
+        64,
+        1252,
+        1253,
+        1400
+      ],
+      "count": 1,
+      "timeout_seconds": 1,
+      "dont_fragment": true
+    },
+    "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+    "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
+    "summary": {
+      "by_payload_size": [
+        {
+          "payload_bytes": 64,
+          "status_counts": {
+            "acknowledged": 1,
+            "packet_too_large": 0,
+            "timeout": 0,
+            "socket_error": 0
+          },
+          "assessment": "delivery_observed"
+        },
+        {
+          "payload_bytes": 1252,
+          "status_counts": {
+            "acknowledged": 1,
+            "packet_too_large": 0,
+            "timeout": 0,
+            "socket_error": 0
+          },
+          "assessment": "delivery_observed"
+        },
+        {
+          "payload_bytes": 1253,
+          "status_counts": {
+            "acknowledged": 0,
+            "packet_too_large": 0,
+            "timeout": 1,
+            "socket_error": 0
+          },
+          "assessment": "inconclusive"
+        },
+        {
+          "payload_bytes": 1400,
+          "status_counts": {
+            "acknowledged": 0,
+            "packet_too_large": 0,
+            "timeout": 1,
+            "socket_error": 0
+          },
+          "assessment": "inconclusive"
+        }
+      ]
+    },
+    "results": [
+      {
+        "payload_bytes": 64,
+        "attempt": 1,
+        "status": "acknowledged",
+        "rtt_ms": 0.189
+      },
+      {
+        "payload_bytes": 1252,
+        "attempt": 1,
+        "status": "acknowledged",
+        "rtt_ms": 0.162
+      },
+      {
+        "payload_bytes": 1253,
+        "attempt": 1,
+        "status": "timeout"
+      },
+      {
+        "payload_bytes": 1400,
+        "attempt": 1,
+        "status": "timeout"
+      }
+    ]
+  }
+}

@@ -2,6 +2,7 @@ import errno
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import sys
@@ -58,6 +59,20 @@ class FragmentationTests(unittest.TestCase):
         for direction in report["directions"]:
             self.assertEqual([r["status"] for r in direction["results"]], ["acknowledged", "acknowledged", "packet_too_large", "packet_too_large"])
             self.assertEqual([row["assessment"] for row in direction["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "kernel_rejected_df_payload", "kernel_rejected_df_payload"])
+
+    @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
+    def test_routed_blackhole_keeps_timeouts_inconclusive(self):
+        if not shutil.which("iptables"):
+            self.skipTest("iptables is required for the routed black-hole lab")
+        script = Path(__file__).resolve().parents[1] / "labs" / "pmtu_blackhole.py"
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["router_egress_mtu_bytes"], 1280)
+        self.assertGreaterEqual(report["blocked_feedback_packets"], 2)
+        probe = report["probe"]
+        self.assertEqual([row["status"] for row in probe["results"]], ["acknowledged", "acknowledged", "timeout", "timeout"])
+        self.assertEqual([row["assessment"] for row in probe["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "inconclusive", "inconclusive"])
 
 
 if __name__ == "__main__":

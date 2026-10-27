@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode and a reproducible link-MTU boundary lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
+**Status: early prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, a link-MTU boundary lab and a routed PMTU black-hole lab are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No packaged release is available.**
 
 ## The problem
 
@@ -26,7 +26,7 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports wil
 
 ## Milestones
 
-- [ ] **M0 - Reproduce the problem:** build a small Linux network-namespace lab and record a healthy baseline and a controlled MTU failure.
+- [x] **M0 - Reproduce the problem:** build a small Linux network-namespace lab and record a healthy baseline and a controlled MTU failure.
 - [x] **M1 - Probe and receive:** implement bounded, identifiable probes and acknowledgements between two endpoints.
 - [x] **M2 - Explain the evidence:** export JSON and distinguish successful delivery, explicit errors and inconclusive timeouts.
 - [ ] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
@@ -77,7 +77,19 @@ sudo python3 labs/mtu_boundary.py > mtu-boundary.json
 
 The lab creates two temporary network namespaces connected by a veth pair with MTU 1280. It probes both directions and checks that 1252-byte UDP payloads succeed while 1253-byte payloads fail in DF mode (20-byte IPv4 header + 8-byte UDP header). It changes no host interface MTU or host route and removes its namespaces on completion or ordinary interruption. As with any process, forced termination such as SIGKILL can prevent cleanup.
 
-This validates a directly attached link boundary, not an unknown multi-hop bottleneck or a PMTU black hole. See the [validation record](docs/validation/mtu-boundary.md) and [captured example report](examples/mtu-boundary.json). The broader M0 failure scenarios remain open.
+This validates a directly attached link boundary, not an unknown multi-hop bottleneck or a PMTU black hole. See the [validation record](docs/validation/mtu-boundary.md) and [captured example report](examples/mtu-boundary.json).
+
+### Reproduce blocked PMTU feedback
+
+On Linux with root access, iproute2, iptables and sysctl installed:
+
+```sh
+sudo python3 labs/pmtu_blackhole.py > pmtu-blackhole.json
+```
+
+This lab creates a sender, router and receiver in temporary network namespaces. The sender-facing link has MTU 1500; the router's receiver-facing link has MTU 1280. The router drops only its outgoing ICMP fragmentation-needed messages. In DF mode, 64- and 1252-byte UDP payloads are acknowledged, while 1253- and 1400-byte payloads time out. The lab changes no host routes, interfaces or firewall rules and removes its namespaces on ordinary completion or interruption. Forced termination such as SIGKILL can prevent cleanup.
+
+The known lab topology explains these timeouts; a timeout on an unknown network remains inconclusive. See the [validation record](docs/validation/pmtu-blackhole.md) and [captured report](examples/pmtu-blackhole.json). This lab demonstrates one controlled failure mode; it does not establish automatic black-hole detection.
 
 The receiver binds to loopback by default. For your own two-host lab, use `--bind <receiver-lab-IPv4>` and probe that address. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
 

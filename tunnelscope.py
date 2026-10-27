@@ -396,6 +396,68 @@ def combine_reports(a_to_b, b_to_a):
     }
 
 
+def text_table(headers, rows):
+    cells = [[str(value) for value in row] for row in rows]
+    widths = [max(len(header), *(len(row[index]) for row in cells)) for index, header in enumerate(headers)]
+    def line(values):
+        return "  ".join(value.ljust(width) for value, width in zip(values, widths))
+    return "\n".join([line(headers), line(["-" * width for width in widths]), *(line(row) for row in cells)])
+
+
+def format_report(report):
+    """Render existing JSON evidence as a compact terminal view."""
+    if isinstance(report, dict) and isinstance(report.get("lab"), str):
+        for key in ("correlation", "probe"):
+            if isinstance(report.get(key), dict):
+                return f"Lab: {report['lab']}\n" + format_report(report[key])
+    if not isinstance(report, dict) or report.get("schema_version") != 1:
+        raise ValueError("expected a schema_version 1 TunnelScope report")
+    kind = report.get("kind", "probe")
+    if kind == "probe":
+        summary = report.get("summary")
+        rows = summary.get("by_payload_size") if isinstance(summary, dict) else None
+        if not isinstance(rows, list):
+            raise ValueError("probe report has no per-size summary")
+        values = []
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
+                raise ValueError("invalid probe size summary")
+            counts = row["status_counts"]
+            values.append((row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
+                           counts.get("packet_too_large", 0), counts.get("timeout", 0),
+                           counts.get("socket_error", 0), row.get("assessment", "?")))
+        return "Probe results (UDP payload bytes)\n" + text_table(
+            ["Bytes", "Ack", "Too large", "Timeout", "Error", "Assessment"], values
+        ) + "\nTimeouts are inconclusive; an ACK confirms delivery and a small reply."
+    if kind == "bidirectional_comparison":
+        comparison = report.get("comparison")
+        rows = comparison.get("by_payload_size") if isinstance(comparison, dict) else None
+        if not isinstance(rows, list):
+            raise ValueError("comparison report has no per-size summary")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ValueError("invalid comparison size summary")
+        values = [(row.get("payload_bytes", "?"), row.get("a_to_b") or "-", row.get("b_to_a") or "-")
+                  for row in rows]
+        return "Bidirectional comparison\n" + text_table(["Bytes", "A to B", "B to A"], values) + \
+            "\nEach direction is a separate experiment; timeouts remain inconclusive."
+    if kind == "probe_receiver_correlation":
+        summary, rows = report.get("summary"), report.get("results")
+        if not isinstance(summary, dict) or not isinstance(rows, list):
+            raise ValueError("correlation report has no results")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ValueError("invalid correlation result")
+        values = [(row.get("payload_bytes", "?"), row.get("sender_status", "?"),
+                   "yes" if row.get("receiver_observed") else "no", row.get("ack_send_status") or "-")
+                  for row in rows]
+        pairing = report.get("pairing")
+        run_check = pairing.get("run_id_check", "unavailable") if isinstance(pairing, dict) else "unavailable"
+        return (f"Correlation: {summary.get('receiver_observed', '?')}/{summary.get('sent_probes', '?')} observed at receiver; "
+                f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; run ID: {run_check}\n"
+                + text_table(["Bytes", "Sender", "Receiver saw", "ACK send"], values)
+                + "\nNo receiver observation is inconclusive without confirmed capture coverage.")
+    raise ValueError(f"unsupported report kind: {kind}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -421,6 +483,8 @@ def main():
     correlated.add_argument("probe_report", type=Path)
     correlated.add_argument("receiver_report", type=Path)
     correlated.add_argument("--output", type=Path)
+    shown = commands.add_parser("show", help="print a concise summary of a JSON report")
+    shown.add_argument("report", type=Path)
     args = parser.parse_args()
     try:
         if args.command == "receive":
@@ -432,11 +496,13 @@ def main():
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
             report = combine_reports(a_to_b, b_to_a)
+        elif args.command == "show":
+            print(format_report(json.loads(args.report.read_text(encoding="utf-8"))))
         else:
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
             report = correlate_reports(probe_report, receiver_report)
-        if args.command != "receive":
+        if args.command not in ("receive", "show"):
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")

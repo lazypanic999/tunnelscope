@@ -112,6 +112,10 @@ class DeliveryTests(unittest.TestCase):
             {"payload_bytes": 64, "a_to_b": "delivery_observed", "b_to_a": "delivery_observed"},
             {"payload_bytes": 1400, "a_to_b": "inconclusive", "b_to_a": None},
         ])
+        rendered = tunnelscope.format_report(combined)
+        self.assertIn("1400", rendered)
+        self.assertIn("inconclusive", rendered)
+        self.assertIn("A to B", rendered)
 
     def test_combine_rejects_non_probe_input(self):
         with self.assertRaisesRegex(ValueError, "schema_version 1 probe report"):
@@ -161,6 +165,14 @@ class DeliveryTests(unittest.TestCase):
                     "unmatched_receiver_observations": 0,
                 })
                 self.assertEqual([row["ack_send_status"] for row in correlation["results"]], ["sent"] * 2)
+                shown = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "show", str(correlation_path)],
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(shown.returncode, 0, shown.stderr)
+                self.assertIn("2/2 observed at receiver", shown.stdout)
+                self.assertIn("Receiver saw", shown.stdout)
+                self.assertIn("64", tunnelscope.format_report(probe))
             finally:
                 if process.poll() is None:
                     process.kill()

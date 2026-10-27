@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="tunnelscope-logo-blue.png" alt="TunnelScope blue compass and vortex logo" width="400">
+  <img src="https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/tunnelscope-logo-blue.png" alt="TunnelScope blue compass and vortex logo" width="400">
 </p>
 
 # TunnelScope
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.2 installable prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and two controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented. No public package release is available.**
+**Status: v0.2.1 alpha prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
 ## The problem
 
@@ -31,14 +31,20 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports sep
 - [x] **M2 - Explain the evidence:** export JSON and distinguish successful delivery, explicit errors and inconclusive timeouts.
 - [x] **M3 - Validate:** check the tool against known lab configurations, document limitations and publish a short demo.
 - [x] **M4 - Observe at the receiver:** record which identified probes reached the cooperating receiver and correlate them with sender outcomes.
+- [x] **M5 - Make evidence usable:** validate receiver-observed timeouts in a controlled lab and provide a concise terminal view of reports.
 
 Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible later directions. They are not currently supported features.
 
-For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](docs/demo.md).
-The [two-VM validation record](docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
-The [v0.1 scope](docs/v0.1-scope.md) lists what the installable prototype does and does not cover.
-The [v0.2 receiver workflow](docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
-The [two-VM correlation record](docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
+For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md).
+The [two-VM validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
+The [v0.1 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/v0.1-scope.md) lists what the installable prototype does and does not cover.
+The [v0.2 receiver workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
+The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
+The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
+
+Use `tunnelscope show report.json` for a short terminal table of a probe,
+bidirectional comparison, correlation, or lab report. JSON remains the
+machine-readable source of evidence.
 
 ## Install locally
 
@@ -49,7 +55,7 @@ python3 -m pip install .
 tunnelscope --help
 ```
 
-The package installs the `tunnelscope` command. It has no third-party runtime dependencies. Building it requires setuptools; no package has been published to PyPI. The laboratory scripts still run from a source checkout.
+The package installs the `tunnelscope` command. It has no third-party runtime dependencies. Published releases can be installed with `python3 -m pip install tunnelscope`. The laboratory scripts still run from a source checkout.
 
 ## Getting started
 
@@ -85,7 +91,7 @@ To compare directions, run `probe` once from A to B and once from B to A, then c
 python tunnelscope.py combine a-to-b.json b-to-a.json --output bidirectional.json
 ```
 
-The command preserves the two reports and aligns per-size assessments; it does not initiate a remote measurement. See the [two-endpoint workflow](docs/bidirectional.md) for the receiver and sender steps. `endpoint_check` compares the recorded IPv4 addresses but cannot authenticate endpoints or account for address translation.
+The command preserves the two reports and aligns per-size assessments; it does not initiate a remote measurement. See the [two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) for the receiver and sender steps. `endpoint_check` compares the recorded IPv4 addresses but cannot authenticate endpoints or account for address translation.
 
 ### Linux IPv4 Don't Fragment mode
 
@@ -107,7 +113,7 @@ sudo python3 labs/mtu_boundary.py > mtu-boundary.json
 
 The lab creates two temporary network namespaces connected by a veth pair with MTU 1280. It probes both directions and checks that 1252-byte UDP payloads succeed while 1253-byte payloads fail in DF mode (20-byte IPv4 header + 8-byte UDP header). It changes no host interface MTU or host route and removes its namespaces on completion or ordinary interruption. As with any process, forced termination such as SIGKILL can prevent cleanup.
 
-This validates a directly attached link boundary, not an unknown multi-hop bottleneck or a PMTU black hole. See the [validation record](docs/validation/mtu-boundary.md) and [captured example report](examples/mtu-boundary.json).
+This validates a directly attached link boundary, not an unknown multi-hop bottleneck or a PMTU black hole. See the [validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/mtu-boundary.md) and [captured example report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/mtu-boundary.json).
 
 ### Reproduce blocked PMTU feedback
 
@@ -119,7 +125,7 @@ sudo python3 labs/pmtu_blackhole.py > pmtu-blackhole.json
 
 This lab creates a sender, router and receiver in temporary network namespaces. The sender-facing link has MTU 1500; the router's receiver-facing link has MTU 1280. The router drops only its outgoing ICMP fragmentation-needed messages. In DF mode, 64- and 1252-byte UDP payloads are acknowledged, while 1253- and 1400-byte payloads time out. The lab changes no host routes, interfaces or firewall rules and removes its namespaces on ordinary completion or interruption. Forced termination such as SIGKILL can prevent cleanup.
 
-The known lab topology explains these timeouts; a timeout on an unknown network remains inconclusive. See the [validation record](docs/validation/pmtu-blackhole.md) and [captured report](examples/pmtu-blackhole.json). This lab demonstrates one controlled failure mode; it does not establish automatic black-hole detection.
+The known lab topology explains these timeouts; a timeout on an unknown network remains inconclusive. See the [validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/pmtu-blackhole.md) and [captured report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/pmtu-blackhole.json). This lab demonstrates one controlled failure mode; it does not establish automatic black-hole detection.
 
 The receiver binds to loopback by default. For your own two-host lab, use `--bind <receiver-lab-IPv4>` and probe that address. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
 

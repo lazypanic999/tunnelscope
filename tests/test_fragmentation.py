@@ -83,6 +83,21 @@ class FragmentationTests(unittest.TestCase):
         self.assertIn("ordinary_packet_loss", probe["evidence"]["hypotheses"][1]["alternatives"])
         self.assertIn("icmp_feedback_observation", probe["evidence"]["missing_evidence"])
 
+    @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
+    def test_ack_return_blocked_still_records_receiver_arrival(self):
+        if not shutil.which("iptables"):
+            self.skipTest("iptables is required for the ACK return lab")
+        script = Path(__file__).resolve().parents[1] / "labs" / "ack_return_blocked.py"
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertGreaterEqual(report["blocked_ack_packets"], 2)
+        self.assertEqual([row["status"] for row in report["probe"]["results"]], ["timeout", "timeout"])
+        self.assertEqual([row["ack_send_status"] for row in report["receiver"]["observations"]], ["sent", "sent"])
+        self.assertEqual(report["correlation"]["pairing"]["run_id_check"], "matched")
+        self.assertEqual(report["correlation"]["summary"]["timed_out_but_receiver_observed"], 2)
+        self.assertIn("2/2 observed at receiver", tunnelscope.format_report(report))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -35,3 +35,21 @@ an exact end-to-end path MTU.
 Authentication, encryption, internet-facing operation, 5G tunnel support and
 automatic root-cause diagnosis are outside v0.5. See
 [security boundaries](security-boundaries.md) for current operating limits.
+
+## Community issues
+
+These issues support the roadmap without changing the validation gates above:
+
+| Issue | Contribution | Roadmap role |
+| --- | --- | --- |
+| [#4](https://github.com/lazypanic999/tunnelscope/issues/4) | Add Python 3.10 to CI checks | Release compatibility; good first issue |
+| [#5](https://github.com/lazypanic999/tunnelscope/issues/5) | Show receiver correlation in the README quick start | Make existing evidence easier to use; good first issue |
+| [#6](https://github.com/lazypanic999/tunnelscope/issues/6) | Document a Windows PowerShell loopback quick start | Improve first use without promising Windows DF support; good first issue |
+| [#1](https://github.com/lazypanic999/tunnelscope/issues/1) | Validate IPv6 Packet Too Big feedback on a routed path | Independent field evidence for the IPv6 boundary work |
+| [#2](https://github.com/lazypanic999/tunnelscope/issues/2) | Validate bidirectional probes and correlation on a real VPN | Post-lab deployment evidence; not a v0.5 release gate |
+| [#3](https://github.com/lazypanic999/tunnelscope/issues/3) | Validate pod-to-pod workflow on Kubernetes | Post-lab deployment evidence; not a v0.5 release gate |
+
+The CLI is currently packaged as two Python modules. Consider separating probe,
+receiver, report and lab code when the v0.5 search adds enough behavior to
+justify clearer module boundaries. Preserve the installed CLI and JSON format
+through that refactor; do not mix it into the boundary-measurement change.

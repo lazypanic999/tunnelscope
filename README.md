@@ -8,6 +8,27 @@ Evidence-based MTU and packet-size diagnostics for Linux networks.
 
 **Status: v0.4.1 alpha. IPv4/IPv6 UDP delivery probes, Linux no-fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
+[Latest GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.4.1) ·
+[PyPI package](https://pypi.org/project/tunnelscope/0.4.1/)
+
+![Animated comparison of direct-link packet-too-large errors and blocked-feedback timeouts](docs/images/mtu-evidence-demo.gif)
+
+The animation uses the checked-in [controlled lab reports](examples/). It is
+an illustration of those recorded results, not a live network capture or a
+diagnosis of an unknown path. Rebuild it with
+`python scripts/build_demo_gif.py` after installing Pillow.
+
+## Why use TunnelScope?
+
+| Tool | Useful evidence | What TunnelScope adds |
+| --- | --- | --- |
+| `ping` | Basic reachability and selected packet sizes | Repeated UDP payloads with per-attempt outcomes and a cooperating receiver |
+| `tracepath` | Kernel-reported path information where feedback is available | Sender and receiver observations that can be saved and compared by direction |
+| Packet capture | Packet-level traffic on an observed interface | A bounded experiment and shareable JSON/HTML reports; captures remain useful for root-cause work |
+
+TunnelScope does not replace these tools. A timeout, even at a larger size,
+remains inconclusive without more evidence.
+
 ## Quick start
 
 Requires Python 3.10 or newer. In an empty working directory on Linux (or
@@ -83,6 +104,18 @@ The [v0.2 receiver workflow](https://github.com/lazypanic999/tunnelscope/blob/ma
 The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
 The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
 The [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) defines the next bounded size-boundary experiment and its validation gates.
+
+### Ways to contribute
+
+The [v0.5 roadmap](docs/roadmap-v0.5.md#community-issues) connects the open
+issues to the next release and longer-term field validation. Good first issues:
+
+- [#4: Add Python 3.10 to CI](https://github.com/lazypanic999/tunnelscope/issues/4)
+- [#5: Explain receiver correlation in the quick start](https://github.com/lazypanic999/tunnelscope/issues/5)
+- [#6: Add a Windows PowerShell loopback quick start](https://github.com/lazypanic999/tunnelscope/issues/6)
+
+The [contribution guide](CONTRIBUTING.md) explains how to run checks and submit
+sanitized evidence. Comment on an issue before starting a larger change.
 
 Use `tunnelscope show report.json` for a short terminal table of a probe,
 receiver observation, bidirectional comparison, correlation, or lab report.

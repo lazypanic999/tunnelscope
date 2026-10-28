@@ -1,5 +1,14 @@
 # TunnelScope: two-minute Linux demo
 
+![Animated comparison of explicit size errors and blocked-feedback timeouts](images/mtu-evidence-demo.gif)
+
+This illustration uses the checked-in controlled lab reports. The
+[terminal animation](images/terminal-demo.gif) runs `tunnelscope show` on the
+blocked-feedback example report; neither animation is a live network capture.
+To rebuild both GIFs from the checked-in reports, install Pillow with
+`python -m pip install Pillow` and run `python scripts/build_demo_gif.py` from
+the repository root.
+
 Run this from the repository root on Linux with root access, Python 3.10+,
 iproute2, iptables and sysctl. The labs create temporary network namespaces;
 they do not change host interfaces, routes or firewall rules. Forced termination

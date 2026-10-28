@@ -8,6 +8,47 @@ Evidence-based MTU and packet-size diagnostics for Linux networks.
 
 **Status: v0.3.0 alpha. IPv4/IPv6 UDP delivery probes, Linux no-fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
+## Quick start
+
+Requires Python 3.10 or newer. In an empty working directory on Linux (or
+WSL2), install the published package in a virtual environment:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install tunnelscope
+tunnelscope --help
+```
+
+Open a second terminal and activate the same environment there with
+`source .venv/bin/activate`. Run these commands in order on one machine; no
+root access or network setup is needed for this loopback example.
+
+Terminal 1 (receiver):
+
+```sh
+tunnelscope receive --max-packets 2 --output receiver.json
+```
+
+Wait for `Listening on 127.0.0.1:9471`, then run Terminal 2 (sender):
+
+```sh
+tunnelscope probe 127.0.0.1 --sizes 64,1200 --count 1 --output probe.json
+```
+
+The receiver exits after the two probes and saves `receiver.json`. Back in
+either terminal, inspect the sender report and create a local HTML view:
+
+```sh
+tunnelscope show probe.json
+tunnelscope html probe.json --output probe.html
+```
+
+Open `probe.html` in a browser. The receiver sends small acknowledgements, so
+this example checks delivery in one direction only. A timeout is inconclusive;
+it does not prove an MTU problem. For two machines, see the
+[two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md).
+
 ## The problem
 
 A connection can appear healthy while larger transfers fail. Small probes may succeed even when larger packets cannot traverse the path. Tunnel overhead, MTU configuration and blocked Path MTU Discovery feedback can contribute to this behavior. Other causes can produce similar symptoms.
@@ -54,7 +95,7 @@ tunnelscope html report.json --output report.html
 
 ![TunnelScope HTML report view](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/report-ui.png)
 
-## Install locally
+## Install from a source checkout
 
 From the repository root, in a Python 3.10+ virtual environment:
 
@@ -63,7 +104,8 @@ python3 -m pip install .
 tunnelscope --help
 ```
 
-The package installs the `tunnelscope` command. It has no third-party runtime dependencies. Published releases can be installed with `python3 -m pip install tunnelscope`. The laboratory scripts still run from a source checkout.
+The package installs the `tunnelscope` command. It has no third-party runtime
+dependencies. The laboratory scripts still run from a source checkout.
 
 The CLI also supports `--sweep START:STOP:STEP` for a bounded
 grid of UDP payload sizes. It includes the stop size even when the step does
@@ -76,23 +118,13 @@ tunnelscope probe 192.0.2.2 --sweep 64:1400:100 --count 2 --dont-fragment --outp
 The grid tests at most 16 sizes. The result records observations at those
 sizes; it is not an exact path-MTU measurement. See the [size sweep guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-sweep.md).
 
-## Getting started
+## Probe and report details
 
-Requires Python 3.10 or newer. No third-party runtime packages are needed. Start with a local experiment in two terminals, from the repository directory. Use `tunnelscope` in place of `python tunnelscope.py` after installing the package.
-
-Terminal 1 (receiver):
-
-```sh
-python tunnelscope.py receive
-```
-
-Terminal 2 (sender):
-
-```sh
-python tunnelscope.py probe 127.0.0.1 --sizes 64,512,1200,1400 --count 3 --output report.json
-```
-
-The receiver exits after 100 datagrams or 30 seconds without a datagram. Restart it if it has already exited. `--max-packets` and `--idle-timeout` change these limits.
+No third-party runtime packages are needed. The commands below also work from
+a source checkout by replacing `tunnelscope` with `python tunnelscope.py`.
+By default, the receiver exits after 100 datagrams or 30 seconds without a
+datagram. Restart it if it has already exited. `--max-packets` and
+`--idle-timeout` change these limits.
 
 Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
 
@@ -107,7 +139,7 @@ The `evidence` section lists counted observations, tentative hypotheses and miss
 To compare directions, run `probe` once from A to B and once from B to A, then combine the two JSON files:
 
 ```sh
-python tunnelscope.py combine a-to-b.json b-to-a.json --output bidirectional.json
+tunnelscope combine a-to-b.json b-to-a.json --output bidirectional.json
 ```
 
 The command preserves the two reports and aligns per-size assessments; it does not initiate a remote measurement. See the [two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) for the receiver and sender steps. `endpoint_check` compares the recorded IPv4 addresses but cannot authenticate endpoints or account for address translation.
@@ -115,7 +147,7 @@ The command preserves the two reports and aligns per-size assessments; it does n
 ### Linux no-fragment mode
 
 ```sh
-python tunnelscope.py probe 192.0.2.2 --sizes 64,1252,1253,1400 --count 1 --dont-fragment --output report.json
+tunnelscope probe 192.0.2.2 --sizes 64,1252,1253,1400 --count 1 --dont-fragment --output report.json
 ```
 
 Use the address of your lab receiver; `192.0.2.2` is an example. For IPv4, this mode sets `IP_MTU_DISCOVER=IP_PMTUDISC_DO` on each sender socket. The kernel sets DF and rejects datagrams above its currently known path MTU. For IPv6, it sets Linux `IPV6_DONTFRAG` to prevent source fragmentation. It does not bypass cached PMTU information or search automatically for a boundary. The flag requires Linux, including WSL2. Other platforms reject it; socket-option errors stop the experiment rather than silently reverting to defaults. See the [IPv6 workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/ipv6.md).

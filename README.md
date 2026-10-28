@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.2.1 alpha prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
+**Status: v0.2.2 alpha prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
 ## The problem
 

@@ -67,6 +67,22 @@ def sizes_arg(value):
     return sizes
 
 
+def sweep_arg(value):
+    """Expand a bounded, inclusive payload-size grid."""
+    try:
+        start, stop, step = (int(part) for part in value.split(":"))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("use START:STOP:STEP for --sweep") from error
+    if not (32 <= start < stop <= 8192) or step < 1:
+        raise argparse.ArgumentTypeError("sweep needs 32 <= START < STOP <= 8192 and STEP >= 1")
+    sizes = list(range(start, stop + 1, step))
+    if sizes[-1] != stop:
+        sizes.append(stop)
+    if len(sizes) > 16:
+        raise argparse.ArgumentTypeError("sweep may contain at most 16 payload sizes; increase STEP")
+    return sizes
+
+
 def receive(bind, port, max_packets, idle_timeout, output=None):
     observations = []
     exit_reason = "max_packets"
@@ -493,7 +509,10 @@ def main():
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
     sender.add_argument("--port", type=bounded_int(1, 65535), default=9471)
-    sender.add_argument("--sizes", type=sizes_arg, default=[64, 512, 1200, 1400])
+    size_options = sender.add_mutually_exclusive_group()
+    size_options.add_argument("--sizes", type=sizes_arg, help="comma-separated UDP payload sizes (default: 64,512,1200,1400)")
+    size_options.add_argument("--sweep", type=sweep_arg, metavar="START:STOP:STEP",
+                              help="inclusive size grid with at most 16 points; always includes STOP")
     sender.add_argument("--count", type=bounded_int(1, 10), default=3)
     sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     sender.add_argument("--output", type=Path)
@@ -514,7 +533,9 @@ def main():
             receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output)
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
-            report = probe(args.host, args.port, args.sizes, args.count, args.timeout, args.dont_fragment)
+            sizes = args.sweep if args.sweep is not None else args.sizes
+            report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
+                           args.count, args.timeout, args.dont_fragment)
         elif args.command == "combine":
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))

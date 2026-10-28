@@ -55,6 +55,16 @@ def main():
                 for row in direction["results"][2:]:
                     if row.get("kernel_reported_mtu_bytes") != 1280:
                         raise RuntimeError(f"Expected kernel MTU 1280: {row}")
+                sweep_result = subprocess.run(
+                    ["ip", "netns", "exec", source, sys.executable, script, "probe", target_ip,
+                     "--sweep", "1200:1300:25", "--count", "1", "--dont-fragment"],
+                    check=True, capture_output=True, text=True, timeout=15,
+                )
+                sweep = json.loads(sweep_result.stdout)
+                expected_sweep = ["acknowledged"] * 3 + ["packet_too_large"] * 2
+                if [row["status"] for row in sweep["results"]] != expected_sweep:
+                    raise RuntimeError(f"Unexpected sweep result: {sweep}")
+                direction["sweep"] = sweep
                 report["directions"].append(direction)
             finally:
                 if receiver.poll() is None:

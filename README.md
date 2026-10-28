@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.2.2 alpha prototype. UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
+**Status: v0.3.0 development (latest published release: v0.2.2). UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
 ## The problem
 
@@ -56,6 +56,18 @@ tunnelscope --help
 ```
 
 The package installs the `tunnelscope` command. It has no third-party runtime dependencies. Published releases can be installed with `python3 -m pip install tunnelscope`. The laboratory scripts still run from a source checkout.
+
+The development checkout also supports `--sweep START:STOP:STEP` for a bounded
+grid of UDP payload sizes. It includes the stop size even when the step does
+not land on it. For example:
+
+```sh
+tunnelscope probe 192.0.2.2 --sweep 64:1400:100 --count 2 --dont-fragment --output sweep.json
+```
+
+The grid tests at most 16 sizes. The result records observations at those
+sizes; it is not an exact path-MTU measurement. This option is not part of the
+published v0.2.2 package. See the [size sweep guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-sweep.md).
 
 ## Getting started
 

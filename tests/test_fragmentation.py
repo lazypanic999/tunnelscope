@@ -62,6 +62,10 @@ class FragmentationTests(unittest.TestCase):
             self.assertEqual(direction["source"]["interface_mtu_bytes"], 1280)
             self.assertIn(direction["source"]["interface"], ("ts-a", "ts-b"))
             self.assertEqual(direction["evidence"]["hypotheses"], [])
+            self.assertEqual(direction["sweep"]["settings"]["payload_sizes"],
+                             [1200, 1225, 1250, 1275, 1300])
+            self.assertEqual([row["status"] for row in direction["sweep"]["results"]],
+                             ["acknowledged"] * 3 + ["packet_too_large"] * 2)
         combined = tunnelscope.combine_reports(*report["directions"])
         self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
         self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")

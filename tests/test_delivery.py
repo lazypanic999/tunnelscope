@@ -56,6 +56,44 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("32..8192", result.stderr)
 
+    def test_sweep_cli_expands_bounded_inclusive_sizes(self):
+        process = subprocess.Popen(
+            [sys.executable, str(Path(tunnelscope.__file__)), "receive", "--port", "0",
+             "--max-packets", "3", "--idle-timeout", "3"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        try:
+            port = int(process.stdout.readline().strip().rsplit(":", 1)[1])
+            result = subprocess.run(
+                [sys.executable, str(Path(tunnelscope.__file__)), "probe", "127.0.0.1",
+                 "--port", str(port), "--sweep", "64:1400:700", "--count", "1"],
+                capture_output=True, text=True, timeout=5,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["settings"]["payload_sizes"], [64, 764, 1400])
+            self.assertEqual([row["status"] for row in report["results"]], ["acknowledged"] * 3)
+            self.assertEqual(process.wait(timeout=4), 0)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            process.stdout.close()
+            process.stderr.close()
+
+        for spec in ("1400:64:100", "64:1400:1", "64:1400:0", "bad"):
+            invalid = subprocess.run(
+                [sys.executable, str(Path(tunnelscope.__file__)), "probe", "127.0.0.1",
+                 "--sweep", spec], capture_output=True, text=True, timeout=5,
+            )
+            self.assertEqual(invalid.returncode, 2, spec)
+        exclusive = subprocess.run(
+            [sys.executable, str(Path(tunnelscope.__file__)), "probe", "127.0.0.1",
+             "--sizes", "64,1400", "--sweep", "64:1400:700"],
+            capture_output=True, text=True, timeout=5,
+        )
+        self.assertEqual(exclusive.returncode, 2)
+
     def test_summary_keeps_mixed_outcomes_and_repeated_sizes(self):
         results = [
             {"payload_bytes": 64, "status": "acknowledged"},

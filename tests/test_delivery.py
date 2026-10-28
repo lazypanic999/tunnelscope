@@ -216,6 +216,27 @@ class DeliveryTests(unittest.TestCase):
         result = tunnelscope.correlate_reports(probe, receiver)
         self.assertEqual(result["pairing"]["run_id_check"], "unverified_no_receiver_observations")
 
+    def test_correlation_flags_receiver_capture_with_other_runs(self):
+        probe = {"schema_version": 1, "run_id": "11" * 8, "results": [
+            {"probe_id": "ab" * 16, "payload_bytes": 64, "status": "acknowledged"},
+        ]}
+        receiver = {"schema_version": 1, "kind": "receiver_observations", "observations": [
+            {"probe_id": "ab" * 16, "run_id": "11" * 8, "payload_bytes": 64},
+            {"probe_id": "cd" * 16, "run_id": "22" * 8, "payload_bytes": 1400},
+        ]}
+        result = tunnelscope.correlate_reports(probe, receiver)
+        self.assertEqual(result["pairing"]["run_id_check"], "matched_with_other_runs")
+        self.assertEqual(result["summary"]["unmatched_receiver_observations"], 1)
+        shown = tunnelscope.format_report(result)
+        self.assertIn("1 unmatched receiver observations", shown)
+        self.assertIn("matched_with_other_runs", shown)
+
+        receiver["observations"][0]["run_id"] = "22" * 8
+        receiver["observations"].append({"probe_id": "ef" * 16, "run_id": "11" * 8,
+                                          "payload_bytes": 64})
+        with self.assertRaisesRegex(ValueError, "matching probe ID has a different run ID"):
+            tunnelscope.correlate_reports(probe, receiver)
+
     def test_receiver_view_separates_runs_and_ack_send_errors(self):
         report = {"schema_version": 1, "kind": "receiver_observations", "exit_reason": "idle_timeout",
                   "observations": [

@@ -297,7 +297,7 @@ def correlate_reports(probe_report, receiver_report):
     elif run_id not in receiver_run_ids:
         raise ValueError("receiver report has observations from a different run")
     else:
-        run_id_check = "matched"
+        run_id_check = "matched_with_other_runs" if len(receiver_run_ids) > 1 else "matched"
     observations = {row["probe_id"]: row for row in received}
     sent_ids = {row["probe_id"] for row in sent}
     matched = []
@@ -305,7 +305,7 @@ def correlate_reports(probe_report, receiver_report):
         observation = observations.get(row["probe_id"])
         if observation is not None and observation["payload_bytes"] != row["payload_bytes"]:
             raise ValueError("matching probe IDs have different payload sizes")
-        if observation is not None and run_id_check == "matched" and observation["run_id"] != run_id:
+        if observation is not None and run_id_check in ("matched", "matched_with_other_runs") and observation["run_id"] != run_id:
             raise ValueError("matching probe ID has a different run ID")
         matched.append({
             "probe_id": row["probe_id"],
@@ -474,7 +474,8 @@ def format_report(report):
         pairing = report.get("pairing")
         run_check = pairing.get("run_id_check", "unavailable") if isinstance(pairing, dict) else "unavailable"
         return (f"Correlation: {summary.get('receiver_observed', '?')}/{summary.get('sent_probes', '?')} observed at receiver; "
-                f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; run ID: {run_check}\n"
+                f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; "
+                f"{summary.get('unmatched_receiver_observations', '?')} unmatched receiver observations; run ID: {run_check}\n"
                 + text_table(["Bytes", "Sender", "Receiver saw", "ACK send"], values)
                 + "\nNo receiver observation is inconclusive without confirmed capture coverage.")
     raise ValueError(f"unsupported report kind: {kind}")

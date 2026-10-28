@@ -44,9 +44,12 @@ filtered, sent to another endpoint or missed because capture started late.
 `unmatched_receiver_observations` counts valid probes seen by the receiver that
 were not present in the sender file. It can reveal a mixed or incorrect pairing.
 
-`pairing.run_id_check` is `matched` when the receiver observed this sender run.
-The command rejects a receiver file containing only observations from another
-run. An empty receiver file cannot establish which run it covered and is marked
+`pairing.run_id_check` is `matched` when the receiver observed only this sender
+run, or `matched_with_other_runs` when the receiver file also contains probes
+from another run. The terminal view shows unmatched receiver observations to
+make mixed captures easier to spot. The command rejects a receiver file
+containing only observations from another run. An empty receiver file cannot
+establish which run it covered and is marked
 `unverified_no_receiver_observations`. `pairing.endpoint_checks` compares the
 target port and, unless the receiver bound to `0.0.0.0`, the target IPv4 address.
 Mismatches need review; address translation can legitimately change them.

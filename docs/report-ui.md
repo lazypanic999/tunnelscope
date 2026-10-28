@@ -1,7 +1,8 @@
 # Local HTML report view
 
-From v0.3.0, the CLI can turn an existing JSON report into a searchable HTML
-file. It does not start a server or send the report to a remote service.
+The CLI can turn an existing JSON report into a searchable HTML file. From
+v0.4.0, the logo is embedded too, so the file works fully offline. It does not
+start a server or send the report to a remote service.
 
 ```sh
 tunnelscope html probe.json --output probe.html

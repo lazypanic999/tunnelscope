@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 MAGIC = b"TS01"
+VERSION = "0.4.0"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # Linux UAPI values, used when Python does not expose the constants.
@@ -27,6 +28,11 @@ SIOCGIFMTU = 0x8921
 
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def require_distinct_output(output, *inputs):
+    if output is not None and any(output.resolve() == source.resolve() for source in inputs):
+        raise ValueError("--output must differ from the input report path")
 
 
 def require_df_support(dont_fragment):
@@ -545,6 +551,7 @@ def format_report(report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version=f"TunnelScope {VERSION}")
     commands = parser.add_subparsers(dest="command", required=True)
     receiver = commands.add_parser("receive", help="receive probes and send small acknowledgements")
     receiver.add_argument("--bind", default="127.0.0.1")
@@ -590,12 +597,14 @@ def main():
             report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
                            args.count, args.timeout, args.dont_fragment, args.family)
         elif args.command == "combine":
+            require_distinct_output(args.output, args.a_to_b, args.b_to_a)
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
             report = combine_reports(a_to_b, b_to_a)
         elif args.command == "show":
             print(format_report(json.loads(args.report.read_text(encoding="utf-8"))))
         elif args.command == "html":
+            require_distinct_output(args.output, args.report)
             from tunnelscope_view import render_report_html
             args.output.write_text(
                 render_report_html(json.loads(args.report.read_text(encoding="utf-8"))),
@@ -603,6 +612,7 @@ def main():
             )
             print(f"Wrote {args.output}")
         else:
+            require_distinct_output(args.output, args.probe_report, args.receiver_report)
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
             report = correlate_reports(probe_report, receiver_report)

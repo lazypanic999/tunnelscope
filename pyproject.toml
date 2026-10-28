@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tunnelscope"
-version = "0.3.0"
+version = "0.4.0"
 description = "Evidence-based MTU and packet-size diagnostics for Linux networks"
 readme = "README.md"
 license = "MIT"

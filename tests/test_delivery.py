@@ -15,6 +15,14 @@ import tunnelscope_view
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_cli_reports_version(self):
+        result = subprocess.run(
+            [sys.executable, str(Path(tunnelscope.__file__)), "--version"],
+            capture_output=True, text=True, timeout=5,
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "TunnelScope 0.4.0")
+
     @unittest.skipUnless(socket.has_ipv6, "IPv6 unavailable")
     def test_ipv6_receiver_probe_and_correlation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -160,6 +168,26 @@ class DeliveryTests(unittest.TestCase):
                           "tunnelscope-logo-blue.png").read_bytes())
         self.assertIn("Receiver saw", tunnelscope_view.render_report_html({
             "schema_version": 1, "kind": "probe_receiver_correlation", "results": []}))
+
+    def test_report_commands_do_not_overwrite_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report_path = Path(directory) / "probe.json"
+            original = json.dumps({"schema_version": 1, "kind": "probe", "results": []})
+            report_path.write_text(original, encoding="utf-8")
+            for command in (
+                ["html", str(report_path)],
+                ["combine", str(report_path), str(report_path)],
+                ["correlate", str(report_path), str(report_path)],
+            ):
+                with self.subTest(command=command[0]):
+                    result = subprocess.run(
+                        [sys.executable, str(Path(tunnelscope.__file__)), *command,
+                         "--output", str(report_path)],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("--output must differ", result.stderr)
+                    self.assertEqual(report_path.read_text(encoding="utf-8"), original)
 
     def test_summary_keeps_mixed_outcomes_and_repeated_sizes(self):
         results = [

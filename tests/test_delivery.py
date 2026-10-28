@@ -172,6 +172,14 @@ class DeliveryTests(unittest.TestCase):
                 self.assertEqual(shown.returncode, 0, shown.stderr)
                 self.assertIn("2/2 observed at receiver", shown.stdout)
                 self.assertIn("Receiver saw", shown.stdout)
+                receiver_shown = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "show", str(receiver_path)],
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(receiver_shown.returncode, 0, receiver_shown.stderr)
+                self.assertIn("Receiver observations: 2 probes", receiver_shown.stdout)
+                self.assertIn(probe["run_id"], receiver_shown.stdout)
+                self.assertIn("ACK sent", receiver_shown.stdout)
                 self.assertIn("64", tunnelscope.format_report(probe))
             finally:
                 if process.poll() is None:
@@ -207,6 +215,21 @@ class DeliveryTests(unittest.TestCase):
         receiver["observations"] = []
         result = tunnelscope.correlate_reports(probe, receiver)
         self.assertEqual(result["pairing"]["run_id_check"], "unverified_no_receiver_observations")
+
+    def test_receiver_view_separates_runs_and_ack_send_errors(self):
+        report = {"schema_version": 1, "kind": "receiver_observations", "exit_reason": "idle_timeout",
+                  "observations": [
+                      {"run_id": "11" * 8, "payload_bytes": 64, "ack_send_status": "sent"},
+                      {"run_id": "11" * 8, "payload_bytes": 64, "ack_send_status": "socket_error"},
+                      {"run_id": "22" * 8, "payload_bytes": 1400, "ack_send_status": "sent"},
+                  ]}
+        rendered = tunnelscope.format_report(report)
+        self.assertIn("Receiver observations: 3 probes; exit: idle_timeout", rendered)
+        self.assertIn("1111111111111111  64     2     1         1", rendered)
+        self.assertIn("2222222222222222  1400   1     1         0", rendered)
+        self.assertIn("not that it arrived", rendered)
+        report["observations"] = []
+        self.assertIn("Receiver observations: 0 probes", tunnelscope.format_report(report))
 
 
 if __name__ == "__main__":

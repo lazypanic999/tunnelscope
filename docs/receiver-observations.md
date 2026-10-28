@@ -12,6 +12,12 @@ Start the receiver on endpoint B and give it an output path:
 tunnelscope receive --bind B_IP --output receiver.json
 ```
 
+After the receiver exits, `tunnelscope show receiver.json` groups its
+observations by run ID and payload size. It shows how many probes arrived and
+how many acknowledgement sends succeeded or failed locally. An empty capture
+still displays its exit reason and a zero count. A successful send call does not
+confirm that the acknowledgement reached the sender.
+
 Run the sender on endpoint A:
 
 ```sh

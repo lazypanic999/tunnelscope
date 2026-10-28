@@ -43,8 +43,8 @@ The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob
 The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
 
 Use `tunnelscope show report.json` for a short terminal table of a probe,
-bidirectional comparison, correlation, or lab report. JSON remains the
-machine-readable source of evidence.
+receiver observation, bidirectional comparison, correlation, or lab report.
+JSON remains the machine-readable source of evidence.
 
 ## Install locally
 

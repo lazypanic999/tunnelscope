@@ -398,7 +398,7 @@ def combine_reports(a_to_b, b_to_a):
 
 def text_table(headers, rows):
     cells = [[str(value) for value in row] for row in rows]
-    widths = [max(len(header), *(len(row[index]) for row in cells)) for index, header in enumerate(headers)]
+    widths = [max([len(header), *(len(row[index]) for row in cells)]) for index, header in enumerate(headers)]
     def line(values):
         return "  ".join(value.ljust(width) for value, width in zip(values, widths))
     return "\n".join([line(headers), line(["-" * width for width in widths]), *(line(row) for row in cells)])
@@ -429,6 +429,28 @@ def format_report(report):
         return "Probe results (UDP payload bytes)\n" + text_table(
             ["Bytes", "Ack", "Too large", "Timeout", "Error", "Assessment"], values
         ) + "\nTimeouts are inconclusive; an ACK confirms delivery and a small reply."
+    if kind == "receiver_observations":
+        observations = report.get("observations")
+        if not isinstance(observations, list) or any(not isinstance(row, dict) for row in observations):
+            raise ValueError("receiver report has no valid observations")
+        counts = {}
+        for row in observations:
+            run_id, size = row.get("run_id") or "unknown", row.get("payload_bytes")
+            if not isinstance(run_id, str) or not isinstance(size, int):
+                raise ValueError("invalid receiver observation")
+            key = (run_id, size)
+            if key not in counts:
+                counts[key] = {"observed": 0, "ack_sent": 0, "ack_errors": 0}
+            counts[key]["observed"] += 1
+            if row.get("ack_send_status") == "sent":
+                counts[key]["ack_sent"] += 1
+            elif row.get("ack_send_status") == "socket_error":
+                counts[key]["ack_errors"] += 1
+        values = [(run_id, size, item["observed"], item["ack_sent"], item["ack_errors"])
+                  for (run_id, size), item in sorted(counts.items())]
+        return (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}\n"
+                + text_table(["Run ID", "Bytes", "Seen", "ACK sent", "ACK error"], values)
+                + "\nACK sent means the local socket accepted the reply, not that it arrived.")
     if kind == "bidirectional_comparison":
         comparison = report.get("comparison")
         rows = comparison.get("by_payload_size") if isinstance(comparison, dict) else None

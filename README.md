@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.3.0 development (latest published release: v0.2.2). UDP delivery probes, Linux IPv4 Don't Fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
+**Status: v0.3.0 development (latest published release: v0.2.2). IPv4/IPv6 UDP delivery probes, Linux no-fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
 ## The problem
 
@@ -33,7 +33,7 @@ A failed probe alone will not be labeled as proof of an MTU problem. Reports sep
 - [x] **M4 - Observe at the receiver:** record which identified probes reached the cooperating receiver and correlate them with sender outcomes.
 - [x] **M5 - Make evidence usable:** validate receiver-observed timeouts in a controlled lab and provide a concise terminal view of reports.
 
-Kubernetes, VPN-specific workflows, IPv6 and 5G user-plane tunnels are possible later directions. They are not currently supported features.
+The [tunnel and pod workflows](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) include a validated local VXLAN overlay and guidance for existing VPNs and Kubernetes pods. The VPN and pod workflows have not yet been validated on a real deployment. 5G user-plane tunnels remain outside the current scope.
 
 For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md).
 The [two-VM validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.
@@ -45,6 +45,14 @@ The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/ma
 Use `tunnelscope show report.json` for a short terminal table of a probe,
 receiver observation, bidirectional comparison, correlation, or lab report.
 JSON remains the machine-readable source of evidence.
+
+The development checkout can also create a [local HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md):
+
+```sh
+tunnelscope html report.json --output report.html
+```
+
+![TunnelScope HTML report view](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/report-ui.png)
 
 ## Install locally
 
@@ -89,7 +97,7 @@ The receiver exits after 100 datagrams or 30 seconds without a datagram. Restart
 
 Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
 
-Each probe report includes a `source` snapshot taken from the first connected sender socket. It records the local IPv4 address. On Linux, it also records the selected interface and its link MTU when discoverable, plus `kernel_route_mtu_bytes` when the kernel supplies it. The link MTU and kernel route MTU are different facts; neither is an independently measured end-to-end path MTU. A failed connection may leave `source` as `null`, and optional fields may be absent.
+Each probe report includes a `source` snapshot taken from the first connected sender socket. It records the local IPv4 or IPv6 address. On Linux, it also records the selected interface and its link MTU when discoverable, plus `kernel_route_mtu_bytes` when the kernel supplies it. The link MTU and kernel route MTU are different facts; neither is an independently measured end-to-end path MTU. A failed connection may leave `source` as `null`, and optional fields may be absent.
 
 `acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
 
@@ -105,13 +113,13 @@ python tunnelscope.py combine a-to-b.json b-to-a.json --output bidirectional.jso
 
 The command preserves the two reports and aligns per-size assessments; it does not initiate a remote measurement. See the [two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) for the receiver and sender steps. `endpoint_check` compares the recorded IPv4 addresses but cannot authenticate endpoints or account for address translation.
 
-### Linux IPv4 Don't Fragment mode
+### Linux no-fragment mode
 
 ```sh
 python tunnelscope.py probe 192.0.2.2 --sizes 64,1252,1253,1400 --count 1 --dont-fragment --output report.json
 ```
 
-Use the address of your lab receiver; `192.0.2.2` is an example. This mode sets `IP_MTU_DISCOVER=IP_PMTUDISC_DO` on each sender socket. The kernel sets DF and rejects datagrams above its currently known path MTU. It does not bypass cached PMTU information or search automatically for a boundary. The flag requires Linux, including WSL2. Other platforms reject it; socket-option errors stop the experiment rather than silently reverting to defaults.
+Use the address of your lab receiver; `192.0.2.2` is an example. For IPv4, this mode sets `IP_MTU_DISCOVER=IP_PMTUDISC_DO` on each sender socket. The kernel sets DF and rejects datagrams above its currently known path MTU. For IPv6, it sets Linux `IPV6_DONTFRAG` to prevent source fragmentation. It does not bypass cached PMTU information or search automatically for a boundary. The flag requires Linux, including WSL2. Other platforms reject it; socket-option errors stop the experiment rather than silently reverting to defaults. See the [IPv6 workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/ipv6.md).
 
 In DF mode, `EMSGSIZE` is reported as `packet_too_large`, with its numeric `errno`. When available, `kernel_reported_mtu_bytes` contains the connected socket's `IP_MTU` value. That value is kernel knowledge, not an independently measured end-to-end MTU. Timeouts remain inconclusive. The JSON schema version remains 1 with additive fields and the new `packet_too_large` status; consumers must handle it explicitly.
 
@@ -139,7 +147,7 @@ This lab creates a sender, router and receiver in temporary network namespaces. 
 
 The known lab topology explains these timeouts; a timeout on an unknown network remains inconclusive. See the [validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/pmtu-blackhole.md) and [captured report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/pmtu-blackhole.json). This lab demonstrates one controlled failure mode; it does not establish automatic black-hole detection.
 
-The receiver binds to loopback by default. For your own two-host lab, use `--bind <receiver-lab-IPv4>` and probe that address. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
+The receiver binds to IPv4 loopback by default. For your own two-host lab, use `--bind <receiver-lab-address>` and probe that address. An IPv6 literal such as `::1` selects IPv6; `--family ipv6` selects an AAAA record for a hostname. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
 
 Run checks:
 

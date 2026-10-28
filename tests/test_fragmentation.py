@@ -30,6 +30,17 @@ class FragmentationTests(unittest.TestCase):
         # The same errno outside DF mode must not acquire DF evidence.
         self.assertEqual(tunnelscope.socket_failure(error, sock, False)["status"], "socket_error")
 
+    def test_ipv6_dontfrag_and_kernel_mtu(self):
+        sock = Mock()
+        sock.family = socket.AF_INET6
+        sock.getsockopt.return_value = 1280
+        tunnelscope.configure_fragmentation(sock, True)
+        sock.setsockopt.assert_called_once_with(socket.IPPROTO_IPV6, tunnelscope.IPV6_DONTFRAG, 1)
+        result = tunnelscope.socket_failure(OSError(errno.EMSGSIZE, "Message too long"), sock, True)
+        self.assertEqual(result["status"], "packet_too_large")
+        self.assertEqual(result["kernel_reported_mtu_bytes"], 1280)
+        sock.getsockopt.assert_called_once_with(socket.IPPROTO_IPV6, tunnelscope.IPV6_MTU)
+
     def test_unavailable_kernel_mtu_is_not_invented(self):
         sock = Mock()
         sock.getsockopt.side_effect = OSError(errno.ENOPROTOOPT, "Unavailable")
@@ -69,6 +80,39 @@ class FragmentationTests(unittest.TestCase):
         combined = tunnelscope.combine_reports(*report["directions"])
         self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
         self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")
+
+    @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
+    def test_ipv6_boundary_in_both_directions(self):
+        script = Path(__file__).resolve().parents[1] / "labs" / "ipv6_boundary.py"
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["expected_payload_boundary_bytes"], 1232)
+        self.assertEqual(len(report["directions"]), 2)
+        for direction in report["directions"]:
+            probe = direction["probe"]
+            self.assertEqual(probe["settings"]["payload_sizes"], list(range(1228, 1237)))
+            self.assertEqual([row["status"] for row in probe["results"]],
+                             ["acknowledged"] * 5 + ["packet_too_large"] * 4)
+            self.assertEqual(probe["source"]["interface_mtu_bytes"], 1280)
+            self.assertEqual(direction["correlation"]["summary"]["receiver_observed"], 5)
+
+    @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
+    def test_vxlan_overlay_boundary_in_both_directions(self):
+        script = Path(__file__).resolve().parents[1] / "labs" / "vxlan_boundary.py"
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["expected_payload_boundary_bytes"], 1422)
+        self.assertEqual(len(report["directions"]), 2)
+        for direction in report["directions"]:
+            probe = direction["probe"]
+            self.assertEqual(probe["settings"]["payload_sizes"], list(range(1418, 1427)))
+            self.assertEqual([row["status"] for row in probe["results"]],
+                             ["acknowledged"] * 5 + ["packet_too_large"] * 4)
+            self.assertEqual(probe["source"]["interface"], "ts-vx")
+            self.assertEqual(probe["source"]["interface_mtu_bytes"], 1450)
+            self.assertEqual(direction["correlation"]["summary"]["receiver_observed"], 5)
 
     @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
     def test_routed_blackhole_keeps_timeouts_inconclusive(self):

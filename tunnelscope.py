@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import errno
+import ipaddress
 import json
 import secrets
 import socket
@@ -18,6 +19,8 @@ ACK = b"TA01"
 IP_MTU_DISCOVER = getattr(socket, "IP_MTU_DISCOVER", 10)
 IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
 IP_MTU = getattr(socket, "IP_MTU", 14)
+IPV6_DONTFRAG = getattr(socket, "IPV6_DONTFRAG", 62)
+IPV6_MTU = getattr(socket, "IPV6_MTU", 24)
 SIOCGIFADDR = 0x8915
 SIOCGIFMTU = 0x8921
 
@@ -34,7 +37,10 @@ def require_df_support(dont_fragment):
 def configure_fragmentation(sock, dont_fragment):
     if dont_fragment:
         # Fail the experiment if the option cannot be enabled; never fall back.
-        sock.setsockopt(socket.IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO)
+        if sock.family == socket.AF_INET6:
+            sock.setsockopt(socket.IPPROTO_IPV6, IPV6_DONTFRAG, 1)
+        else:
+            sock.setsockopt(socket.IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO)
 
 
 def socket_failure(error, sock, dont_fragment):
@@ -42,7 +48,10 @@ def socket_failure(error, sock, dont_fragment):
     if dont_fragment and error.errno == errno.EMSGSIZE:
         result["status"] = "packet_too_large"
         try:
-            result["kernel_reported_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
+            if sock.family == socket.AF_INET6:
+                result["kernel_reported_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IPV6, IPV6_MTU)
+            else:
+                result["kernel_reported_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
         except OSError:
             pass
     return result
@@ -83,11 +92,22 @@ def sweep_arg(value):
     return sizes
 
 
-def receive(bind, port, max_packets, idle_timeout, output=None):
+def udp_address(host, port, family="auto"):
+    """Keep IPv4 as the hostname default while accepting explicit IPv6 targets."""
+    chosen = socket.AF_INET6 if family == "ipv6" or (family == "auto" and ":" in host) else socket.AF_INET
+    resolved = socket.getaddrinfo(host, port, chosen, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    return resolved[0][0], resolved[0][4]
+
+
+def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
     observations = []
     exit_reason = "max_packets"
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.bind((bind, port))
+    address_family, bind_address = udp_address(bind, port, family)
+    address_key = "ipv6" if address_family == socket.AF_INET6 else "ipv4"
+    with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
+        if address_family == socket.AF_INET6:
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        sock.bind(bind_address)
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
@@ -105,7 +125,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None):
                     continue
                 observation = {
                     "probe_id": token.hex(), "run_id": data[HEADER.size:HEADER.size + 8].hex(),
-                    "payload_bytes": len(data), "source_ipv4": peer[0],
+                    "payload_bytes": len(data), f"source_{address_key}": peer[0],
                     "received_at_utc": utc_now(),
                 }
                 observations.append(observation)
@@ -127,7 +147,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None):
                 report = {
                     "schema_version": 1,
                     "kind": "receiver_observations",
-                    "receiver": {"bind_ipv4": sock.getsockname()[0], "port": sock.getsockname()[1]},
+                    "receiver": {f"bind_{address_key}": sock.getsockname()[0],
+                                 "port": sock.getsockname()[1]},
                     "started_at_utc": started_at_utc,
                     "finished_at_utc": utc_now(),
                     "exit_reason": exit_reason,
@@ -188,38 +209,57 @@ def explain_evidence(by_payload_size, dont_fragment):
 
 def source_snapshot(sock):
     """Capture sender-side route and interface facts after connecting a socket."""
-    source = {"ipv4": sock.getsockname()[0]}
+    address_key = "ipv6" if sock.family == socket.AF_INET6 else "ipv4"
+    local = sock.getsockname()
+    source = {address_key: local[0]}
+    if sock.family == socket.AF_INET6 and local[3]:
+        source["scope_id"] = local[3]
     if not sys.platform.startswith("linux"):
         return source
     try:
-        source["kernel_route_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
+        if sock.family == socket.AF_INET6:
+            source["kernel_route_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IPV6, IPV6_MTU)
+        else:
+            source["kernel_route_mtu_bytes"] = sock.getsockopt(socket.IPPROTO_IP, IP_MTU)
     except OSError:
         pass
     try:
         import fcntl
-        for _, name in socket.if_nameindex():
-            request = struct.pack("256s", name.encode())
-            try:
-                address = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), SIOCGIFADDR, request)[20:24])
-            except OSError:
-                continue
-            if address == source["ipv4"]:
-                source["interface"] = name
+        if sock.family == socket.AF_INET6:
+            address = ipaddress.IPv6Address(local[0].split("%")[0])
+            with open("/proc/net/if_inet6", encoding="ascii") as interfaces:
+                for line in interfaces:
+                    encoded, index, _, _, _, name = line.split()
+                    if ipaddress.IPv6Address(int(encoded, 16)) == address and (not local[3] or int(index, 16) == local[3]):
+                        source["interface"] = name
+                        break
+        else:
+            for _, name in socket.if_nameindex():
+                request = struct.pack("256s", name.encode())
                 try:
-                    source["interface_mtu_bytes"] = struct.unpack_from("I", fcntl.ioctl(sock.fileno(), SIOCGIFMTU, request), 16)[0]
+                    address = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), SIOCGIFADDR, request)[20:24])
                 except OSError:
-                    pass
-                break
+                    continue
+                if address == source["ipv4"]:
+                    source["interface"] = name
+                    break
+        if "interface" in source:
+            request = struct.pack("256s", source["interface"].encode())
+            try:
+                source["interface_mtu_bytes"] = struct.unpack_from("I", fcntl.ioctl(sock.fileno(), SIOCGIFMTU, request), 16)[0]
+            except OSError:
+                pass
     except OSError:
         pass
     return source
 
 
-def probe(host, port, sizes, count, timeout, dont_fragment=False):
+def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto"):
     require_df_support(dont_fragment)
     started_at_utc = utc_now()
     run_id = secrets.token_bytes(8)
-    address = socket.gethostbyname(host)
+    address_family, destination = udp_address(host, port, family)
+    address_key = "ipv6" if address_family == socket.AF_INET6 else "ipv4"
     results = []
     source = None
     for size in sizes:
@@ -228,11 +268,11 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
             payload = HEADER.pack(MAGIC, token, size) + run_id + bytes(size - HEADER.size - len(run_id))
             result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
             # A new connected socket isolates replies from earlier attempts.
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
                 # Configuration failures are fatal, not delivery observations.
                 configure_fragmentation(sock, dont_fragment)
                 try:
-                    sock.connect((address, port))
+                    sock.connect(destination)
                     if source is None:
                         source = source_snapshot(sock)
                     start = time.monotonic()
@@ -261,9 +301,9 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False):
         "started_at_utc": started_at_utc,
         "finished_at_utc": utc_now(),
         "source": source,
-        "target": {"host": host, "ipv4": address, "port": port},
+        "target": {"host": host, address_key: destination[0], "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
-        "fragmentation": "disabled: Linux IP_PMTUDISC_DO" if dont_fragment else "OS default; fragmentation behavior is not controlled",
+        "fragmentation": ("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else "OS default; fragmentation behavior is not controlled",
         "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
         "summary": {"by_payload_size": by_payload_size},
         "evidence": explain_evidence(by_payload_size, dont_fragment),
@@ -334,11 +374,14 @@ def correlate_reports(probe_report, receiver_report):
     receiver = receiver_report.get("receiver")
     target = target if isinstance(target, dict) else {}
     receiver = receiver if isinstance(receiver, dict) else {}
-    target_ip, bind_ip = target.get("ipv4"), receiver.get("bind_ipv4")
     endpoint_checks = {
         "target_port_matches_receiver": target.get("port") == receiver.get("port") if isinstance(target.get("port"), int) and isinstance(receiver.get("port"), int) else None,
-        "target_ipv4_matches_receiver_bind": target_ip == bind_ip if isinstance(target_ip, str) and isinstance(bind_ip, str) and bind_ip != "0.0.0.0" else None,
     }
+    for address_key, wildcard in (("ipv4", "0.0.0.0"), ("ipv6", "::")):
+        target_ip, bind_ip = target.get(address_key), receiver.get(f"bind_{address_key}")
+        endpoint_checks[f"target_{address_key}_matches_receiver_bind"] = (
+            target_ip == bind_ip if isinstance(target_ip, str) and isinstance(bind_ip, str) and bind_ip != wildcard else None
+        )
     return {
         "schema_version": 1,
         "kind": "probe_receiver_correlation",
@@ -390,15 +433,18 @@ def combine_reports(a_to_b, b_to_a):
             row[label] = match["assessment"] if match else None
         assessments.append(row)
     first_source, second_source = a_to_b.get("source"), b_to_a.get("source")
-    if (isinstance(first_source, dict) and isinstance(second_source, dict)
-            and isinstance(first_source.get("ipv4"), str) and isinstance(second_source.get("ipv4"), str)):
-        reversed_endpoints = (
-            first_source.get("ipv4") == b_to_a["target"].get("ipv4")
-            and second_source.get("ipv4") == a_to_b["target"].get("ipv4")
-        )
-        endpoint_check = "reversed_ipv4_match" if reversed_endpoints else "ipv4_mismatch_or_translation"
-    else:
-        endpoint_check = "unavailable"
+    endpoint_check = "unavailable"
+    if isinstance(first_source, dict) and isinstance(second_source, dict):
+        for address_key in ("ipv4", "ipv6"):
+            first, second = first_source.get(address_key), second_source.get(address_key)
+            if isinstance(first, str) and isinstance(second, str):
+                reversed_endpoints = (
+                    first == b_to_a["target"].get(address_key)
+                    and second == a_to_b["target"].get(address_key)
+                )
+                endpoint_check = (f"reversed_{address_key}_match" if reversed_endpoints
+                                  else f"{address_key}_mismatch_or_translation")
+                break
     return {
         "schema_version": 1,
         "kind": "bidirectional_comparison",
@@ -502,12 +548,16 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     receiver = commands.add_parser("receive", help="receive probes and send small acknowledgements")
     receiver.add_argument("--bind", default="127.0.0.1")
+    receiver.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
+                          help="address family; auto treats an IPv6 literal as IPv6")
     receiver.add_argument("--port", type=bounded_int(0, 65535), default=9471)
     receiver.add_argument("--max-packets", type=bounded_int(1, 1000), default=100)
     receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30)
     receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
+    sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
+                        help="address family; auto prefers IPv4 for hostnames")
     sender.add_argument("--port", type=bounded_int(1, 65535), default=9471)
     size_options = sender.add_mutually_exclusive_group()
     size_options.add_argument("--sizes", type=sizes_arg, help="comma-separated UDP payload sizes (default: 64,512,1200,1400)")
@@ -516,7 +566,7 @@ def main():
     sender.add_argument("--count", type=bounded_int(1, 10), default=3)
     sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     sender.add_argument("--output", type=Path)
-    sender.add_argument("--dont-fragment", action="store_true", help="Linux IPv4 only: set DF and reject datagrams above the known path MTU")
+    sender.add_argument("--dont-fragment", action="store_true", help="Linux: prevent IPv4 or IPv6 fragmentation")
     combined = commands.add_parser("combine", help="combine two independently measured directions")
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
@@ -527,26 +577,36 @@ def main():
     correlated.add_argument("--output", type=Path)
     shown = commands.add_parser("show", help="print a concise summary of a JSON report")
     shown.add_argument("report", type=Path)
+    html_view = commands.add_parser("html", help="write a searchable local HTML view of a JSON report")
+    html_view.add_argument("report", type=Path)
+    html_view.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "receive":
-            receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output)
+            receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output, args.family)
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
-                           args.count, args.timeout, args.dont_fragment)
+                           args.count, args.timeout, args.dont_fragment, args.family)
         elif args.command == "combine":
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
             report = combine_reports(a_to_b, b_to_a)
         elif args.command == "show":
             print(format_report(json.loads(args.report.read_text(encoding="utf-8"))))
+        elif args.command == "html":
+            from tunnelscope_view import render_report_html
+            args.output.write_text(
+                render_report_html(json.loads(args.report.read_text(encoding="utf-8"))),
+                encoding="utf-8",
+            )
+            print(f"Wrote {args.output}")
         else:
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
             report = correlate_reports(probe_report, receiver_report)
-        if args.command not in ("receive", "show"):
+        if args.command not in ("receive", "show", "html"):
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")

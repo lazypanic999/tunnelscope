@@ -25,4 +25,4 @@ Repository = "https://github.com/lazypanic999/tunnelscope"
 tunnelscope = "tunnelscope:main"
 
 [tool.setuptools]
-py-modules = ["tunnelscope"]
+py-modules = ["tunnelscope", "tunnelscope_view"]

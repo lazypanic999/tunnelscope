@@ -9,9 +9,42 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import tunnelscope
+import tunnelscope_view
 
 
 class DeliveryTests(unittest.TestCase):
+    @unittest.skipUnless(socket.has_ipv6, "IPv6 unavailable")
+    def test_ipv6_receiver_probe_and_correlation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            receiver_path = Path(directory) / "receiver.json"
+            process = subprocess.Popen(
+                [sys.executable, str(Path(tunnelscope.__file__)), "receive", "--bind", "::1",
+                 "--port", "0", "--max-packets", "2", "--idle-timeout", "3",
+                 "--output", str(receiver_path)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            try:
+                port = int(process.stdout.readline().strip().rsplit(":", 1)[1])
+                report = tunnelscope.probe("::1", port, [64, 1200], 1, 1)
+                self.assertEqual([row["status"] for row in report["results"]], ["acknowledged"] * 2)
+                self.assertEqual(report["source"]["ipv6"], "::1")
+                self.assertEqual(report["target"]["ipv6"], "::1")
+                self.assertEqual(process.wait(timeout=4), 0)
+                receiver = json.loads(receiver_path.read_text(encoding="utf-8"))
+                self.assertEqual(receiver["receiver"]["bind_ipv6"], "::1")
+                self.assertEqual([row["source_ipv6"] for row in receiver["observations"]], ["::1"] * 2)
+                correlation = tunnelscope.correlate_reports(report, receiver)
+                self.assertEqual(correlation["summary"]["receiver_observed"], 2)
+                self.assertTrue(correlation["pairing"]["endpoint_checks"]["target_ipv6_matches_receiver_bind"])
+                combined = tunnelscope.combine_reports(report, report)
+                self.assertEqual(combined["endpoint_check"], "reversed_ipv6_match")
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+                process.stdout.close()
+                process.stderr.close()
+
     def test_real_receiver_acknowledges_requested_sizes(self):
         process = subprocess.Popen(
             [sys.executable, str(Path(tunnelscope.__file__)), "receive", "--port", "0", "--max-packets", "3", "--idle-timeout", "3"],
@@ -93,6 +126,30 @@ class DeliveryTests(unittest.TestCase):
             capture_output=True, text=True, timeout=5,
         )
         self.assertEqual(exclusive.returncode, 2)
+
+    def test_html_view_is_searchable_and_escapes_report_content(self):
+        report = {"schema_version": 1, "kind": "probe", "results": [
+            {"payload_bytes": 64, "attempt": 1, "status": "acknowledged", "rtt_ms": 1.25},
+            {"payload_bytes": 1400, "attempt": 1, "status": "socket_error",
+             "error": "<script>alert(1)</script>"},
+        ]}
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "report.json"
+            output_path = Path(directory) / "report.html"
+            input_path.write_text(json.dumps(report), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(Path(tunnelscope.__file__)), "html", str(input_path),
+                 "--output", str(output_path)], capture_output=True, text=True, timeout=5,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = output_path.read_text(encoding="utf-8")
+        self.assertIn("Filter rows", html)
+        self.assertIn("Raw JSON evidence", html)
+        self.assertIn("1400", html)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+        self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertIn("Receiver saw", tunnelscope_view.render_report_html({
+            "schema_version": 1, "kind": "probe_receiver_correlation", "results": []}))
 
     def test_summary_keeps_mixed_outcomes_and_repeated_sizes(self):
         results = [

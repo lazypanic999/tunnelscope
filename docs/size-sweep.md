@@ -1,6 +1,6 @@
-# Bounded payload-size sweep (development)
+# Bounded payload-size sweep
 
-The development checkout adds `--sweep START:STOP:STEP` to `probe`. It expands
+From v0.3.0, `probe --sweep START:STOP:STEP` expands
 an ascending grid of UDP payload sizes, always including `STOP` even if `STEP`
 does not land exactly on it. The bounds are 32 to 8192 bytes and at most 16
 sizes. `--sweep` and `--sizes` cannot be used together. `--count` repeats each
@@ -26,5 +26,4 @@ sizes succeeded. Compare receiver observations with `correlate` to learn
 whether a timed-out probe reached the cooperating receiver.
 
 The [direct-link MTU lab](../labs/mtu_boundary.py) checks this option against a
-known 1280-byte virtual link in both directions. This feature is in source
-control for the next release; PyPI v0.2.2 does not include it.
+known 1280-byte virtual link in both directions.

@@ -1,4 +1,4 @@
-# Controlled tunnel and pod workflows (development)
+# Controlled tunnel and pod workflows
 
 TunnelScope sends ordinary UDP payloads between a cooperating sender and
 receiver. The tool does not configure a VPN, container network, Kubernetes
@@ -45,7 +45,7 @@ evidence.
 
 ## Existing Kubernetes pods
 
-If two controlled pods already contain the development CLI and Python 3.10+,
+If two controlled pods already contain TunnelScope v0.3.0 and Python 3.10+,
 use their pod addresses directly. In separate local terminals, for example:
 
 ```sh

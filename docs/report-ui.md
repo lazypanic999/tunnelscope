@@ -1,6 +1,6 @@
-# Local HTML report view (development)
+# Local HTML report view
 
-The development CLI can turn an existing JSON report into a searchable HTML
+From v0.3.0, the CLI can turn an existing JSON report into a searchable HTML
 file. It does not start a server or send the report to a remote service.
 
 ```sh
@@ -18,5 +18,4 @@ content works without network access.
 
 The generated HTML contains the complete report, including addresses and any
 other fields in its JSON. Sanitize the JSON before sharing the HTML. Report
-values are HTML-escaped before rendering. This command is in the development
-checkout and is not in PyPI v0.2.2.
+values are HTML-escaped before rendering.

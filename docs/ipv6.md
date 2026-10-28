@@ -1,6 +1,6 @@
-# IPv6 delivery experiments (development)
+# IPv6 delivery experiments
 
-The development CLI supports IPv6 UDP payload probes and receiver observations.
+From v0.3.0, the CLI supports IPv6 UDP payload probes and receiver observations.
 Use an IPv6 literal for `probe` or `receive --bind`; the default receiver still
 binds to IPv4 loopback. For a hostname, `--family ipv6` selects an AAAA record.
 The default hostname behavior continues to prefer IPv4 for compatibility.
@@ -35,5 +35,3 @@ The [isolated IPv6 boundary lab](../labs/ipv6_boundary.py) verifies a
 1280-byte veth link: 1228–1232-byte UDP payloads arrive, while 1233–1236-byte
 payloads are rejected locally in no-fragment mode. It creates and removes
 temporary network namespaces and requires root and `iproute2`.
-
-This feature is in the development checkout and is not in PyPI v0.2.2.

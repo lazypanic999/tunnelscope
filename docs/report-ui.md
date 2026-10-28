@@ -11,8 +11,8 @@ Open `probe.html` in a browser. Search filters visible rows; the raw JSON is
 available in a collapsed section. The view supports probe, receiver,
 correlation, bidirectional comparison and lab reports. It presents evidence
 already in the JSON; it does not run a new measurement or infer a root cause.
-The logo is fetched from the project's GitHub image when online, while report
-content works without network access.
+The logo is embedded in the generated HTML. The HTML is a self-contained file:
+the logo, report content, styles and search work without network access.
 
 ![TunnelScope HTML report view](images/report-ui.png)
 

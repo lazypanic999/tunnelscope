@@ -1,11 +1,18 @@
 """Build a small local HTML view of a TunnelScope JSON report."""
 
+import base64
 from html import escape
+from importlib.resources import files
 import json
 
 
 def _cell(value):
     return "—" if value is None else str(value)
+
+
+def _logo_data_uri():
+    logo = files("tunnelscope_assets").joinpath("tunnelscope-logo-blue.png").read_bytes()
+    return "data:image/png;base64," + base64.b64encode(logo).decode("ascii")
 
 
 def _records(value):
@@ -89,9 +96,11 @@ def render_report_html(report):
     row_html = "".join("<tr>" + "".join(f"<td>{escape(_cell(value))}</td>" for value in row) + "</tr>"
                        for row in rows)
     if not rows:
-        row_html = f"<tr><td colspan='{len(headers)}'>No observations in this report.</td></tr>"
+        row_html = f"<tr class='empty-report'><td colspan='{len(headers)}'>No observations in this report.</td></tr>"
     raw_json = escape(json.dumps(report, indent=2, ensure_ascii=False))
     safe_title = escape(title)
+    logo_data_uri = _logo_data_uri()
+    row_count = len(rows)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TunnelScope · {safe_title}</title>
@@ -100,11 +109,13 @@ def render_report_html(report):
 body {{ max-width: 1100px; margin: 0 auto; padding: 24px; }}
 header {{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }}
 header .mark {{ width:64px; height:64px; border-radius:14px; flex:0 0 64px;
-background: #0a1024 url('https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/tunnelscope-logo-blue.png') center / 180px auto no-repeat; }}
+background: #0a1024 url('{logo_data_uri}') center / 180px auto no-repeat; }}
 h1 {{ margin:0; font-size:1.8rem; }} small {{ color:#9eb5d8; }}
 main {{ background:#101a33; border:1px solid #274473; border-radius:16px; padding:24px; }}
 input {{ box-sizing:border-box; width:100%; padding:12px; margin:8px 0 18px; color:inherit;
 background:#0b1430; border:1px solid #4269af; border-radius:8px; font:inherit; }}
+#match-count {{ display:block; color:#9eb5d8; margin-bottom:8px; }}
+#no-matches[hidden] {{ display:none; }}
 .scroll {{ overflow-x:auto; }} table {{ width:100%; border-collapse:collapse; }}
 th,td {{ padding:10px 12px; border-bottom:1px solid #273a61; text-align:left; white-space:nowrap; }}
 th {{ color:#9dc4ff; }} tr:hover td {{ background:#17264a; }}
@@ -116,10 +127,19 @@ footer {{ margin-top:20px; color:#9eb5d8; font-size:.9rem; }}
 <header><span class="mark" role="img" aria-label="TunnelScope logo"></span>
 <div><h1>TunnelScope</h1><small>{safe_title} · local report view</small></div></header>
 <main><label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
+<output id="match-count" role="status" aria-live="polite">Showing {row_count} of {row_count} rows</output>
 <div class="scroll"><table><thead><tr>{header_html}</tr></thead><tbody>{row_html}</tbody></table></div>
+<p id="no-matches" hidden>No matching rows.</p>
 <details><summary>Raw JSON evidence</summary><pre>{raw_json}</pre></details></main>
 <footer>Observed results only. Timeouts do not prove an MTU problem. Keep unsanitized reports private.</footer>
-<script>const search=document.getElementById('filter');search.addEventListener('input',()=>{{
-const q=search.value.toLowerCase();for(const row of document.querySelectorAll('tbody tr')){{
+<script>const search=document.getElementById('filter');
+const resultRows=[...document.querySelectorAll('tbody tr:not(.empty-report)')];
+search.addEventListener('input',()=>{{
+const q=search.value.toLowerCase();let visible=0;
+for(const row of resultRows){{
 row.hidden=!row.textContent.toLowerCase().includes(q);
-}}}});</script></body></html>"""
+if(!row.hidden)visible++;
+}}
+document.getElementById('match-count').textContent=`Showing ${{visible}} of ${{resultRows.length}} rows`;
+document.getElementById('no-matches').hidden=visible!==0 || resultRows.length===0;
+}});</script></body></html>"""

@@ -1,4 +1,6 @@
+import base64
 import json
+import re
 import socket
 import subprocess
 import sys
@@ -144,10 +146,18 @@ class DeliveryTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = output_path.read_text(encoding="utf-8")
         self.assertIn("Filter rows", html)
+        self.assertIn("Showing 2 of 2 rows", html)
+        self.assertIn("No matching rows.", html)
         self.assertIn("Raw JSON evidence", html)
         self.assertIn("1400", html)
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
         self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertNotIn("https://", html)
+        logo = re.search(r"url\('data:image/png;base64,([^']+)'\)", html)
+        self.assertIsNotNone(logo)
+        self.assertEqual(base64.b64decode(logo.group(1)),
+                         (Path(tunnelscope_view.__file__).parent / "tunnelscope_assets" /
+                          "tunnelscope-logo-blue.png").read_bytes())
         self.assertIn("Receiver saw", tunnelscope_view.render_report_html({
             "schema_version": 1, "kind": "probe_receiver_correlation", "results": []}))
 

@@ -26,3 +26,7 @@ tunnelscope = "tunnelscope:main"
 
 [tool.setuptools]
 py-modules = ["tunnelscope", "tunnelscope_view"]
+packages = ["tunnelscope_assets"]
+
+[tool.setuptools.package-data]
+tunnelscope_assets = ["tunnelscope-logo-blue.png"]

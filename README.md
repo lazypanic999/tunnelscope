@@ -87,7 +87,8 @@ Use `tunnelscope show report.json` for a short terminal table of a probe,
 receiver observation, bidirectional comparison, correlation, or lab report.
 JSON remains the machine-readable source of evidence.
 
-The CLI can also create a [local HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md):
+The CLI can also create a [self-contained HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md)
+that works offline:
 
 ```sh
 tunnelscope html report.json --output report.html

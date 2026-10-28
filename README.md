@@ -6,7 +6,7 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**Status: v0.4.0 alpha. IPv4/IPv6 UDP delivery probes, Linux no-fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
+**Status: v0.4.1 alpha. IPv4/IPv6 UDP delivery probes, Linux no-fragment mode, per-direction report combination, optional receiver observations and controlled MTU labs are available. Automatic path-MTU discovery and root-cause diagnosis are not implemented.**
 
 ## Quick start
 
@@ -82,6 +82,7 @@ The [v0.1 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/v0.1
 The [v0.2 receiver workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
 The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
 The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
+The [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) defines the next bounded size-boundary experiment and its validation gates.
 
 Use `tunnelscope show report.json` for a short terminal table of a probe,
 receiver observation, bidirectional comparison, correlation, or lab report.
@@ -179,7 +180,7 @@ This lab creates a sender, router and receiver in temporary network namespaces. 
 
 The known lab topology explains these timeouts; a timeout on an unknown network remains inconclusive. See the [validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/pmtu-blackhole.md) and [captured report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/pmtu-blackhole.json). This lab demonstrates one controlled failure mode; it does not establish automatic black-hole detection.
 
-The receiver binds to IPv4 loopback by default. For your own two-host lab, use `--bind <receiver-lab-address>` and probe that address. An IPv6 literal such as `::1` selects IPv6; `--family ipv6` selects an AAAA record for a hostname. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service.
+The receiver binds to IPv4 loopback by default. For your own two-host lab, use `--bind <receiver-lab-address>` and probe that address. Wildcard binds (`0.0.0.0` and `::`) are refused; select one lab interface and restrict the UDP port to the intended sender. An IPv6 literal such as `::1` selects IPv6; `--family ipv6` selects an AAAA record for a hostname. The experimental protocol is unencrypted and unauthenticated; use a controlled lab, not a public service. See the [security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md).
 
 Run checks:
 

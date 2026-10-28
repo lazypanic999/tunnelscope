@@ -15,13 +15,26 @@ import tunnelscope_view
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_receiver_rejects_wildcard_bind(self):
+        for address in ("0.0.0.0", "::"):
+            if address == "::" and not socket.has_ipv6:
+                continue
+            with self.subTest(address=address):
+                result = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "receive",
+                     "--bind", address, "--idle-timeout", "1"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("wildcard binds are disabled", result.stderr)
+
     def test_cli_reports_version(self):
         result = subprocess.run(
             [sys.executable, str(Path(tunnelscope.__file__)), "--version"],
             capture_output=True, text=True, timeout=5,
         )
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "TunnelScope 0.4.0")
+        self.assertEqual(result.stdout.strip(), "TunnelScope 0.4.1")
 
     @unittest.skipUnless(socket.has_ipv6, "IPv6 unavailable")
     def test_ipv6_receiver_probe_and_correlation(self):

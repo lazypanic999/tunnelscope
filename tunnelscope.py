@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 MAGIC = b"TS01"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # Linux UAPI values, used when Python does not expose the constants.
@@ -109,6 +109,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
     observations = []
     exit_reason = "max_packets"
     address_family, bind_address = udp_address(bind, port, family)
+    if ipaddress.ip_address(bind_address[0]).is_unspecified:
+        raise ValueError("receiver requires an explicit lab interface address; wildcard binds are disabled")
     address_key = "ipv6" if address_family == socket.AF_INET6 else "ipv4"
     with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
         if address_family == socket.AF_INET6:

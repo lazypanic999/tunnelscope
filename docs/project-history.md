@@ -28,4 +28,3 @@ The [v0.2 receiver workflow](https://github.com/lazypanic999/tunnelscope/blob/ma
 The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
 The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
 The [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) defines the next bounded size-boundary experiment and its validation gates.
-

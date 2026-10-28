@@ -98,4 +98,3 @@ Privileged Linux integration check (also run by CI on Ubuntu):
 ```sh
 sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 python3 -m unittest discover -s tests -v
 ```
-

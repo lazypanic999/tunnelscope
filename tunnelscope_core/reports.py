@@ -1,5 +1,26 @@
 """Evidence summaries, correlation and terminal formatting."""
 
+from math import sqrt
+
+
+def no_ack_measurement(counts):
+    """Describe missing ACKs among sent probes, without calling them packet loss."""
+    acknowledged = counts.get("acknowledged", 0)
+    timed_out = counts.get("timeout", 0)
+    sent = acknowledged + timed_out
+    if not sent:
+        return {"sent_attempts": 0, "no_ack_count": 0,
+                "no_ack_rate": None, "no_ack_wilson_95": None}
+    rate = timed_out / sent
+    z = 1.959963984540054
+    z2 = z * z
+    center = (rate + z2 / (2 * sent)) / (1 + z2 / sent)
+    margin = z * sqrt(rate * (1 - rate) / sent + z2 / (4 * sent * sent)) / (1 + z2 / sent)
+    return {"sent_attempts": sent, "no_ack_count": timed_out,
+            "no_ack_rate": round(rate, 4),
+            "no_ack_wilson_95": [round(max(0, center - margin), 4),
+                                  round(min(1, center + margin), 4)]}
+
 
 def summarize_results(sizes, results):
     """Keep delivery, explicit errors and missing replies distinct per payload size."""
@@ -16,7 +37,9 @@ def summarize_results(sizes, results):
             "timeout": "inconclusive",
             "socket_error": "socket_error",
         }[observed[0]] if len(observed) == 1 else "mixed_observations"
-        summary.append({"payload_bytes": size, "status_counts": counts, "assessment": assessment})
+        summary.append({"payload_bytes": size, "status_counts": counts,
+                        "no_ack_measurement": no_ack_measurement(counts),
+                        "assessment": assessment})
     return summary
 
 
@@ -205,6 +228,20 @@ def text_table(headers, rows):
     return "\n".join([line(headers), line(["-" * width for width in widths]), *(line(row) for row in cells)])
 
 
+def no_ack_text(measurement):
+    if not isinstance(measurement, dict) or not measurement.get("sent_attempts"):
+        return "-"
+    interval = measurement.get("no_ack_wilson_95")
+    if not isinstance(interval, list) or len(interval) != 2 or not all(
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        for value in (measurement.get("no_ack_count"), measurement.get("sent_attempts"),
+                      measurement.get("no_ack_rate"), *interval)
+    ):
+        return "-"
+    return (f"{measurement['no_ack_count']}/{measurement['sent_attempts']} "
+            f"({measurement['no_ack_rate']:.0%}; 95% {interval[0]:.0%}-{interval[1]:.0%})")
+
+
 def format_report(report):
     """Render existing JSON evidence as a compact terminal view."""
     if isinstance(report, dict) and isinstance(report.get("lab"), str):
@@ -224,9 +261,11 @@ def format_report(report):
             if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
                 raise ValueError("invalid probe size summary")
             counts = row["status_counts"]
+            measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
             values.append((row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
                            counts.get("packet_too_large", 0), counts.get("timeout", 0),
-                           counts.get("socket_error", 0), row.get("assessment", "?")))
+                           counts.get("socket_error", 0), no_ack_text(measurement),
+                           row.get("assessment", "?")))
         search = summary.get("search")
         search_text = ""
         if isinstance(search, dict):
@@ -235,8 +274,25 @@ def format_report(report):
             search_text = (f"\nSearch: {search.get('assessment', 'unknown')}; observed interval: {bounds}; "
                            f"tested {len(search.get('tested_payload_sizes', []))}/{search.get('max_tested_sizes', '?')} sizes.")
         return "Probe results (UDP payload bytes)\n" + text_table(
-            ["Bytes", "Ack", "Too large", "Timeout", "Error", "Assessment"], values
-        ) + search_text + "\nTimeouts are inconclusive; an ACK confirms delivery and a small reply."
+            ["Bytes", "Ack", "Too large", "Timeout", "Error", "No ACK (95% CI)", "Assessment"], values
+        ) + search_text + "\nNo ACK is a sender timeout, not proven packet loss. CI is a Wilson interval for repeated sent probes."
+    if kind == "fragmentation_comparison":
+        comparison = report.get("comparison")
+        rows = comparison.get("by_payload_size") if isinstance(comparison, dict) else None
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise ValueError("fragmentation comparison has no valid size summary")
+        values = []
+        for row in rows:
+            df, allowed = row.get("df"), row.get("fragmentation_permitted")
+            if not isinstance(df, dict) or not isinstance(allowed, dict):
+                raise ValueError("fragmentation comparison has an invalid size row")
+            values.append((row.get("payload_bytes", "?"), df.get("assessment", "?"),
+                           no_ack_text(df.get("no_ack_measurement")),
+                           allowed.get("assessment", "?"),
+                           no_ack_text(allowed.get("no_ack_measurement"))))
+        return (f"Fragmentation comparison; source check: {report.get('source_check', 'unknown')}\n" +
+                text_table(["Bytes", "DF", "DF no ACK", "Permitted", "Permitted no ACK"], values) +
+                "\nSource fragmentation was permitted in the second run, not observed on the path. Differences do not identify a cause.")
     if kind == "receiver_observations":
         observations = report.get("observations")
         if not isinstance(observations, list) or any(not isinstance(row, dict) for row in observations):

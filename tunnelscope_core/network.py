@@ -13,12 +13,13 @@ import time
 from pathlib import Path
 
 MAGIC = b"TS01"
-VERSION = "0.5.0"
+VERSION = "0.6.0.dev0"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # Linux UAPI values, used when Python does not expose the constants.
 IP_MTU_DISCOVER = getattr(socket, "IP_MTU_DISCOVER", 10)
 IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
+IP_PMTUDISC_DONT = getattr(socket, "IP_PMTUDISC_DONT", 0)
 IP_MTU = getattr(socket, "IP_MTU", 14)
 IPV6_DONTFRAG = getattr(socket, "IPV6_DONTFRAG", 62)
 IPV6_MTU = getattr(socket, "IPV6_MTU", 24)
@@ -38,13 +39,20 @@ def require_df_support(dont_fragment):
         raise ValueError("--dont-fragment currently requires Linux (including WSL2)")
 
 
-def configure_fragmentation(sock, dont_fragment):
+def configure_fragmentation(sock, dont_fragment, allow_fragmentation=False):
+    if dont_fragment and allow_fragmentation:
+        raise ValueError("fragmentation modes are mutually exclusive")
     if dont_fragment:
         # Fail the experiment if the option cannot be enabled; never fall back.
         if sock.family == socket.AF_INET6:
             sock.setsockopt(socket.IPPROTO_IPV6, IPV6_DONTFRAG, 1)
         else:
             sock.setsockopt(socket.IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO)
+    elif allow_fragmentation:
+        if sock.family == socket.AF_INET6:
+            sock.setsockopt(socket.IPPROTO_IPV6, IPV6_DONTFRAG, 0)
+        else:
+            sock.setsockopt(socket.IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT)
 
 
 def socket_failure(error, sock, dont_fragment):
@@ -177,8 +185,10 @@ def source_snapshot(sock):
 
 
 def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
-          search_bounds=None, max_sizes=16):
-    require_df_support(dont_fragment)
+          search_bounds=None, max_sizes=16, allow_fragmentation=False):
+    require_df_support(dont_fragment or allow_fragmentation)
+    if dont_fragment and allow_fragmentation:
+        raise ValueError("fragmentation modes are mutually exclusive")
     if search_bounds is not None:
         if not dont_fragment:
             raise ValueError("size search requires Linux no-fragment mode")
@@ -208,7 +218,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
             # A new connected socket isolates replies from earlier attempts.
             with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
                 # Configuration failures are fatal, not delivery observations.
-                configure_fragmentation(sock, dont_fragment)
+                configure_fragmentation(sock, dont_fragment, allow_fragmentation)
                 try:
                     sock.connect(destination)
                     if source is None:
@@ -251,9 +261,31 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         "source": source,
         "target": {"host": host, address_key: destination[0], "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
-        "fragmentation": ("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else "OS default; fragmentation behavior is not controlled",
+        "fragmentation_mode": "df" if dont_fragment else "permitted" if allow_fragmentation else "os_default",
+        "fragmentation": (("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else
+                          ("permitted: Linux IPV6_DONTFRAG=0" if address_family == socket.AF_INET6 else "permitted: Linux IP_PMTUDISC_DONT") if allow_fragmentation else
+                          "OS default; fragmentation behavior is not controlled"),
         "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
         "summary": summary,
         "evidence": explain_evidence(by_payload_size, dont_fragment),
         "results": results,
     }
+
+
+def compare_fragmentation(host, port, sizes, count, timeout, family="auto"):
+    """Measure each configured size with DF and source fragmentation permitted."""
+    require_df_support(True)
+    sizes = list(sizes)
+    if not 1 <= len(sizes) <= 16 or any(not 32 <= size <= 8192 for size in sizes):
+        raise ValueError("comparison needs 1..16 payload sizes of 32..8192 bytes")
+    if len(set(sizes)) != len(sizes):
+        raise ValueError("comparison needs distinct payload sizes")
+    if not 1 <= count <= 10 or not 1 <= timeout <= 5:
+        raise ValueError("comparison count or timeout is outside CLI bounds")
+    if 2 * len(sizes) * count > 100 or 2 * len(sizes) * count * timeout > 120:
+        raise ValueError("comparison budget exceeds 100 probes or 120 seconds of timeout allowance")
+    df = probe(host, port, sizes, count, timeout, True, family)
+    permitted = probe(host, port, sizes, count, timeout, False, family,
+                      allow_fragmentation=True)
+    from .fragmentation import compare_fragmentation_reports
+    return compare_fragmentation_reports(df, permitted)

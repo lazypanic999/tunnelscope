@@ -13,6 +13,10 @@ reports. Automatic path-MTU discovery and root-cause diagnosis are not implement
 [GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.5.0) ·
 [PyPI](https://pypi.org/project/tunnelscope/0.5.0/)
 
+**Development on `main` (0.6.0.dev0):** repeated no-ACK summaries and a Linux
+DF/fragmentation-permitted comparison. These changes are not in the v0.5.0
+PyPI package. See the [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md).
+
 ![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/terminal-demo.gif)
 
 The animation runs `tunnelscope show` on a checked-in [controlled lab report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/pmtu-blackhole.json).
@@ -81,6 +85,12 @@ tunnelscope show search.json
 Start a receiver at that lab address first. A timeout stops the search as
 inconclusive; even adjacent successful and explicit-error sizes are not an
 independently measured path MTU. See the [size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md).
+
+On Linux, the development version can also repeat the same sizes with DF
+enabled and source fragmentation permitted. Use a controlled receiver and
+read the [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md)
+before interpreting differences.
+
 ## What the results mean
 
 - `acknowledged`: the receiver got the UDP payload and a small reply returned.
@@ -97,6 +107,8 @@ sizes, not an exact end-to-end path MTU.
   size sweeps, JSON fields, no-fragment behavior and lab commands.
 - [Bounded size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md): adaptive probes and how to
   interpret the observed interval.
+- [Repeated measurements and fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md):
+  development command and its limits.
 - [Two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) and
   [receiver correlation](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md): compare both directions.
 - [Two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md) and
@@ -104,7 +116,8 @@ sizes, not an exact end-to-end path MTU.
 - [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md),
   [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) and
   [security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md).
-- [v0.5 roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) and
+- [v0.6 development roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.6.md),
+  [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) and
   [completed milestones](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
 ## Contributing

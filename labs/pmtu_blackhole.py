@@ -85,6 +85,17 @@ def main():
         evidence = search["summary"]["search"]
         if evidence["assessment"] != "inconclusive" or evidence["observed_interval_payload_bytes"] is not None:
             raise RuntimeError(f"Blocked-feedback search claimed a boundary: {evidence}")
+        compared = subprocess.run(
+            ["ip", "netns", "exec", sender, sys.executable, script,
+             "compare-fragmentation", "198.51.100.2", "--sizes", "64,1400", "--count", "2"],
+            check=True, capture_output=True, text=True, timeout=15,
+        )
+        comparison = json.loads(compared.stdout)
+        if ([row["status"] for row in comparison["runs"]["df"]["results"]] !=
+                ["acknowledged"] * 2 + ["timeout"] * 2 or
+                [row["status"] for row in comparison["runs"]["fragmentation_permitted"]["results"]] !=
+                ["acknowledged"] * 4):
+            raise RuntimeError(f"Unexpected blocked-feedback comparison: {comparison}")
         firewall = ip("netns", "exec", router, "iptables", "-L", "OUTPUT", "-n", "-v", "-x", "--line-numbers").stdout
         counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+DROP\s+(?:icmp|1)\b", firewall, re.MULTILINE)
         if counter is None or int(counter.group(1)) < 2:
@@ -99,6 +110,7 @@ def main():
             "interpretation": "Small probes were acknowledged; large probes timed out with ICMP feedback blocked. A timeout alone does not identify the cause on an unknown path.",
             "probe": probe,
             "search": search,
+            "fragmentation_comparison": comparison,
         }, indent=2))
     finally:
         if receiver is not None:

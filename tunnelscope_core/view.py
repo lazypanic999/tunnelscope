@@ -5,6 +5,8 @@ from html import escape
 from importlib.resources import files
 import json
 
+from .reports import no_ack_measurement, no_ack_text
+
 
 def _cell(value):
     return "—" if value is None else str(value)
@@ -49,6 +51,19 @@ def _table_data(report):
             [row.get("payload_bytes"), row.get("a_to_b"), row.get("b_to_a")]
             for row in _records(comparison.get("by_payload_size"))
         ]
+    if kind == "fragmentation_comparison":
+        comparison = report.get("comparison")
+        if not isinstance(comparison, dict):
+            raise ValueError("fragmentation comparison has no per-size summary")
+        rows = []
+        for row in _records(comparison.get("by_payload_size")):
+            df, allowed = row.get("df"), row.get("fragmentation_permitted")
+            if not isinstance(df, dict) or not isinstance(allowed, dict):
+                raise ValueError("invalid fragmentation comparison row")
+            rows.append([row.get("payload_bytes"), df.get("assessment"),
+                         no_ack_text(df.get("no_ack_measurement")), allowed.get("assessment"),
+                         no_ack_text(allowed.get("no_ack_measurement"))])
+        return ["Bytes", "DF", "DF no ACK", "Permitted", "Permitted no ACK"], rows
     return [], []
 
 
@@ -116,6 +131,28 @@ def render_report_html(report):
         search_html = "<section class='search-summary'><h2>Size search evidence</h2>" + "".join(
             f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>" for label, value in fields
         ) + "<p>Timeouts and mixed outcomes do not establish a boundary.</p></section>"
+    measurement_html = ""
+    if search_report.get("kind") == "probe":
+        summary = search_report.get("summary")
+        size_rows = summary.get("by_payload_size") if isinstance(summary, dict) else None
+        if isinstance(size_rows, list) and size_rows:
+            cells = []
+            for row in _records(size_rows):
+                counts = row.get("status_counts")
+                if not isinstance(counts, dict):
+                    raise ValueError("invalid probe size summary")
+                measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
+                cells.append("<tr><td>" + escape(_cell(row.get("payload_bytes"))) +
+                             "</td><td>" + escape(no_ack_text(measurement)) + "</td></tr>")
+            measurement_html = ("<section class='search-summary'><h2>Repeated measurements</h2>"
+                                "<table><thead><tr><th>UDP payload bytes</th><th>No ACK (95% CI)</th></tr>"
+                                "</thead><tbody>" + "".join(cells) + "</tbody></table>"
+                                "<p>A timeout means no matching ACK arrived; it does not prove packet loss. "
+                                "Intervals use the Wilson method on sent probes only.</p></section>")
+    elif search_report.get("kind") == "fragmentation_comparison":
+        measurement_html = ("<section class='search-summary'><h2>Fragmentation modes</h2>"
+                            "<p>DF first, source fragmentation permitted second. Fragment arrival was not "
+                            "observed; differing outcomes do not identify a cause.</p></section>")
     safe_title = escape(title)
     logo_data_uri = _logo_data_uri()
     row_count = len(rows)
@@ -147,7 +184,7 @@ footer {{ margin-top:20px; color:#9eb5d8; font-size:.9rem; }}
 </style></head><body>
 <header><span class="mark" role="img" aria-label="TunnelScope logo"></span>
 <div><h1>TunnelScope</h1><small>{safe_title} · local report view</small></div></header>
-<main>{search_html}<label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
+<main>{search_html}{measurement_html}<label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
 <output id="match-count" role="status" aria-live="polite">Showing {row_count} of {row_count} rows</output>
 <div class="scroll"><table><thead><tr>{header_html}</tr></thead><tbody>{row_html}</tbody></table></div>
 <p id="no-matches" hidden>No matching rows.</p>

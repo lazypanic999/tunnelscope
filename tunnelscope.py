@@ -7,8 +7,8 @@ import socket
 import sys
 
 from tunnelscope_core.network import (
-    ACK, HEADER, IP_MTU, IP_MTU_DISCOVER, IP_PMTUDISC_DO, IPV6_DONTFRAG,
-    IPV6_MTU, MAGIC, VERSION, configure_fragmentation, probe, receive,
+    ACK, HEADER, IP_MTU, IP_MTU_DISCOVER, IP_PMTUDISC_DO, IP_PMTUDISC_DONT, IPV6_DONTFRAG,
+    IPV6_MTU, MAGIC, VERSION, compare_fragmentation, configure_fragmentation, probe, receive,
     require_df_support, socket_failure, source_snapshot, udp_address, utc_now,
 )
 from tunnelscope_core.reports import (
@@ -92,6 +92,16 @@ def main():
     search.add_argument("--count", type=bounded_int(1, 10), default=3)
     search.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     search.add_argument("--output", type=Path)
+    comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
+    comparison.add_argument("host")
+    comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
+    comparison.add_argument("--port", type=bounded_int(1, 65535), default=9471)
+    comparison_sizes = comparison.add_mutually_exclusive_group()
+    comparison_sizes.add_argument("--sizes", type=sizes_arg, help="comma-separated UDP payload sizes")
+    comparison_sizes.add_argument("--sweep", type=sweep_arg, metavar="START:STOP:STEP")
+    comparison.add_argument("--count", type=bounded_int(1, 10), default=5)
+    comparison.add_argument("--timeout", type=bounded_int(1, 5), default=1)
+    comparison.add_argument("--output", type=Path)
     combined = commands.add_parser("combine", help="combine two independently measured directions")
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
@@ -117,6 +127,11 @@ def main():
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
                            args.family, (args.minimum, args.maximum), args.max_sizes)
+        elif args.command == "compare-fragmentation":
+            sizes = args.sweep if args.sweep is not None else args.sizes
+            report = compare_fragmentation(args.host, args.port,
+                                           sizes if sizes is not None else [64, 1200, 1400],
+                                           args.count, args.timeout, args.family)
         elif args.command == "combine":
             require_distinct_output(args.output, args.a_to_b, args.b_to_a)
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))

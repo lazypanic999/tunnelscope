@@ -45,7 +45,7 @@ evidence.
 
 ## Existing Kubernetes pods
 
-If two controlled pods already contain TunnelScope v0.3.0 and Python 3.10+,
+If two controlled pods already contain TunnelScope v0.5.0 and Python 3.10+,
 use their pod addresses directly. In separate local terminals, for example:
 
 ```sh

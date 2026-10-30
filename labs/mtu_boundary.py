@@ -75,6 +75,18 @@ def main():
                 if evidence["assessment"] != "adjacent_observed_bounds" or evidence["observed_interval_payload_bytes"] != [1252, 1253]:
                     raise RuntimeError(f"Unexpected search interval: {evidence}")
                 direction["search"] = search
+                compare_result = subprocess.run(
+                    ["ip", "netns", "exec", source, sys.executable, script,
+                     "compare-fragmentation", target_ip, "--sizes", "1252,1253,1400",
+                     "--count", "2"],
+                    check=True, capture_output=True, text=True, timeout=15,
+                )
+                comparison = json.loads(compare_result.stdout)
+                df_statuses = [row["status"] for row in comparison["runs"]["df"]["results"]]
+                allowed_statuses = [row["status"] for row in comparison["runs"]["fragmentation_permitted"]["results"]]
+                if df_statuses != ["acknowledged"] * 2 + ["packet_too_large"] * 4 or allowed_statuses != ["acknowledged"] * 6:
+                    raise RuntimeError(f"Unexpected fragmentation comparison: {comparison}")
+                direction["fragmentation_comparison"] = comparison
                 report["directions"].append(direction)
             finally:
                 if receiver.poll() is None:

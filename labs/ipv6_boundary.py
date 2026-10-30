@@ -47,7 +47,7 @@ def main():
                 receiver_path = Path(directory) / f"{label}-receiver.json"
                 receiver = subprocess.Popen(
                     ["ip", "netns", "exec", target, sys.executable, "-u", script,
-                     "receive", "--bind", target_ip, "--max-packets", "7",
+                     "receive", "--bind", target_ip, "--max-packets", "10",
                      "--idle-timeout", "10", "--output", str(receiver_path)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                 )
@@ -75,6 +75,18 @@ def main():
                     search_evidence = search["summary"]["search"]
                     if search_evidence["assessment"] != "adjacent_observed_bounds" or search_evidence["observed_interval_payload_bytes"] != [1232, 1233]:
                         raise RuntimeError(f"Unexpected IPv6 search interval: {search_evidence}")
+                    compared = subprocess.run(
+                        ["ip", "netns", "exec", source, sys.executable, script,
+                         "compare-fragmentation", target_ip, "--family", "ipv6",
+                         "--sizes", "1232,1233", "--count", "1", "--timeout", "2"],
+                        check=True, capture_output=True, text=True, timeout=20,
+                    )
+                    comparison = json.loads(compared.stdout)
+                    if ([row["status"] for row in comparison["runs"]["df"]["results"]] !=
+                            ["acknowledged", "packet_too_large"] or
+                            [row["status"] for row in comparison["runs"]["fragmentation_permitted"]["results"]] !=
+                            ["acknowledged", "acknowledged"]):
+                        raise RuntimeError(f"Unexpected IPv6 fragmentation comparison: {comparison}")
                     if receiver.wait(timeout=12) != 0:
                         raise RuntimeError("IPv6 receiver failed")
                     observed = json.loads(receiver_path.read_text(encoding="utf-8"))
@@ -90,7 +102,8 @@ def main():
                     if search_correlation["summary"]["receiver_observed"] != 2:
                         raise RuntimeError("Unexpected IPv6 search receiver observation count")
                     report["directions"].append({"direction": label, "probe": probe,
-                                                  "search": search, "receiver": observed,
+                                                  "search": search, "fragmentation_comparison": comparison,
+                                                  "receiver": observed,
                                                   "correlation": correlation,
                                                   "search_correlation": search_correlation})
                 finally:

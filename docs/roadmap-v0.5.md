@@ -19,7 +19,8 @@ an exact end-to-end path MTU.
   user supplies them, without treating a small acknowledgement as proof that
   same-sized reverse traffic works.
 - Expose a short terminal summary and the same evidence in the HTML view.
-  The CLI option and JSON field names will be set when implementation starts.
+  The command is `search`, and its additive JSON fields live under
+  `summary.search`.
 
 ## Validation
 

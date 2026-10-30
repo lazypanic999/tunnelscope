@@ -257,5 +257,3 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         "evidence": explain_evidence(by_payload_size, dont_fragment),
         "results": results,
     }
-
-

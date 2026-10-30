@@ -287,5 +287,3 @@ def format_report(report):
                 + text_table(["Bytes", "Sender", "Receiver saw", "ACK send"], values)
                 + "\nNo receiver observation is inconclusive without confirmed capture coverage.")
     raise ValueError(f"unsupported report kind: {kind}")
-
-

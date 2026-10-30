@@ -34,7 +34,7 @@ class DeliveryTests(unittest.TestCase):
             capture_output=True, text=True, timeout=5,
         )
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "TunnelScope 0.4.1")
+        self.assertEqual(result.stdout.strip(), "TunnelScope 0.5.0")
 
     @unittest.skipUnless(socket.has_ipv6, "IPv6 unavailable")
     def test_ipv6_receiver_probe_and_correlation(self):

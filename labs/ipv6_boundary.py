@@ -47,7 +47,7 @@ def main():
                 receiver_path = Path(directory) / f"{label}-receiver.json"
                 receiver = subprocess.Popen(
                     ["ip", "netns", "exec", target, sys.executable, "-u", script,
-                     "receive", "--bind", target_ip, "--max-packets", "5",
+                     "receive", "--bind", target_ip, "--max-packets", "7",
                      "--idle-timeout", "10", "--output", str(receiver_path)],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                 )
@@ -65,6 +65,16 @@ def main():
                         check=True, capture_output=True, text=True, timeout=25,
                     )
                     probe = json.loads(sent.stdout)
+                    search_run = subprocess.run(
+                        ["ip", "netns", "exec", source, sys.executable, script,
+                         "search", target_ip, "--min", "1228", "--max", "1236",
+                         "--count", "1", "--timeout", "2"],
+                        check=True, capture_output=True, text=True, timeout=20,
+                    )
+                    search = json.loads(search_run.stdout)
+                    search_evidence = search["summary"]["search"]
+                    if search_evidence["assessment"] != "adjacent_observed_bounds" or search_evidence["observed_interval_payload_bytes"] != [1232, 1233]:
+                        raise RuntimeError(f"Unexpected IPv6 search interval: {search_evidence}")
                     if receiver.wait(timeout=12) != 0:
                         raise RuntimeError("IPv6 receiver failed")
                     observed = json.loads(receiver_path.read_text(encoding="utf-8"))
@@ -76,8 +86,13 @@ def main():
                         raise RuntimeError(f"Unexpected IPv6 source interface: {probe['source']}")
                     if correlation["summary"]["receiver_observed"] != 5:
                         raise RuntimeError("Unexpected IPv6 receiver observation count")
+                    search_correlation = tunnelscope.correlate_reports(search, observed)
+                    if search_correlation["summary"]["receiver_observed"] != 2:
+                        raise RuntimeError("Unexpected IPv6 search receiver observation count")
                     report["directions"].append({"direction": label, "probe": probe,
-                                                  "receiver": observed, "correlation": correlation})
+                                                  "search": search, "receiver": observed,
+                                                  "correlation": correlation,
+                                                  "search_correlation": search_correlation})
                 finally:
                     if receiver.poll() is None:
                         receiver.terminate()

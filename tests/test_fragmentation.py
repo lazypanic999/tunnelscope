@@ -77,6 +77,8 @@ class FragmentationTests(unittest.TestCase):
                              [1200, 1225, 1250, 1275, 1300])
             self.assertEqual([row["status"] for row in direction["sweep"]["results"]],
                              ["acknowledged"] * 3 + ["packet_too_large"] * 2)
+            self.assertEqual(direction["search"]["summary"]["search"]["observed_interval_payload_bytes"],
+                             [1252, 1253])
         combined = tunnelscope.combine_reports(*report["directions"])
         self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
         self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")
@@ -96,6 +98,9 @@ class FragmentationTests(unittest.TestCase):
                              ["acknowledged"] * 5 + ["packet_too_large"] * 4)
             self.assertEqual(probe["source"]["interface_mtu_bytes"], 1280)
             self.assertEqual(direction["correlation"]["summary"]["receiver_observed"], 5)
+            self.assertEqual(direction["search"]["summary"]["search"]["observed_interval_payload_bytes"],
+                             [1232, 1233])
+            self.assertEqual(direction["search_correlation"]["summary"]["receiver_observed"], 2)
 
     @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
     def test_vxlan_overlay_boundary_in_both_directions(self):
@@ -130,6 +135,8 @@ class FragmentationTests(unittest.TestCase):
         self.assertEqual([item["code"] for item in probe["evidence"]["hypotheses"]], ["size_related_delivery_problem_possible", "pmtu_feedback_black_hole_possible"])
         self.assertIn("ordinary_packet_loss", probe["evidence"]["hypotheses"][1]["alternatives"])
         self.assertIn("icmp_feedback_observation", probe["evidence"]["missing_evidence"])
+        self.assertEqual(report["search"]["summary"]["search"]["assessment"], "inconclusive")
+        self.assertIsNone(report["search"]["summary"]["search"]["observed_interval_payload_bytes"])
 
     @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
     def test_ack_return_blocked_still_records_receiver_arrival(self):
@@ -141,9 +148,11 @@ class FragmentationTests(unittest.TestCase):
         report = json.loads(result.stdout)
         self.assertGreaterEqual(report["blocked_ack_packets"], 2)
         self.assertEqual([row["status"] for row in report["probe"]["results"]], ["timeout", "timeout"])
-        self.assertEqual([row["ack_send_status"] for row in report["receiver"]["observations"]], ["sent", "sent"])
-        self.assertEqual(report["correlation"]["pairing"]["run_id_check"], "matched")
+        self.assertEqual([row["ack_send_status"] for row in report["receiver"]["observations"]], ["sent"] * 4)
+        self.assertEqual(report["correlation"]["pairing"]["run_id_check"], "matched_with_other_runs")
         self.assertEqual(report["correlation"]["summary"]["timed_out_but_receiver_observed"], 2)
+        self.assertEqual(report["search"]["summary"]["search"]["assessment"], "inconclusive")
+        self.assertEqual(report["search_correlation"]["summary"]["timed_out_but_receiver_observed"], 2)
         self.assertIn("2/2 observed at receiver", tunnelscope.format_report(report))
 
 

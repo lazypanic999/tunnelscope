@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tunnelscope"
-version = "0.4.1"
+version = "0.5.0"
 description = "Evidence-based MTU and packet-size diagnostics for Linux networks"
 readme = "README.md"
 license = "MIT"
@@ -25,8 +25,8 @@ Repository = "https://github.com/lazypanic999/tunnelscope"
 tunnelscope = "tunnelscope:main"
 
 [tool.setuptools]
-py-modules = ["tunnelscope", "tunnelscope_view"]
-packages = ["tunnelscope_assets"]
+py-modules = ["tunnelscope", "tunnelscope_view", "tunnelscope_search"]
+packages = ["tunnelscope_assets", "tunnelscope_core"]
 
 [tool.setuptools.package-data]
 tunnelscope_assets = ["tunnelscope-logo-blue.png"]

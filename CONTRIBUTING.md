@@ -13,6 +13,12 @@ For a security issue, follow [SECURITY.md](SECURITY.md) instead.
 
 ## Make a change
 
+The installed CLI and compatibility imports live in `tunnelscope.py`.
+Implementation code is in `tunnelscope_core`: `network.py` handles probes and
+the receiver, `reports.py` handles evidence and terminal output, `search.py`
+selects bounded sizes, and `view.py` renders the offline HTML report. Keep
+schema-version-1 reports readable when adding fields.
+
 1. Fork the repository and create a branch.
 2. Keep measurements separate from conclusions. A timeout alone must not be
    described as proof of an MTU problem.

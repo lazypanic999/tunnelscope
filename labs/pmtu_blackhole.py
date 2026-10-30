@@ -76,6 +76,15 @@ def main():
         expected = ["acknowledged", "acknowledged", "timeout", "timeout"]
         if observed != expected:
             raise RuntimeError(f"Unexpected black-hole result: {observed}")
+        search_result = subprocess.run(
+            ["ip", "netns", "exec", sender, sys.executable, script, "search", "198.51.100.2",
+             "--min", "1200", "--max", "1400", "--count", "1"],
+            check=True, capture_output=True, text=True, timeout=15,
+        )
+        search = json.loads(search_result.stdout)
+        evidence = search["summary"]["search"]
+        if evidence["assessment"] != "inconclusive" or evidence["observed_interval_payload_bytes"] is not None:
+            raise RuntimeError(f"Blocked-feedback search claimed a boundary: {evidence}")
         firewall = ip("netns", "exec", router, "iptables", "-L", "OUTPUT", "-n", "-v", "-x", "--line-numbers").stdout
         counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+DROP\s+(?:icmp|1)\b", firewall, re.MULTILINE)
         if counter is None or int(counter.group(1)) < 2:
@@ -89,6 +98,7 @@ def main():
             "known_egress_payload_boundary_bytes": 1252,
             "interpretation": "Small probes were acknowledged; large probes timed out with ICMP feedback blocked. A timeout alone does not identify the cause on an unknown path.",
             "probe": probe,
+            "search": search,
         }, indent=2))
     finally:
         if receiver is not None:

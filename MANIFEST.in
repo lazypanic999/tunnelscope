@@ -1,6 +1,6 @@
 include tunnelscope-logo-blue.png
 recursive-include tunnelscope_assets *.png
 include LICENSE
-recursive-include docs *.md *.png
+recursive-include docs *.md *.png *.gif
 recursive-include examples *.json
 recursive-include labs *.py

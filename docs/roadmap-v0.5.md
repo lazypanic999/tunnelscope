@@ -1,12 +1,12 @@
 # v0.5 scope: bounded size-boundary evidence
 
-The next development target is a bounded size search for controlled Linux
-paths. It should help a user choose useful UDP payload sizes and identify an
+v0.5.0 implements a bounded size search for controlled Linux paths. It helps
+a user choose useful UDP payload sizes and identify an
 *observed interval* between successful delivery and explicit size failure.
 It must not present a timeout as a known MTU boundary or claim to discover
 an exact end-to-end path MTU.
 
-## Intended behavior
+## Implemented behavior
 
 - Run a bounded number of repeated probes between user-selected minimum and
   maximum UDP payload sizes. Reuse the existing probe and receiver protocol,
@@ -21,7 +21,11 @@ an exact end-to-end path MTU.
 - Expose a short terminal summary and the same evidence in the HTML view.
   The CLI option and JSON field names will be set when implementation starts.
 
-## Validation before release
+## Validation
+
+The [v0.5 validation record](validation/size-search.md) covers the controlled
+IPv4/IPv6 boundaries, blocked ICMP feedback, blocked ACK return, mixed
+outcomes and output handling described below.
 
 - Exercise known IPv4 and IPv6 link boundaries in isolated Linux labs and
   confirm that the reported interval contains the known boundary.
@@ -49,7 +53,7 @@ These issues support the roadmap without changing the validation gates above:
 | [#2](https://github.com/lazypanic999/tunnelscope/issues/2) | Validate bidirectional probes and correlation on a real VPN | Post-lab deployment evidence; not a v0.5 release gate |
 | [#3](https://github.com/lazypanic999/tunnelscope/issues/3) | Validate pod-to-pod workflow on Kubernetes | Post-lab deployment evidence; not a v0.5 release gate |
 
-The CLI is currently packaged as two Python modules. Consider separating probe,
-receiver, report and lab code when the v0.5 search adds enough behavior to
-justify clearer module boundaries. Preserve the installed CLI and JSON format
-through that refactor; do not mix it into the boundary-measurement change.
+The v0.5 implementation is split into network, reports, search and view
+modules under `tunnelscope_core`. Compatibility entry modules preserve the
+installed CLI and existing imports. Lab scripts remain separate because they
+are privileged, opt-in validation tools.

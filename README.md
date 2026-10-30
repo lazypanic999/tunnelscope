@@ -6,16 +6,16 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**v0.4.1 alpha:** IPv4/IPv6 UDP probes, a cooperating receiver, JSON evidence,
-per-direction comparison and offline HTML reports. Automatic path-MTU discovery
-and root-cause diagnosis are not implemented.
+**v0.5.0 alpha:** IPv4/IPv6 UDP probes, a cooperating receiver, bounded
+payload-size search, JSON evidence, per-direction comparison and offline HTML
+reports. Automatic path-MTU discovery and root-cause diagnosis are not implemented.
 
-[GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.4.1) ·
-[PyPI](https://pypi.org/project/tunnelscope/0.4.1/)
+[GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.5.0) ·
+[PyPI](https://pypi.org/project/tunnelscope/0.5.0/)
 
-![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](docs/images/terminal-demo.gif)
+![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/terminal-demo.gif)
 
-The animation runs `tunnelscope show` on a checked-in [controlled lab report](examples/pmtu-blackhole.json).
+The animation runs `tunnelscope show` on a checked-in [controlled lab report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/pmtu-blackhole.json).
 It is not a live network capture. A timeout on an unknown path remains inconclusive.
 
 ## Why use TunnelScope?
@@ -67,6 +67,20 @@ Open `probe.html` in a browser. The receiver sends small acknowledgements, so
 this example checks delivery in one direction only. A timeout is inconclusive;
 it does not prove an MTU problem. For two machines, see the
 [two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md).
+
+## Bounded size search
+
+On a controlled Linux path, `search` tests the endpoints and then narrows an
+observed interval using repeated no-fragment probes:
+
+```sh
+tunnelscope search 192.0.2.2 --min 1200 --max 1400 --count 2 --output search.json
+tunnelscope show search.json
+```
+
+Start a receiver at that lab address first. A timeout stops the search as
+inconclusive; even adjacent successful and explicit-error sizes are not an
+independently measured path MTU. See the [size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md).
 ## What the results mean
 
 - `acknowledged`: the receiver got the UDP payload and a small reply returned.
@@ -79,27 +93,29 @@ sizes, not an exact end-to-end path MTU.
 
 ## Documentation
 
-- [Usage and report reference](docs/usage-and-report-reference.md): source install,
+- [Usage and report reference](https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md): source install,
   size sweeps, JSON fields, no-fragment behavior and lab commands.
-- [Two-endpoint workflow](docs/bidirectional.md) and
-  [receiver correlation](docs/receiver-observations.md): compare both directions.
-- [Two-minute Linux demo](docs/demo.md) and
-  [validation records](docs/validation/): controlled failure scenarios.
-- [HTML report view](docs/report-ui.md),
-  [deployment guidance](docs/environments.md) and
-  [security boundaries](docs/security-boundaries.md).
-- [v0.5 roadmap](docs/roadmap-v0.5.md) and
-  [completed milestones](docs/project-history.md).
+- [Bounded size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md): adaptive probes and how to
+  interpret the observed interval.
+- [Two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) and
+  [receiver correlation](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md): compare both directions.
+- [Two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md) and
+  [validation records](https://github.com/lazypanic999/tunnelscope/tree/main/docs/validation): controlled failure scenarios.
+- [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md),
+  [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) and
+  [security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md).
+- [v0.5 roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) and
+  [completed milestones](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
 ## Contributing
 
 Good first issues: [Python 3.10 CI](https://github.com/lazypanic999/tunnelscope/issues/4),
 [receiver correlation quick start](https://github.com/lazypanic999/tunnelscope/issues/5), and
 [Windows PowerShell loopback guide](https://github.com/lazypanic999/tunnelscope/issues/6).
-The [roadmap](docs/roadmap-v0.5.md#community-issues) connects all six open issues
-to the next release and field validation. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+The [roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md#community-issues) connects all six open issues
+to the next release and field validation. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md)
 before opening a PR; share only synthetic or sanitized reports.
 
 Run the unprivileged checks with `python -m unittest discover -s tests -v`.
 Linux network-namespace checks require root and explicit opt-in; see the
-[usage reference](docs/usage-and-report-reference.md).
+[usage reference](https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md).

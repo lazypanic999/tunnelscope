@@ -65,6 +65,16 @@ def main():
                 if [row["status"] for row in sweep["results"]] != expected_sweep:
                     raise RuntimeError(f"Unexpected sweep result: {sweep}")
                 direction["sweep"] = sweep
+                search_result = subprocess.run(
+                    ["ip", "netns", "exec", source, sys.executable, script, "search", target_ip,
+                     "--min", "1200", "--max", "1300", "--count", "1"],
+                    check=True, capture_output=True, text=True, timeout=15,
+                )
+                search = json.loads(search_result.stdout)
+                evidence = search["summary"]["search"]
+                if evidence["assessment"] != "adjacent_observed_bounds" or evidence["observed_interval_payload_bytes"] != [1252, 1253]:
+                    raise RuntimeError(f"Unexpected search interval: {evidence}")
+                direction["search"] = search
                 report["directions"].append(direction)
             finally:
                 if receiver.poll() is None:

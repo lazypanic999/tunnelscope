@@ -54,9 +54,11 @@ def main():
             receiver_path = directory / "receiver.json"
             probe_path = directory / "probe.json"
             correlation_path = directory / "correlation.json"
+            search_path = directory / "search.json"
+            search_correlation_path = directory / "search-correlation.json"
             receiver = subprocess.Popen(
                 ["ip", "netns", "exec", receiver_ns, sys.executable, "-u", script,
-                 "receive", "--bind", "192.0.2.2", "--max-packets", "2",
+                 "receive", "--bind", "192.0.2.2", "--max-packets", "4",
                  "--idle-timeout", "10", "--output", str(receiver_path)],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             )
@@ -70,6 +72,13 @@ def main():
             run("ip", "netns", "exec", sender, sys.executable, script,
                 "probe", "192.0.2.2", "--sizes", "64,1400", "--count", "1",
                 "--timeout", "1", "--dont-fragment", "--output", str(probe_path))
+            search_run = run("ip", "netns", "exec", sender, sys.executable, script,
+                             "search", "192.0.2.2", "--min", "64", "--max", "1400",
+                             "--count", "1", "--timeout", "1")
+            search = json.loads(search_run.stdout)
+            search_path.write_text(json.dumps(search), encoding="utf-8")
+            if search["summary"]["search"]["assessment"] != "inconclusive":
+                raise RuntimeError("Blocked-ACK search should remain inconclusive")
             if receiver.wait(timeout=5) != 0:
                 raise RuntimeError("Receiver failed")
             run(sys.executable, script, "correlate", str(probe_path), str(receiver_path),
@@ -77,6 +86,11 @@ def main():
             probe = json.loads(probe_path.read_text(encoding="utf-8"))
             observations = json.loads(receiver_path.read_text(encoding="utf-8"))
             correlation = json.loads(correlation_path.read_text(encoding="utf-8"))
+            run(sys.executable, script, "correlate", str(search_path), str(receiver_path),
+                "--output", str(search_correlation_path))
+            search_correlation = json.loads(search_correlation_path.read_text(encoding="utf-8"))
+            if search_correlation["summary"]["timed_out_but_receiver_observed"] != 2:
+                raise RuntimeError("Expected both search probes at receiver despite timeouts")
             if [row["status"] for row in probe["results"]] != ["timeout", "timeout"]:
                 raise RuntimeError("Expected sender timeouts")
             if correlation["summary"]["timed_out_but_receiver_observed"] != 2:
@@ -92,8 +106,10 @@ def main():
                 "blocked_ack_packets": int(counter.group(1)),
                 "interpretation": "The receiver saw both probes and locally sent ACKs; the sender's isolated firewall blocked those ACKs. On an unknown path, the same correlation would not identify the failing hop.",
                 "probe": probe,
+                "search": search,
                 "receiver": observations,
                 "correlation": correlation,
+                "search_correlation": search_correlation,
             }, indent=2))
     finally:
         if receiver is not None:

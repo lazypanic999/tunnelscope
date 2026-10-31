@@ -13,6 +13,9 @@ traffic are under your control. It is not a public UDP service.
   An attacker who can observe or inject traffic can affect results. Do not
   interpret a receiver report or a matching acknowledgement as trusted proof
   of who sent a packet.
+- Optional ICMP error-queue messages are also unauthenticated network
+  feedback. A quoted probe token helps associate a message with an attempt;
+  it does not authenticate the router or prove the stated MTU.
 - The receiver defaults to `127.0.0.1`. From v0.4.1, it refuses wildcard
   binds (`0.0.0.0` and `::`). An explicit non-loopback bind is still reachable
   wherever network routing and firewall policy allow it.

@@ -256,16 +256,32 @@ def format_report(report):
         rows = summary.get("by_payload_size") if isinstance(summary, dict) else None
         if not isinstance(rows, list):
             raise ValueError("probe report has no per-size summary")
+        feedback = summary.get("icmp_feedback")
+        ptb_by_size = {}
+        if isinstance(feedback, dict):
+            for result in report.get("results", []):
+                if not isinstance(result, dict):
+                    continue
+                observation = result.get("icmp_observation")
+                if isinstance(observation, dict) and isinstance(observation.get("events"), list):
+                    ptb_by_size[result.get("payload_bytes")] = ptb_by_size.get(result.get("payload_bytes"), 0) + sum(
+                        isinstance(event, dict) and event.get("message") in ("fragmentation_needed", "packet_too_big")
+                        and event.get("quoted_probe_match") is not False
+                        for event in observation["events"]
+                    )
         values = []
         for row in rows:
             if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
                 raise ValueError("invalid probe size summary")
             counts = row["status_counts"]
             measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
-            values.append((row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
-                           counts.get("packet_too_large", 0), counts.get("timeout", 0),
-                           counts.get("socket_error", 0), no_ack_text(measurement),
-                           row.get("assessment", "?")))
+            value = [row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
+                     counts.get("packet_too_large", 0), counts.get("timeout", 0),
+                     counts.get("socket_error", 0), no_ack_text(measurement)]
+            if isinstance(feedback, dict):
+                value.append(ptb_by_size.get(row.get("payload_bytes"), 0))
+            value.append(row.get("assessment", "?"))
+            values.append(value)
         search = summary.get("search")
         search_text = ""
         if isinstance(search, dict):
@@ -273,9 +289,20 @@ def format_report(report):
             bounds = f"{interval[0]}..{interval[1]} UDP payload bytes" if interval else "none"
             search_text = (f"\nSearch: {search.get('assessment', 'unknown')}; observed interval: {bounds}; "
                            f"tested {len(search.get('tested_payload_sizes', []))}/{search.get('max_tested_sizes', '?')} sizes.")
-        return "Probe results (UDP payload bytes)\n" + text_table(
-            ["Bytes", "Ack", "Too large", "Timeout", "Error", "No ACK (95% CI)", "Assessment"], values
-        ) + search_text + "\nNo ACK is a sender timeout, not proven packet loss. CI is a Wilson interval for repeated sent probes."
+        feedback_text = ""
+        if isinstance(feedback, dict):
+            feedback_text = (f"\nICMP size feedback: {feedback.get('size_feedback_events', '?')} observed "
+                             f"({feedback.get('token_matched_size_feedback_events', '?')} token matched); "
+                             f"local errors: {feedback.get('local_error_events', '?')}; "
+                             f"read: {feedback.get('observation_state', '?')}. "
+                             "The legacy kernel_rejected_df_payload label covers local and ICMP-triggered EMSGSIZE.")
+        headers = ["Bytes", "Ack", "Too large", "Timeout", "Error", "No ACK (95% CI)"]
+        if isinstance(feedback, dict):
+            headers.append("ICMP size")
+        headers.append("Assessment")
+        return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) +
+                search_text + feedback_text +
+                "\nNo ACK is a sender timeout, not proven packet loss. ICMP feedback may be spoofed or absent; no feedback does not prove blocking.")
     if kind == "fragmentation_comparison":
         comparison = report.get("comparison")
         rows = comparison.get("by_payload_size") if isinstance(comparison, dict) else None

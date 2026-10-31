@@ -70,6 +70,10 @@ class FragmentationTests(unittest.TestCase):
         for direction in report["directions"]:
             self.assertEqual([r["status"] for r in direction["results"]], ["acknowledged", "acknowledged", "packet_too_large", "packet_too_large"])
             self.assertEqual([row["assessment"] for row in direction["summary"]["by_payload_size"]], ["delivery_observed", "delivery_observed", "kernel_rejected_df_payload", "kernel_rejected_df_payload"])
+            self.assertEqual(direction["summary"]["icmp_feedback"]["local_error_events"], 2)
+            self.assertEqual(direction["summary"]["icmp_feedback"]["size_feedback_events"], 0)
+            self.assertEqual([row["size_error_origin"] for row in direction["results"][2:]],
+                             ["local", "local"])
             self.assertEqual(direction["source"]["interface_mtu_bytes"], 1280)
             self.assertIn(direction["source"]["interface"], ("ts-a", "ts-b"))
             self.assertEqual(direction["evidence"]["hypotheses"], [])
@@ -114,6 +118,23 @@ class FragmentationTests(unittest.TestCase):
                              ["acknowledged", "acknowledged"])
 
     @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
+    def test_routed_ipv6_packet_too_big_feedback(self):
+        script = Path(__file__).resolve().parents[1] / "labs" / "ipv6_packet_too_big.py"
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["router_egress_mtu_bytes"], 1280)
+        probe = report["probe"]
+        self.assertEqual([row["status"] for row in probe["results"]],
+                         ["acknowledged", "packet_too_large"])
+        self.assertEqual(probe["summary"]["icmp_feedback"]["token_matched_size_feedback_events"], 1)
+        event = probe["results"][1]["icmp_observation"]["events"][0]
+        self.assertEqual(probe["results"][1]["size_error_origin"], "network_icmp_feedback")
+        self.assertEqual((event["origin"], event["icmp_type"], event["icmp_code"],
+                          event["reported_mtu_bytes"], event["quoted_probe_match"]),
+                         ("icmpv6", 2, 0, 1280, True))
+
+    @unittest.skipUnless(os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux"), "opt-in privileged Linux network lab")
     def test_vxlan_overlay_boundary_in_both_directions(self):
         script = Path(__file__).resolve().parents[1] / "labs" / "vxlan_boundary.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
@@ -146,8 +167,18 @@ class FragmentationTests(unittest.TestCase):
         self.assertEqual([item["code"] for item in probe["evidence"]["hypotheses"]], ["size_related_delivery_problem_possible", "pmtu_feedback_black_hole_possible"])
         self.assertIn("ordinary_packet_loss", probe["evidence"]["hypotheses"][1]["alternatives"])
         self.assertIn("icmp_feedback_observation", probe["evidence"]["missing_evidence"])
+        self.assertEqual(probe["summary"]["icmp_feedback"]["size_feedback_events"], 0)
+        self.assertEqual(probe["summary"]["icmp_feedback"]["observation_state"], "complete")
         self.assertEqual(report["search"]["summary"]["search"]["assessment"], "inconclusive")
         self.assertIsNone(report["search"]["summary"]["search"]["observed_interval_payload_bytes"])
+        self.assertEqual(report["search"]["summary"]["icmp_feedback"]["size_feedback_events"], 0)
+        visible = report["visible_feedback_probe"]
+        self.assertEqual([row["status"] for row in visible["results"]], ["acknowledged", "packet_too_large"])
+        self.assertEqual(visible["summary"]["icmp_feedback"]["token_matched_size_feedback_events"], 1)
+        event = visible["results"][1]["icmp_observation"]["events"][0]
+        self.assertEqual(visible["results"][1]["size_error_origin"], "network_icmp_feedback")
+        self.assertEqual((event["origin"], event["icmp_type"], event["icmp_code"], event["reported_mtu_bytes"]),
+                         ("icmpv4", 3, 4, 1280))
         comparison = report["fragmentation_comparison"]
         rows = comparison["comparison"]["by_payload_size"]
         self.assertEqual([row["outcomes_differ"] for row in rows], [False, True])

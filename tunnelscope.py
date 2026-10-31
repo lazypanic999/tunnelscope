@@ -82,6 +82,7 @@ def main():
     sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     sender.add_argument("--output", type=Path)
     sender.add_argument("--dont-fragment", action="store_true", help="Linux: prevent IPv4 or IPv6 fragmentation")
+    sender.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     search = commands.add_parser("search", help="search a bounded observed payload-size interval (Linux no-fragment)")
     search.add_argument("host")
     search.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
@@ -92,6 +93,7 @@ def main():
     search.add_argument("--count", type=bounded_int(1, 10), default=3)
     search.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     search.add_argument("--output", type=Path)
+    search.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
     comparison.add_argument("host")
     comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
@@ -123,10 +125,12 @@ def main():
             require_df_support(args.dont_fragment)
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
-                           args.count, args.timeout, args.dont_fragment, args.family)
+                           args.count, args.timeout, args.dont_fragment, args.family,
+                           observe_icmp=args.observe_icmp)
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
-                           args.family, (args.minimum, args.maximum), args.max_sizes)
+                           args.family, (args.minimum, args.maximum), args.max_sizes,
+                           observe_icmp=args.observe_icmp)
         elif args.command == "compare-fragmentation":
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = compare_fragmentation(args.host, args.port,

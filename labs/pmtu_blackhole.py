@@ -68,7 +68,7 @@ def main():
             raise RuntimeError("Receiver did not start")
 
         result = subprocess.run(
-            ["ip", "netns", "exec", sender, sys.executable, script, "probe", "198.51.100.2", "--sizes", "64,1252,1253,1400", "--count", "1", "--dont-fragment"],
+            ["ip", "netns", "exec", sender, sys.executable, script, "probe", "198.51.100.2", "--sizes", "64,1252,1253,1400", "--count", "1", "--dont-fragment", "--observe-icmp"],
             check=True, capture_output=True, text=True, timeout=15,
         )
         probe = json.loads(result.stdout)
@@ -78,13 +78,15 @@ def main():
             raise RuntimeError(f"Unexpected black-hole result: {observed}")
         search_result = subprocess.run(
             ["ip", "netns", "exec", sender, sys.executable, script, "search", "198.51.100.2",
-             "--min", "1200", "--max", "1400", "--count", "1"],
+             "--min", "1200", "--max", "1400", "--count", "1", "--observe-icmp"],
             check=True, capture_output=True, text=True, timeout=15,
         )
         search = json.loads(search_result.stdout)
         evidence = search["summary"]["search"]
         if evidence["assessment"] != "inconclusive" or evidence["observed_interval_payload_bytes"] is not None:
             raise RuntimeError(f"Blocked-feedback search claimed a boundary: {evidence}")
+        if probe["summary"]["icmp_feedback"]["size_feedback_events"] or search["summary"]["icmp_feedback"]["size_feedback_events"]:
+            raise RuntimeError("Blocked ICMP feedback unexpectedly reached the sender error queue")
         compared = subprocess.run(
             ["ip", "netns", "exec", sender, sys.executable, script,
              "compare-fragmentation", "198.51.100.2", "--sizes", "64,1400", "--count", "2"],
@@ -100,6 +102,20 @@ def main():
         counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+DROP\s+(?:icmp|1)\b", firewall, re.MULTILINE)
         if counter is None or int(counter.group(1)) < 2:
             raise RuntimeError(f"Expected blocked ICMP feedback for both large probes: {firewall}")
+        # Restore ICMP within the disposable router namespace, then observe
+        # the same routed path with the UDP error queue enabled.
+        ip("netns", "exec", router, "iptables", "-D", "OUTPUT", "-p", "icmp",
+           "--icmp-type", "fragmentation-needed", "-j", "DROP")
+        visible_result = subprocess.run(
+            ["ip", "netns", "exec", sender, sys.executable, script,
+             "probe", "198.51.100.2", "--sizes", "64,1400", "--count", "1",
+             "--dont-fragment", "--observe-icmp"],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        visible_feedback_probe = json.loads(visible_result.stdout)
+        visible_summary = visible_feedback_probe["summary"]["icmp_feedback"]
+        if visible_summary["observation_state"] != "complete" or visible_summary["token_matched_size_feedback_events"] < 1:
+            raise RuntimeError(f"ICMP feedback was not matched to the large probe: {visible_feedback_probe}")
         print(json.dumps({
             "lab": "routed-ipv4-df-blocked-icmp",
             "sender_link_mtu_bytes": 1500,
@@ -111,6 +127,7 @@ def main():
             "probe": probe,
             "search": search,
             "fragmentation_comparison": comparison,
+            "visible_feedback_probe": visible_feedback_probe,
         }, indent=2))
     finally:
         if receiver is not None:

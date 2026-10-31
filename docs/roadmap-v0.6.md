@@ -15,16 +15,16 @@ published to PyPI.
   source snapshot check. Do not infer a cause from a difference.
 - Validate direct IPv4/IPv6 boundaries and routed blocked-feedback behavior
   in isolated network namespaces.
+- Observe Linux UDP error-queue size feedback with `--observe-icmp` and
+  separate local errors from ICMPv4 fragmentation-needed and ICMPv6 Packet
+  Too Big. Validate visible and blocked feedback in isolated namespaces.
 
 ## Next evidence and workflow tasks
 
-1. Observe ICMP fragmentation-needed and IPv6 Packet Too Big feedback where
-   the platform exposes it, without requiring raw-socket privileges for the
-   ordinary probe path.
-2. Design a single-command controlled `diagnose` workflow that coordinates
+1. Design a single-command controlled `diagnose` workflow that coordinates
    reporting without silently changing the security boundary or assuming
    symmetric delivery.
-3. Validate on a real VPN and Kubernetes pod path with permission from the
+2. Validate on a real VPN and Kubernetes pod path with permission from the
    operators. Publish sanitized reports and topology details. Open
    [issues #2 and #3](https://github.com/lazypanic999/tunnelscope/issues)
    track these community field tests.

@@ -46,7 +46,7 @@ def main():
                 greeting = receiver.stdout.readline()
                 if not greeting.startswith("Listening on"):
                     raise RuntimeError("Receiver did not start")
-                result = subprocess.run(["ip", "netns", "exec", source, sys.executable, script, "probe", target_ip, "--sizes", "64,1252,1253,1400", "--count", "1", "--dont-fragment"], check=True, capture_output=True, text=True, timeout=15)
+                result = subprocess.run(["ip", "netns", "exec", source, sys.executable, script, "probe", target_ip, "--sizes", "64,1252,1253,1400", "--count", "1", "--dont-fragment", "--observe-icmp"], check=True, capture_output=True, text=True, timeout=15)
                 direction = json.loads(result.stdout)
                 direction["direction"] = label
                 expected = ["acknowledged", "acknowledged", "packet_too_large", "packet_too_large"]

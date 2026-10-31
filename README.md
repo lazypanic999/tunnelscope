@@ -13,9 +13,11 @@ reports. Automatic path-MTU discovery and root-cause diagnosis are not implement
 [GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.5.0) ·
 [PyPI](https://pypi.org/project/tunnelscope/0.5.0/)
 
-**Development on `main` (0.6.0.dev0):** repeated no-ACK summaries and a Linux
-DF/fragmentation-permitted comparison. These changes are not in the v0.5.0
-PyPI package. See the [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md).
+**Development on `main` (0.6.0.dev0):** repeated no-ACK summaries, a Linux
+DF/fragmentation-permitted comparison and optional ICMP feedback observations.
+These changes are not in the v0.5.0 PyPI package. See the
+[comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md)
+and [ICMP guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
 
 ![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/terminal-demo.gif)
 
@@ -94,7 +96,8 @@ before interpreting differences.
 ## What the results mean
 
 - `acknowledged`: the receiver got the UDP payload and a small reply returned.
-- `packet_too_large`: the local kernel rejected a no-fragment payload.
+- `packet_too_large`: Linux reported `EMSGSIZE` in no-fragment mode; optional
+  ICMP evidence can distinguish a local error from received path feedback.
 - `timeout`: no matching reply arrived; the cause is unknown without more evidence.
 
 Probe sizes are UDP payload bytes, including the 24-byte TunnelScope header.
@@ -109,6 +112,8 @@ sizes, not an exact end-to-end path MTU.
   interpret the observed interval.
 - [Repeated measurements and fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md):
   development command and its limits.
+- [ICMP feedback observation](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md):
+  optional Linux error-queue evidence and its limits.
 - [Two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) and
   [receiver correlation](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md): compare both directions.
 - [Two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md) and

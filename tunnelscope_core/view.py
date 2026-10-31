@@ -23,12 +23,39 @@ def _records(value):
     return value
 
 
+def _feedback_cell(row):
+    observation = row.get("icmp_observation")
+    if not isinstance(observation, dict):
+        return "-"
+    events = observation.get("events")
+    if not isinstance(events, list):
+        return "read unavailable"
+    if not events:
+        return "none observed" if observation.get("state") == "completed" else "read incomplete"
+    labels = []
+    for event in events:
+        if not isinstance(event, dict):
+            labels.append("unparsed")
+            continue
+        match = event.get("quoted_probe_match")
+        association = "matched" if match is True else "socket only" if match is None else "mismatch"
+        mtu = event.get("reported_mtu_bytes")
+        labels.append(f"{event.get('message', 'unknown')} ({association}" +
+                      (f", MTU {mtu}" if isinstance(mtu, int) else "") + ")")
+    return "; ".join(labels)
+
+
 def _table_data(report):
     kind = report.get("kind", "probe")
     if kind == "probe":
-        return ["Bytes", "Attempt", "Status", "RTT ms", "Kernel MTU"], [
+        headers = ["Bytes", "Attempt", "Status", "RTT ms", "Kernel MTU"]
+        feedback_enabled = isinstance(report.get("summary"), dict) and isinstance(report["summary"].get("icmp_feedback"), dict)
+        if feedback_enabled:
+            headers.extend(("Size error origin", "ICMP feedback"))
+        return headers, [
             [row.get("payload_bytes"), row.get("attempt"), row.get("status"),
-             row.get("rtt_ms"), row.get("kernel_reported_mtu_bytes")]
+             row.get("rtt_ms"), row.get("kernel_reported_mtu_bytes"),
+             *([row.get("size_error_origin"), _feedback_cell(row)] if feedback_enabled else [])]
             for row in _records(report.get("results"))
         ]
     if kind == "receiver_observations":
@@ -153,6 +180,17 @@ def render_report_html(report):
         measurement_html = ("<section class='search-summary'><h2>Fragmentation modes</h2>"
                             "<p>DF first, source fragmentation permitted second. Fragment arrival was not "
                             "observed; differing outcomes do not identify a cause.</p></section>")
+    if isinstance(search_report.get("summary"), dict):
+        feedback = search_report["summary"].get("icmp_feedback")
+        if isinstance(feedback, dict):
+            fields = (("Size feedback events", feedback.get("size_feedback_events")),
+                      ("Token matched", feedback.get("token_matched_size_feedback_events")),
+                      ("Local errors", feedback.get("local_error_events")),
+                      ("Read state", feedback.get("observation_state")))
+            measurement_html += ("<section class='search-summary'><h2>ICMP feedback</h2>" +
+                                 "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                         for label, value in fields) +
+                                 "<p>Observed ICMP is untrusted feedback. No observed message does not prove it was blocked.</p></section>")
     safe_title = escape(title)
     logo_data_uri = _logo_data_uri()
     row_count = len(rows)

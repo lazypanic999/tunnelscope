@@ -12,6 +12,8 @@ import sys
 import time
 from pathlib import Path
 
+from .icmp import drain_error_queue, enable_error_queue, require_icmp_support
+
 MAGIC = b"TS01"
 VERSION = "0.6.0.dev0"
 HEADER = struct.Struct("!4s16sI")
@@ -185,8 +187,10 @@ def source_snapshot(sock):
 
 
 def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
-          search_bounds=None, max_sizes=16, allow_fragmentation=False):
+          search_bounds=None, max_sizes=16, allow_fragmentation=False,
+          observe_icmp=False):
     require_df_support(dont_fragment or allow_fragmentation)
+    require_icmp_support(observe_icmp)
     if dont_fragment and allow_fragmentation:
         raise ValueError("fragmentation modes are mutually exclusive")
     if search_bounds is not None:
@@ -219,6 +223,8 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
             with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
                 # Configuration failures are fatal, not delivery observations.
                 configure_fragmentation(sock, dont_fragment, allow_fragmentation)
+                if observe_icmp:
+                    enable_error_queue(sock)
                 try:
                     sock.connect(destination)
                     if source is None:
@@ -239,6 +245,19 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                     result["status"] = "timeout"
                 except OSError as error:
                     result.update(socket_failure(error, sock, dont_fragment))
+                if observe_icmp:
+                    result["icmp_observation"] = drain_error_queue(
+                        sock, HEADER.pack(MAGIC, token, size)
+                    )
+                    if result.get("status") == "packet_too_large":
+                        events = result["icmp_observation"]["events"]
+                        result["size_error_origin"] = (
+                            "network_icmp_feedback" if any(
+                                event.get("message") in ("fragmentation_needed", "packet_too_big")
+                                and event.get("quoted_probe_match") is not False for event in events
+                            ) else "local" if any(event.get("origin") == "local" for event in events)
+                            else "unknown"
+                        )
             results.append(result)
             time.sleep(0.05)
         size_index += 1
@@ -250,6 +269,22 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                 sizes.append(next_size)
     by_payload_size = summarize_results(sizes, results)
     summary = {"by_payload_size": by_payload_size}
+    if observe_icmp:
+        observations = [row["icmp_observation"] for row in results]
+        events = [event for observation in observations for event in observation["events"]]
+        size_feedback = [event for event in events
+                         if event.get("message") in ("fragmentation_needed", "packet_too_big")
+                         and event.get("quoted_probe_match") is not False]
+        summary["icmp_feedback"] = {
+            "observation_state": ("complete" if all(row["state"] == "completed" for row in observations)
+                                  else "partial"),
+            "size_feedback_events": len(size_feedback),
+            "token_matched_size_feedback_events": sum(event.get("quoted_probe_match") is True
+                                                      for event in size_feedback),
+            "local_error_events": sum(event.get("origin") == "local" for event in events),
+            "other_or_unparsed_events": len(events) - len(size_feedback)
+                                        - sum(event.get("origin") == "local" for event in events),
+        }
     if search_summary is not None:
         summary["search"] = search_summary
     return {
@@ -260,12 +295,13 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         "finished_at_utc": utc_now(),
         "source": source,
         "target": {"host": host, address_key: destination[0], "port": port},
-        "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout, "dont_fragment": dont_fragment},
+        "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout,
+                     "dont_fragment": dont_fragment, "observe_icmp": observe_icmp},
         "fragmentation_mode": "df" if dont_fragment else "permitted" if allow_fragmentation else "os_default",
         "fragmentation": (("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else
                           ("permitted: Linux IPV6_DONTFRAG=0" if address_family == socket.AF_INET6 else "permitted: Linux IP_PMTUDISC_DONT") if allow_fragmentation else
                           "OS default; fragmentation behavior is not controlled"),
-        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU.",
+        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
         "summary": summary,
         "evidence": explain_evidence(by_payload_size, dont_fragment),
         "results": results,

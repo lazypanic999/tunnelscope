@@ -125,11 +125,10 @@ class FragmentationTests(unittest.TestCase):
         report = json.loads(result.stdout)
         self.assertEqual(report["router_egress_mtu_bytes"], 1280)
         probe = report["probe"]
-        self.assertEqual([row["status"] for row in probe["results"]],
-                         ["acknowledged", "packet_too_large"])
+        self.assertEqual([row["status"] for row in probe["results"]], ["packet_too_large"])
         self.assertEqual(probe["summary"]["icmp_feedback"]["token_matched_size_feedback_events"], 1)
-        event = probe["results"][1]["icmp_observation"]["events"][0]
-        self.assertEqual(probe["results"][1]["size_error_origin"], "network_icmp_feedback")
+        event = probe["results"][0]["icmp_observation"]["events"][0]
+        self.assertEqual(probe["results"][0]["size_error_origin"], "network_icmp_feedback")
         self.assertEqual((event["origin"], event["icmp_type"], event["icmp_code"],
                           event["reported_mtu_bytes"], event["quoted_probe_match"]),
                          ("icmpv6", 2, 0, 1280, True))

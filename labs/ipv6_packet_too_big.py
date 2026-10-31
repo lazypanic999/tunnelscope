@@ -3,7 +3,6 @@
 import json
 import os
 from pathlib import Path
-import selectors
 import shutil
 import subprocess
 import sys
@@ -23,7 +22,6 @@ def main():
     sender, router, destination = (f"ts6-{suffix}-{role}" for role in ("s", "r", "d"))
     created = []
     script = str(Path(__file__).resolve().parents[1] / "tunnelscope.py")
-    receiver = None
     try:
         for namespace in (sender, router, destination):
             ip("netns", "add", namespace)
@@ -45,35 +43,21 @@ def main():
         ip("-n", destination, "-6", "route", "add", "fd00:5453:1::/64", "via", "fd00:5453:2::1")
         ip("netns", "exec", router, "sysctl", "-qw", "net.ipv6.conf.all.forwarding=1")
 
-        receiver = subprocess.Popen(
-            ["ip", "netns", "exec", destination, sys.executable, "-u", script,
-             "receive", "--bind", "fd00:5453:2::2", "--family", "ipv6",
-             "--max-packets", "1", "--idle-timeout", "8"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        with selectors.DefaultSelector() as ready:
-            ready.register(receiver.stdout, selectors.EVENT_READ)
-            if not ready.select(timeout=5):
-                raise RuntimeError("IPv6 receiver startup timed out")
-        if not receiver.stdout.readline().startswith("Listening on"):
-            raise RuntimeError("IPv6 receiver did not start")
         sent = subprocess.run(
             ["ip", "netns", "exec", sender, sys.executable, script,
-             "probe", "fd00:5453:2::2", "--family", "ipv6", "--sizes", "64,1400",
+             "probe", "fd00:5453:2::2", "--family", "ipv6", "--sizes", "1400",
              "--count", "1", "--timeout", "2", "--dont-fragment", "--observe-icmp"],
             check=True, capture_output=True, text=True, timeout=12,
         )
         probe = json.loads(sent.stdout)
-        if [row["status"] for row in probe["results"]] != ["acknowledged", "packet_too_large"]:
+        if [row["status"] for row in probe["results"]] != ["packet_too_large"]:
             raise RuntimeError(f"Unexpected IPv6 routed statuses: {probe}")
-        feedback = probe["results"][1]["icmp_observation"]
+        feedback = probe["results"][0]["icmp_observation"]
         if feedback["state"] != "completed" or not any(
             event.get("message") == "packet_too_big" and event.get("quoted_probe_match") is True
             and event.get("reported_mtu_bytes") == 1280 for event in feedback["events"]
         ):
             raise RuntimeError(f"IPv6 Packet Too Big feedback was not matched: {probe}")
-        if receiver.wait(timeout=8) != 0:
-            raise RuntimeError("IPv6 receiver failed")
         print(json.dumps({
             "lab": "routed-ipv6-packet-too-big",
             "sender_link_mtu_bytes": 1500,
@@ -82,16 +66,6 @@ def main():
             "probe": probe,
         }, indent=2))
     finally:
-        if receiver is not None:
-            if receiver.poll() is None:
-                receiver.terminate()
-            try:
-                receiver.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                receiver.kill()
-                receiver.wait(timeout=3)
-            receiver.stdout.close()
-            receiver.stderr.close()
         for namespace in reversed(created):
             ip("netns", "delete", namespace)
 

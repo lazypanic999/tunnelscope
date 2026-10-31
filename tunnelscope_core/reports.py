@@ -251,6 +251,25 @@ def format_report(report):
     if not isinstance(report, dict) or report.get("schema_version") != 1:
         raise ValueError("expected a schema_version 1 TunnelScope report")
     kind = report.get("kind", "probe")
+    if kind == "diagnosis":
+        runs = report.get("runs")
+        comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
+        search = runs.get("size_search") if isinstance(runs, dict) else None
+        if not isinstance(comparison, dict) or not isinstance(search, dict):
+            raise ValueError("diagnosis needs comparison and search runs")
+        consistency = report.get("consistency", {})
+        summary = report.get("summary", {})
+        search_summary = summary.get("search", {})
+        if not all(isinstance(item, dict) for item in (consistency, summary, search_summary)):
+            raise ValueError("invalid diagnosis summary")
+        interval = search_summary.get("observed_interval_payload_bytes")
+        interval_text = f"{interval[0]}..{interval[1]}" if isinstance(interval, list) and len(interval) == 2 else "none"
+        return ("Diagnosis (single sender direction)\n" + format_report(comparison) +
+                f"\nSearch: {search_summary.get('assessment', 'unknown')}; observed interval: {interval_text} UDP payload bytes; "
+                f"attempts: {summary.get('attempts', '?')}; ICMP size feedback events: {summary.get('icmp_size_feedback_events', '?')}."
+                f"\nTarget check: {consistency.get('search_target_check', 'unknown')}; "
+                f"source check: {consistency.get('search_source_check', 'unknown')}."
+                "\nRuns were sequential. This is not a two-way test or a proven path MTU.")
     if kind == "probe":
         summary = report.get("summary")
         rows = summary.get("by_payload_size") if isinstance(summary, dict) else None

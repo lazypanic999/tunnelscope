@@ -18,13 +18,13 @@ published to PyPI.
 - Observe Linux UDP error-queue size feedback with `--observe-icmp` and
   separate local errors from ICMPv4 fragmentation-needed and ICMPv6 Packet
   Too Big. Validate visible and blocked feedback in isolated namespaces.
+- Run a bounded, single-sender `diagnose` workflow that bundles DF,
+  fragmentation-permitted and adaptive search evidence in one JSON and HTML
+  report. See the [diagnose guide](diagnose.md).
 
 ## Next evidence and workflow tasks
 
-1. Design a single-command controlled `diagnose` workflow that coordinates
-   reporting without silently changing the security boundary or assuming
-   symmetric delivery.
-2. Validate on a real VPN and Kubernetes pod path with permission from the
+1. Validate on a real VPN and Kubernetes pod path with permission from the
    operators. Publish sanitized reports and topology details. Open
    [issues #2 and #3](https://github.com/lazypanic999/tunnelscope/issues)
    track these community field tests.

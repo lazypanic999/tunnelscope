@@ -15,6 +15,7 @@ from tunnelscope_core.reports import (
     combine_reports, correlate_reports, explain_evidence, format_report,
     summarize_results, text_table,
 )
+from tunnelscope_core.diagnose import diagnose
 
 
 def require_distinct_output(output, *inputs):
@@ -104,6 +105,18 @@ def main():
     comparison.add_argument("--count", type=bounded_int(1, 10), default=5)
     comparison.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     comparison.add_argument("--output", type=Path)
+    comparison.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
+    diagnosis_command = commands.add_parser("diagnose", help="run one bounded Linux sender-side diagnostic workflow")
+    diagnosis_command.add_argument("host")
+    diagnosis_command.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
+    diagnosis_command.add_argument("--port", type=bounded_int(1, 65535), default=9471)
+    diagnosis_command.add_argument("--min", type=bounded_int(32, 8192), required=True, dest="minimum")
+    diagnosis_command.add_argument("--max", type=bounded_int(32, 8192), required=True, dest="maximum")
+    diagnosis_command.add_argument("--max-sizes", type=bounded_int(2, 16), default=8)
+    diagnosis_command.add_argument("--count", type=bounded_int(1, 10), default=2)
+    diagnosis_command.add_argument("--timeout", type=bounded_int(1, 5), default=1)
+    diagnosis_command.add_argument("--output", type=Path, required=True, help="new JSON report path")
+    diagnosis_command.add_argument("--html", type=Path, help="new HTML report path (default: JSON stem with .html)")
     combined = commands.add_parser("combine", help="combine two independently measured directions")
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
@@ -135,7 +148,27 @@ def main():
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = compare_fragmentation(args.host, args.port,
                                            sizes if sizes is not None else [64, 1200, 1400],
-                                           args.count, args.timeout, args.family)
+                                           args.count, args.timeout, args.family,
+                                           observe_icmp=args.observe_icmp)
+        elif args.command == "diagnose":
+            if args.output.suffix.lower() != ".json":
+                raise ValueError("--output must name a .json file")
+            html_path = args.html if args.html is not None else args.output.with_suffix(".html")
+            if html_path.suffix.lower() != ".html" or args.output.resolve() == html_path.resolve():
+                raise ValueError("diagnose needs distinct .json and .html output files")
+            for path in (args.output, html_path):
+                if path.exists():
+                    raise ValueError(f"refusing to overwrite existing file: {path}")
+                if not path.parent.is_dir():
+                    raise ValueError(f"output directory does not exist: {path.parent}")
+            report = diagnose(args.host, args.port, args.minimum, args.maximum,
+                              args.count, args.timeout, args.max_sizes, args.family)
+            from tunnelscope_view import render_report_html
+            rendered_html = render_report_html(report)
+            args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            html_path.write_text(rendered_html, encoding="utf-8")
+            print(format_report(report))
+            print(f"Wrote {args.output} and {html_path}")
         elif args.command == "combine":
             require_distinct_output(args.output, args.a_to_b, args.b_to_a)
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
@@ -156,7 +189,7 @@ def main():
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
             report = correlate_reports(probe_report, receiver_report)
-        if args.command not in ("receive", "show", "html"):
+        if args.command not in ("receive", "show", "html", "diagnose"):
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")

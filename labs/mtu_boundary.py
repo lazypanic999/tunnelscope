@@ -11,6 +11,7 @@ import selectors
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 
 
@@ -87,6 +88,22 @@ def main():
                 if df_statuses != ["acknowledged"] * 2 + ["packet_too_large"] * 4 or allowed_statuses != ["acknowledged"] * 6:
                     raise RuntimeError(f"Unexpected fragmentation comparison: {comparison}")
                 direction["fragmentation_comparison"] = comparison
+                with tempfile.TemporaryDirectory() as report_dir:
+                    output = Path(report_dir) / "diagnosis.json"
+                    diagnosed = subprocess.run(
+                        ["ip", "netns", "exec", source, sys.executable, script, "diagnose", target_ip,
+                         "--min", "1252", "--max", "1253", "--max-sizes", "2", "--count", "1",
+                         "--output", str(output)],
+                        check=True, capture_output=True, text=True, timeout=15,
+                    )
+                    diagnosis = json.loads(output.read_text(encoding="utf-8"))
+                    if diagnosis["summary"]["search"]["assessment"] != "adjacent_observed_bounds":
+                        raise RuntimeError(f"Unexpected diagnosis: {diagnosis}")
+                    if diagnosis["summary"]["search"]["observed_interval_payload_bytes"] != [1252, 1253]:
+                        raise RuntimeError(f"Unexpected diagnosis interval: {diagnosis}")
+                    if not output.with_suffix(".html").is_file() or "single sender direction" not in diagnosed.stdout.lower():
+                        raise RuntimeError("Diagnosis outputs missing")
+                    direction["diagnosis"] = diagnosis
                 report["directions"].append(direction)
             finally:
                 if receiver.poll() is None:

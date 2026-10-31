@@ -89,6 +89,12 @@ class FragmentationTests(unittest.TestCase):
                              [False, True, True])
             self.assertEqual([row["status"] for row in comparison["runs"]["fragmentation_permitted"]["results"]],
                              ["acknowledged"] * 6)
+            diagnosis = direction["diagnosis"]
+            self.assertEqual(diagnosis["kind"], "diagnosis")
+            self.assertEqual(diagnosis["scope"], "single_sender_direction")
+            self.assertEqual(diagnosis["consistency"]["search_target_check"], "matched")
+            self.assertEqual(diagnosis["summary"]["search"]["observed_interval_payload_bytes"], [1252, 1253])
+            self.assertEqual(diagnosis["summary"]["attempts"], 6)
         combined = tunnelscope.combine_reports(*report["directions"])
         self.assertEqual(combined["endpoint_check"], "reversed_ipv4_match")
         self.assertEqual(combined["comparison"]["by_payload_size"][-1]["b_to_a"], "kernel_rejected_df_payload")

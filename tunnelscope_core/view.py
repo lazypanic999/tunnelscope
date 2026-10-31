@@ -47,6 +47,18 @@ def _feedback_cell(row):
 
 def _table_data(report):
     kind = report.get("kind", "probe")
+    if kind == "diagnosis":
+        runs = report.get("runs")
+        comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
+        search = runs.get("size_search") if isinstance(runs, dict) else None
+        if not isinstance(comparison, dict) or not isinstance(search, dict):
+            raise ValueError("diagnosis needs comparison and search runs")
+        _, compare_rows = _table_data(comparison)
+        search_rows = _records(search.get("results"))
+        rows = [["DF vs permitted", *row, ""] for row in compare_rows]
+        rows.extend(["Size search", row.get("payload_bytes"), row.get("status"), "", "", ""]
+                    for row in search_rows)
+        return ["Run", "Bytes", "DF / search status", "DF no ACK", "Permitted", "Permitted no ACK"], rows
     if kind == "probe":
         headers = ["Bytes", "Attempt", "Status", "RTT ms", "Kernel MTU"]
         feedback_enabled = isinstance(report.get("summary"), dict) and isinstance(report["summary"].get("icmp_feedback"), dict)
@@ -144,6 +156,8 @@ def render_report_html(report):
     raw_json = escape(json.dumps(report, indent=2, ensure_ascii=False))
     search = search_report.get("summary") if isinstance(search_report, dict) else None
     search = search.get("search") if isinstance(search, dict) else None
+    if search_report.get("kind") == "diagnosis":
+        search = search_report.get("summary", {}).get("search")
     search_html = ""
     if isinstance(search, dict):
         interval = search.get("observed_interval_payload_bytes")
@@ -159,6 +173,17 @@ def render_report_html(report):
             f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>" for label, value in fields
         ) + "<p>Timeouts and mixed outcomes do not establish a boundary.</p></section>"
     measurement_html = ""
+    if search_report.get("kind") == "diagnosis":
+        consistency = search_report.get("consistency", {})
+        summary = search_report.get("summary", {})
+        fields = (("Scope", search_report.get("scope")), ("Attempts", summary.get("attempts")),
+                  ("ICMP size feedback events", summary.get("icmp_size_feedback_events")),
+                  ("Target check", consistency.get("search_target_check")),
+                  ("Source check", consistency.get("search_source_check")))
+        measurement_html = ("<section class='search-summary'><h2>Workflow scope</h2>" +
+                            "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                    for label, value in fields) +
+                            "<p>Sequential runs in one sender direction. The interval is not a proven path MTU.</p></section>")
     if search_report.get("kind") == "probe":
         summary = search_report.get("summary")
         size_rows = summary.get("by_payload_size") if isinstance(summary, dict) else None

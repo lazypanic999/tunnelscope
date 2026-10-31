@@ -14,10 +14,13 @@ reports. Automatic path-MTU discovery and root-cause diagnosis are not implement
 [PyPI](https://pypi.org/project/tunnelscope/0.5.0/)
 
 **Development on `main` (0.6.0.dev0):** repeated no-ACK summaries, a Linux
-DF/fragmentation-permitted comparison and optional ICMP feedback observations.
+DF/fragmentation-permitted comparison, optional ICMP feedback observations
+and a single-sender `diagnose` command with JSON and offline HTML output.
 These changes are not in the v0.5.0 PyPI package. See the
 [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md)
 and [ICMP guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
+The [diagnose guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/diagnose.md)
+shows the development workflow and its interpretation limits.
 
 ![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/terminal-demo.gif)
 

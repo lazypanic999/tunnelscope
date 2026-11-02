@@ -24,11 +24,14 @@ published to PyPI.
 - Join sender and receiver evidence by probe ID in the correlation HTML view,
   including direction, payload size and per-attempt timestamps. Keep missing
   receiver observations inconclusive when capture coverage is unknown.
+- Validate the workflow across a disposable, two-namespace WireGuard tunnel.
+  The [lab record](validation/wireguard-namespace.md) shows a local tunnel MTU
+  boundary and does not count as independent-host VPN field validation.
 
 ## Next evidence and workflow tasks
 
-1. Validate on a real VPN and Kubernetes pod path with permission from the
-   operators. Publish sanitized reports and topology details. Open
+1. Validate on an independent-host WireGuard VPN and Kubernetes pod path with
+   permission from the operators. Publish sanitized reports and topology details. Open
    [issues #2 and #3](https://github.com/lazypanic999/tunnelscope/issues)
    track these community field tests.
 

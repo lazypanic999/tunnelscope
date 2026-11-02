@@ -311,6 +311,17 @@ class DeliveryTests(unittest.TestCase):
                     "unmatched_receiver_observations": 0,
                 })
                 self.assertEqual([row["ack_send_status"] for row in correlation["results"]], ["sent"] * 2)
+                self.assertEqual([row["evidence_case"] for row in correlation["results"]],
+                                 ["acknowledged_and_receiver_observed"] * 2)
+                for row in correlation["results"]:
+                    self.assertEqual(row["direction"], "127.0.0.1 -> 127.0.0.1")
+                    self.assertIsNotNone(row["send_attempted_at_utc"])
+                    self.assertIsNotNone(row["receiver_received_at_utc"])
+                    self.assertIsNotNone(row["sender_ack_received_at_utc"])
+                html = tunnelscope_view.render_report_html(correlation)
+                self.assertIn("Probe ID", html)
+                self.assertIn("Receiver received (UTC)", html)
+                self.assertIn(probe["results"][0]["probe_id"], html)
                 shown = subprocess.run(
                     [sys.executable, str(Path(tunnelscope.__file__)), "show", str(correlation_path)],
                     capture_output=True, text=True, timeout=5,
@@ -344,10 +355,29 @@ class DeliveryTests(unittest.TestCase):
         result = tunnelscope.correlate_reports(probe, receiver)
         self.assertEqual(result["summary"]["timed_out_but_receiver_observed"], 1)
         self.assertTrue(result["results"][0]["receiver_observed"])
+        self.assertEqual(result["results"][0]["evidence_case"], "receiver_observed_no_ack")
         self.assertNotIn("cause", result["results"][0])
         receiver["observations"][0]["payload_bytes"] = 64
         with self.assertRaisesRegex(ValueError, "different payload sizes"):
             tunnelscope.correlate_reports(probe, receiver)
+
+    def test_joined_view_keeps_missing_receiver_observation_inconclusive(self):
+        probe = {"schema_version": 1, "source": {"ipv4": "<script>bad</script>"},
+                 "target": {"ipv4": "192.0.2.2"}, "results": [
+                     {"probe_id": "ab" * 16, "payload_bytes": 1400, "status": "timeout",
+                      "send_attempted_at_utc": "2026-11-02T10:00:00+00:00"},
+                 ]}
+        receiver = {"schema_version": 1, "kind": "receiver_observations", "observations": []}
+        result = tunnelscope.correlate_reports(probe, receiver)
+        row = result["results"][0]
+        self.assertEqual(row["evidence_case"], "no_ack_no_receiver_observation")
+        self.assertEqual(row["send_attempted_at_utc"], "2026-11-02T10:00:00+00:00")
+        self.assertIsNone(row["receiver_received_at_utc"])
+        self.assertIsNone(row["sender_ack_received_at_utc"])
+        html = tunnelscope_view.render_report_html(result)
+        self.assertIn("no_ack_no_receiver_observation", html)
+        self.assertIn("&lt;script&gt;bad&lt;/script&gt;", html)
+        self.assertNotIn("<script>bad</script>", html)
 
     def test_correlation_rejects_receiver_report_from_different_run(self):
         probe = {"schema_version": 1, "run_id": "11" * 8, "results": [

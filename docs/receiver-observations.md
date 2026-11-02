@@ -38,6 +38,19 @@ confirms that the matching payload arrived at this receiver. A timeout with
 transmission or return delivery, but does not identify which failed. A successful
 acknowledgement send call only confirms that the local socket accepted it.
 
+On development `main`, each row also shows the probe ID, source-to-target
+direction, UDP payload size, sender send-attempt time, receiver arrival time,
+sender ACK arrival time (when observed), and an `evidence_case`. Use
+`tunnelscope html correlation.json --output correlation.html` for the joined,
+searchable view. `receiver_observed_no_ack` means the receiver logged the
+probe but the sender saw no matching ACK. `no_ack_no_receiver_observation`
+means the available reports record neither receipt; it is **inconclusive**
+without independently verified receiver capture coverage. A send-attempt
+timestamp is taken just before the socket send call and does not prove the
+kernel transmitted the payload. Older probe reports leave new time fields
+empty. Host clocks may differ, so timestamps are displayed without subtracting
+or ordering times across machines.
+
 `receiver_observed: false` is inconclusive unless the receiver was running for
 the full probe period and its report is complete. A packet may have been lost,
 filtered, sent to another endpoint or missed because capture started late.

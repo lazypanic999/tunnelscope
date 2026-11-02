@@ -77,9 +77,15 @@ def _table_data(report):
             for row in _records(report.get("observations"))
         ]
     if kind == "probe_receiver_correlation":
-        return ["Bytes", "Sender", "Receiver saw", "ACK send"], [
-            [row.get("payload_bytes"), row.get("sender_status"),
-             "yes" if row.get("receiver_observed") else "no", row.get("ack_send_status")]
+        return ["Probe ID", "Direction", "Bytes", "Send attempted (UTC)", "Receiver saw",
+                "Receiver received (UTC)", "ACK send", "Sender ACK received (UTC)",
+                "Sender status", "Evidence case"], [
+            [row.get("probe_id"), row.get("direction"), row.get("payload_bytes"),
+             row.get("send_attempted_at_utc"),
+             "yes" if row.get("receiver_observed") else "no",
+             row.get("receiver_received_at_utc"), row.get("ack_send_status"),
+             row.get("sender_ack_received_at_utc"), row.get("sender_status"),
+             row.get("evidence_case")]
             for row in _records(report.get("results"))
         ]
     if kind == "bidirectional_comparison":
@@ -173,6 +179,11 @@ def render_report_html(report):
             f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>" for label, value in fields
         ) + "<p>Timeouts and mixed outcomes do not establish a boundary.</p></section>"
     measurement_html = ""
+    if search_report.get("kind") == "probe_receiver_correlation":
+        measurement_html = ("<section class='search-summary'><h2>Joined probe observations</h2>"
+                            "<p>receiver_observed_no_ack means the receiver logged the probe but the sender did not receive a matching ACK. "
+                            "no_ack_no_receiver_observation means neither receipt was logged; this remains inconclusive "
+                            "without verified receiver coverage. Timestamps from different hosts are shown without clock comparison.</p></section>")
     if search_report.get("kind") == "diagnosis":
         consistency = search_report.get("consistency", {})
         summary = search_report.get("summary", {})

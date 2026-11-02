@@ -231,6 +231,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                         source = source_snapshot(sock)
                     start = time.monotonic()
                     deadline = start + timeout
+                    result["send_attempted_at_utc"] = utc_now()
                     sock.send(payload)
                     while True:
                         remaining = deadline - time.monotonic()
@@ -239,7 +240,8 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                         sock.settimeout(remaining)
                         reply = sock.recv(1024)
                         if reply == HEADER.pack(ACK, token, size):
-                            result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3))
+                            result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3),
+                                          ack_received_at_utc=utc_now())
                             break
                 except socket.timeout:
                     result["status"] = "timeout"

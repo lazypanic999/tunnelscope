@@ -118,6 +118,15 @@ def correlate_reports(probe_report, receiver_report):
         run_id_check = "matched_with_other_runs" if len(receiver_run_ids) > 1 else "matched"
     observations = {row["probe_id"]: row for row in received}
     sent_ids = {row["probe_id"] for row in sent}
+    source = probe_report.get("source")
+    target = probe_report.get("target")
+    source = source if isinstance(source, dict) else {}
+    target = target if isinstance(target, dict) else {}
+    address_key = "ipv6" if isinstance(target.get("ipv6"), str) else "ipv4"
+    source_address, target_address = source.get(address_key), target.get(address_key)
+    direction = (f"{source_address} -> {target_address}"
+                 if isinstance(source_address, str) and isinstance(target_address, str)
+                 else "unavailable")
     matched = []
     for row in sent:
         observation = observations.get(row["probe_id"])
@@ -125,16 +134,30 @@ def correlate_reports(probe_report, receiver_report):
             raise ValueError("matching probe IDs have different payload sizes")
         if observation is not None and run_id_check in ("matched", "matched_with_other_runs") and observation["run_id"] != run_id:
             raise ValueError("matching probe ID has a different run ID")
+        status = row.get("status")
+        if status == "timeout":
+            evidence_case = ("receiver_observed_no_ack" if observation is not None
+                             else "no_ack_no_receiver_observation")
+        elif status == "acknowledged":
+            evidence_case = ("acknowledged_and_receiver_observed" if observation is not None
+                             else "acknowledged_receiver_log_missing")
+        elif status == "packet_too_large":
+            evidence_case = "explicit_size_error"
+        else:
+            evidence_case = "socket_error_or_unknown"
         matched.append({
             "probe_id": row["probe_id"],
+            "direction": direction,
             "payload_bytes": row["payload_bytes"],
-            "sender_status": row.get("status"),
+            "send_attempted_at_utc": row.get("send_attempted_at_utc"),
+            "receiver_received_at_utc": observation.get("received_at_utc") if observation else None,
+            "sender_ack_received_at_utc": row.get("ack_received_at_utc"),
+            "sender_status": status,
             "receiver_observed": observation is not None,
             "ack_send_status": observation.get("ack_send_status") if observation else None,
+            "evidence_case": evidence_case,
         })
-    target = probe_report.get("target")
     receiver = receiver_report.get("receiver")
-    target = target if isinstance(target, dict) else {}
     receiver = receiver if isinstance(receiver, dict) else {}
     endpoint_checks = {
         "target_port_matches_receiver": target.get("port") == receiver.get("port") if isinstance(target.get("port"), int) and isinstance(receiver.get("port"), int) else None,
@@ -154,7 +177,7 @@ def correlate_reports(probe_report, receiver_report):
             "receiver_window_utc": [receiver_report.get("started_at_utc"), receiver_report.get("finished_at_utc")],
             "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized",
         },
-        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery.",
+        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared.",
         "summary": {
             "sent_probes": len(sent),
             "receiver_observed": sum(row["receiver_observed"] for row in matched),
@@ -378,14 +401,16 @@ def format_report(report):
             raise ValueError("correlation report has no results")
         if any(not isinstance(row, dict) for row in rows):
             raise ValueError("invalid correlation result")
-        values = [(row.get("payload_bytes", "?"), row.get("sender_status", "?"),
-                   "yes" if row.get("receiver_observed") else "no", row.get("ack_send_status") or "-")
+        values = [(str(row.get("probe_id") or "?")[:8], row.get("direction") or "-",
+                   row.get("payload_bytes", "?"), row.get("sender_status", "?"),
+                   "yes" if row.get("receiver_observed") else "no", row.get("ack_send_status") or "-",
+                   row.get("evidence_case") or "-")
                   for row in rows]
         pairing = report.get("pairing")
         run_check = pairing.get("run_id_check", "unavailable") if isinstance(pairing, dict) else "unavailable"
         return (f"Correlation: {summary.get('receiver_observed', '?')}/{summary.get('sent_probes', '?')} observed at receiver; "
                 f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; "
                 f"{summary.get('unmatched_receiver_observations', '?')} unmatched receiver observations; run ID: {run_check}\n"
-                + text_table(["Bytes", "Sender", "Receiver saw", "ACK send"], values)
+                + text_table(["Probe", "Direction", "Bytes", "Sender", "Receiver saw", "ACK send", "Evidence case"], values)
                 + "\nNo receiver observation is inconclusive without confirmed capture coverage.")
     raise ValueError(f"unsupported report kind: {kind}")

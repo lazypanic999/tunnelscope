@@ -21,6 +21,9 @@ published to PyPI.
 - Run a bounded, single-sender `diagnose` workflow that bundles DF,
   fragmentation-permitted and adaptive search evidence in one JSON and HTML
   report. See the [diagnose guide](diagnose.md).
+- Join sender and receiver evidence by probe ID in the correlation HTML view,
+  including direction, payload size and per-attempt timestamps. Keep missing
+  receiver observations inconclusive when capture coverage is unknown.
 
 ## Next evidence and workflow tasks
 

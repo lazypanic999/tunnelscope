@@ -203,6 +203,8 @@ class FragmentationTests(unittest.TestCase):
         self.assertEqual([row["ack_send_status"] for row in report["receiver"]["observations"]], ["sent"] * 4)
         self.assertEqual(report["correlation"]["pairing"]["run_id_check"], "matched_with_other_runs")
         self.assertEqual(report["correlation"]["summary"]["timed_out_but_receiver_observed"], 2)
+        self.assertEqual([row["evidence_case"] for row in report["correlation"]["results"]],
+                         ["receiver_observed_no_ack"] * 2)
         self.assertEqual(report["search"]["summary"]["search"]["assessment"], "inconclusive")
         self.assertEqual(report["search_correlation"]["summary"]["timed_out_but_receiver_observed"], 2)
         self.assertIn("2/2 observed at receiver", tunnelscope.format_report(report))

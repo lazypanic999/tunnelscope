@@ -52,7 +52,7 @@ These issues support the roadmap without changing the validation gates above:
 | [#6](https://github.com/lazypanic999/tunnelscope/issues/6) | Document a Windows PowerShell loopback quick start | Improve first use without promising Windows DF support; good first issue |
 | [#1](https://github.com/lazypanic999/tunnelscope/issues/1) | Validate IPv6 Packet Too Big feedback on a routed path | Independent field evidence for the IPv6 boundary work |
 | [#2](https://github.com/lazypanic999/tunnelscope/issues/2) | Validate bidirectional probes and correlation on a real VPN | Post-lab deployment evidence; not a v0.5 release gate |
-| [#3](https://github.com/lazypanic999/tunnelscope/issues/3) | Validate pod-to-pod workflow on Kubernetes | Post-lab deployment evidence; not a v0.5 release gate |
+| [#3](https://github.com/lazypanic999/tunnelscope/issues/3) | Validate pod-to-pod workflow on Kubernetes | Completed in the [two-node Calico validation](validation/kubernetes-calico.md); additional deployment modes remain open |
 
 The v0.5 implementation is split into network, reports, search and view
 modules under `tunnelscope_core`. Compatibility entry modules preserve the

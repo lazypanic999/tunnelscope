@@ -40,14 +40,16 @@ the `compare-fragmentation` command, Linux ICMP feedback observations,
   LAN beyond the receiving VPN gateway. Both directions record token-matched
   ICMP when visible and inconclusive timeouts when feedback is blocked. This
   controlled namespace topology remains separate from production field tests.
+- A [two-node Kubernetes/Calico lab](validation/kubernetes-calico.md) validates
+  both pod directions, joined receiver reports and a scoped NetworkPolicy
+  block/recovery experiment using the released v0.6.0 package.
 
 ## Next evidence and workflow tasks
 
-1. Validate on a production-like VPN path with a real network constraint and
-   on a Kubernetes pod path with permission from the operators. Publish
-   sanitized reports and topology details. Open
-   [issues #2 and #3](https://github.com/lazypanic999/tunnelscope/issues)
-   track these community field tests.
+1. Validate production-like VPN constraints and additional Kubernetes CNI
+   modes or physical multi-host paths with permission from the operators.
+   Publish sanitized reports and topology details. The controlled WireGuard
+   and Calico records above define the coverage already obtained.
 
 Python 3.10 CI, receiver correlation in the quick start and a Windows
 PowerShell loopback guide remain open good-first-issue tasks. Authentication,

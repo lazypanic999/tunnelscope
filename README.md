@@ -122,6 +122,8 @@ sizes, not an exact end-to-end path MTU.
 - [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md),
   [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) and
   [security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md).
+- [Kubernetes pod lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md):
+  cross-node delivery, joined reports and scoped Calico NetworkPolicy validation.
 - [v0.6 scope and next steps](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.6.md),
   [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) and
   [completed milestones](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
@@ -131,7 +133,7 @@ sizes, not an exact end-to-end path MTU.
 Good first issues: [Python 3.10 CI](https://github.com/lazypanic999/tunnelscope/issues/4),
 [receiver correlation quick start](https://github.com/lazypanic999/tunnelscope/issues/5), and
 [Windows PowerShell loopback guide](https://github.com/lazypanic999/tunnelscope/issues/6).
-The [roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md#community-issues) connects all six open issues
+The [roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md#community-issues) connects contribution and validation issues
 to the next release and field validation. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md)
 before opening a PR; share only synthetic or sanitized reports.
 

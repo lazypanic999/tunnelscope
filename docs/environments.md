@@ -51,7 +51,7 @@ evidence.
 
 ## Existing Kubernetes pods
 
-If two controlled pods already contain TunnelScope v0.5.0 and Python 3.10+,
+If two controlled pods already contain TunnelScope v0.6.0 and Python 3.10+,
 use their pod addresses directly. In separate local terminals, for example:
 
 ```sh
@@ -68,6 +68,9 @@ and [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/netw
 are implemented by the cluster's network plugin; behavior can differ between
 clusters. See the official [`kubectl exec` reference](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/).
 
-This pod recipe is untested here because no Kubernetes cluster was available.
-It does not claim cluster-wide MTU discovery, support for every CNI, or the
-ability to distinguish overlay loss from filtering on its own.
+This workflow was validated on a two-node Minikube cluster with Calico
+v3.31.3 and IPv4 pod addresses. See the [validation record](validation/kubernetes-calico.md)
+and [reproducible pod lab](kubernetes.md), including a scoped NetworkPolicy
+block and recovery test. Other CNI modes and production deployments need
+separate validation. This does not establish cluster-wide MTU discovery or
+identify overlay loss versus filtering on its own.

@@ -4,3 +4,4 @@ include LICENSE
 recursive-include docs *.md *.png *.gif
 recursive-include examples *.json
 recursive-include labs *.py
+recursive-include labs Dockerfile

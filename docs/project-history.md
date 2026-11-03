@@ -19,7 +19,7 @@ A failed probe alone is not labeled as proof of an MTU problem. Reports separate
 - [x] **M4 - Observe at the receiver:** record which identified probes reached the cooperating receiver and correlate them with sender outcomes.
 - [x] **M5 - Make evidence usable:** validate receiver-observed timeouts in a controlled lab and provide a concise terminal view of reports.
 
-The [tunnel and pod workflows](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) include a validated local VXLAN overlay and guidance for existing VPNs and Kubernetes pods. The VPN and pod workflows have not yet been validated on a real deployment. 5G user-plane tunnels remain outside the current scope.
+The [tunnel and pod workflows](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) include controlled VXLAN and WireGuard labs and a [two-node Calico pod validation](validation/kubernetes-calico.md). Production VPN and Kubernetes deployments need separate validation. 5G user-plane tunnels remain outside the current scope.
 
 For a quick walkthrough of both controlled failure modes, see the [two-minute Linux demo](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo.md).
 The [two-VM validation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-field-test.md) documents a successful bidirectional DF run between Ubuntu and Debian guests.

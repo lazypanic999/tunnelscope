@@ -30,11 +30,16 @@ published to PyPI.
 - Validate the workflow across a disposable, two-namespace WireGuard tunnel.
   The [lab record](validation/wireguard-namespace.md) shows a local tunnel MTU
   boundary and does not count as independent-host VPN field validation.
+- Validate both directions across separate Ubuntu and Debian VMs joined by a
+  controlled WireGuard tunnel. The [two-VM record](validation/two-vm-wireguard.md)
+  confirms sender/receiver pairing and a local tunnel MTU boundary; it is not
+  a production VPN incident or multi-hop path test.
 
 ## Next evidence and workflow tasks
 
-1. Validate on an independent-host WireGuard VPN and Kubernetes pod path with
-   permission from the operators. Publish sanitized reports and topology details. Open
+1. Validate on a production-like VPN path with a real network constraint and
+   on a Kubernetes pod path with permission from the operators. Publish
+   sanitized reports and topology details. Open
    [issues #2 and #3](https://github.com/lazypanic999/tunnelscope/issues)
    track these community field tests.
 

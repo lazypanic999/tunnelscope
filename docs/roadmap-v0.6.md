@@ -34,6 +34,13 @@ the `compare-fragmentation` command, Linux ICMP feedback observations,
   confirms sender/receiver pairing and a local tunnel MTU boundary; it is not
   a production VPN incident or multi-hop path test.
 
+## Validation after v0.6.0
+
+- A [routed WireGuard lab](validation/wireguard-routed.md) checks a lower-MTU
+  LAN beyond the receiving VPN gateway. Both directions record token-matched
+  ICMP when visible and inconclusive timeouts when feedback is blocked. This
+  controlled namespace topology remains separate from production field tests.
+
 ## Next evidence and workflow tasks
 
 1. Validate on a production-like VPN path with a real network constraint and

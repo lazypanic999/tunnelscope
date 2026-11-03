@@ -1,5 +1,11 @@
 # Controlled tunnel and pod workflows
 
+The [routed WireGuard lab](validation/wireguard-routed.md) provides a local,
+reproducible VPN gateway scenario with visible and blocked ICMP feedback.
+The [two-VM record](validation/two-vm-wireguard.md) covers a controlled tunnel
+between independent Ubuntu and Debian guests. Both records state their scope
+and limitations.
+
 TunnelScope sends ordinary UDP payloads between a cooperating sender and
 receiver. The tool does not configure a VPN, container network, Kubernetes
 cluster or network policy. Run it only where both endpoints and the UDP path

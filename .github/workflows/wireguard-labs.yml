@@ -1,0 +1,43 @@
+name: WireGuard routed validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'labs/wireguard*.py'
+      - 'tunnelscope.py'
+      - 'tunnelscope_core/**'
+      - '.github/workflows/wireguard-labs.yml'
+  pull_request:
+    paths:
+      - 'labs/wireguard*.py'
+      - 'tunnelscope.py'
+      - 'tunnelscope_core/**'
+      - '.github/workflows/wireguard-labs.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wireguard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated lab dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends wireguard-tools iproute2 iptables iputils-ping
+      - name: Validate local tunnel boundary
+        run: sudo python3 labs/wireguard_boundary.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/local"
+      - name: Validate routed feedback in both directions
+        run: sudo python3 labs/wireguard_routed.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/routed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wireguard-lab-reports
+          path: ${{ runner.temp }}/tunnelscope-wireguard/
+          if-no-files-found: ignore

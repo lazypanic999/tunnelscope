@@ -29,20 +29,23 @@ def ip(*args):
     return run("ip", *args)
 
 
-def start_receiver(namespace, address, output=None, max_packets=None):
+def start_receiver(namespace, address, output=None, max_packets=None, idle_timeout=10):
     command = ["ip", "netns", "exec", namespace, sys.executable, "-u", SCRIPT,
-               "receive", "--bind", address, "--idle-timeout", "10"]
+               "receive", "--bind", address, "--idle-timeout", str(idle_timeout)]
     if output:
         command += ["--output", str(output)]
     if max_packets:
         command += ["--max-packets", str(max_packets)]
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, text=True)
-    with selectors.DefaultSelector() as selector:
-        selector.register(process.stdout, selectors.EVENT_READ)
-        if not selector.select(timeout=5) or not process.stdout.readline().startswith("Listening on"):
-            process.kill()
-            raise RuntimeError("Receiver did not start")
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            if not selector.select(timeout=5) or not process.stdout.readline().startswith("Listening on"):
+                raise RuntimeError("Receiver did not start")
+    except BaseException:
+        stop_receiver(process)
+        raise
     return process
 
 

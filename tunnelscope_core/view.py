@@ -48,6 +48,27 @@ def _feedback_cell(row):
 def _table_data(report):
     kind = report.get("kind", "probe")
     if kind == "diagnosis":
+        evidence = report.get("receiver_evidence")
+        if isinstance(evidence, dict):
+            correlations = evidence.get("correlations")
+            if not isinstance(correlations, dict):
+                raise ValueError("diagnosis has invalid receiver correlations")
+            rows = []
+            for name in ("df", "fragmentation_permitted", "size_search"):
+                correlation = correlations.get(name)
+                if not isinstance(correlation, dict):
+                    raise ValueError("diagnosis is missing a receiver correlation")
+                for row in _records(correlation.get("results")):
+                    rows.append([name, row.get("probe_id"), row.get("payload_bytes"),
+                                 row.get("sender_status"),
+                                 "yes" if row.get("receiver_observed") else "no",
+                                 row.get("send_attempted_at_utc"),
+                                 row.get("receiver_received_at_utc"),
+                                 row.get("sender_ack_received_at_utc"),
+                                 row.get("evidence_case")])
+            return ["Run", "Probe ID", "Bytes", "Sender status", "Receiver saw",
+                    "Send attempted (UTC)", "Receiver received (UTC)",
+                    "Sender ACK received (UTC)", "Evidence case"], rows
         runs = report.get("runs")
         comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
         search = runs.get("size_search") if isinstance(runs, dict) else None
@@ -195,6 +216,21 @@ def render_report_html(report):
                             "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
                                     for label, value in fields) +
                             "<p>Sequential runs in one sender direction. The interval is not a proven path MTU.</p></section>")
+        receiver_evidence = search_report.get("receiver_evidence")
+        if isinstance(receiver_evidence, dict):
+            receiver_summary = receiver_evidence.get("summary", {})
+            if not isinstance(receiver_summary, dict):
+                raise ValueError("diagnosis has invalid receiver summary")
+            fields = (("Receiver observed", receiver_summary.get("receiver_observed")),
+                      ("Sender attempts", receiver_summary.get("sent_probes")),
+                      ("Unmatched receiver observations", receiver_summary.get("unmatched_receiver_observations")),
+                      ("Other run observations", receiver_summary.get("unassigned_receiver_observations")),
+                      ("Receiver exit", receiver_summary.get("capture_exit_reason")))
+            measurement_html += ("<section class='search-summary'><h2>Joined receiver evidence</h2>" +
+                                 "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                         for label, value in fields) +
+                                 "<p>No receiver observation is inconclusive without verified capture coverage. "
+                                 "Clocks on separate hosts are not compared.</p></section>")
     if search_report.get("kind") == "probe":
         summary = search_report.get("summary")
         size_rows = summary.get("by_payload_size") if isinstance(summary, dict) else None

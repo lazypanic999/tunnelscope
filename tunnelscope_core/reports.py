@@ -287,12 +287,22 @@ def format_report(report):
             raise ValueError("invalid diagnosis summary")
         interval = search_summary.get("observed_interval_payload_bytes")
         interval_text = f"{interval[0]}..{interval[1]}" if isinstance(interval, list) and len(interval) == 2 else "none"
-        return ("Diagnosis (single sender direction)\n" + format_report(comparison) +
+        text = ("Diagnosis (single sender direction)\n" + format_report(comparison) +
                 f"\nSearch: {search_summary.get('assessment', 'unknown')}; observed interval: {interval_text} UDP payload bytes; "
                 f"attempts: {summary.get('attempts', '?')}; ICMP size feedback events: {summary.get('icmp_size_feedback_events', '?')}."
                 f"\nTarget check: {consistency.get('search_target_check', 'unknown')}; "
                 f"source check: {consistency.get('search_source_check', 'unknown')}."
                 "\nRuns were sequential. This is not a two-way test or a proven path MTU.")
+        evidence = report.get("receiver_evidence")
+        if isinstance(evidence, dict):
+            receiver_summary = evidence.get("summary")
+            if not isinstance(receiver_summary, dict):
+                raise ValueError("invalid diagnosis receiver summary")
+            text += (f"\nReceiver observed: {receiver_summary.get('receiver_observed', '?')}/"
+                     f"{receiver_summary.get('sent_probes', '?')} attempts; "
+                     f"other run observations: {receiver_summary.get('unassigned_receiver_observations', '?')}."
+                     " Missing receiver observations remain inconclusive without verified capture coverage.")
+        return text
     if kind == "probe":
         summary = report.get("summary")
         rows = summary.get("by_payload_size") if isinstance(summary, dict) else None

@@ -15,7 +15,7 @@ from tunnelscope_core.reports import (
     combine_reports, correlate_reports, explain_evidence, format_report,
     summarize_results, text_table,
 )
-from tunnelscope_core.diagnose import diagnose
+from tunnelscope_core.diagnose import correlate_diagnosis, diagnose
 
 
 def require_distinct_output(output, *inputs):
@@ -121,10 +121,11 @@ def main():
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
     combined.add_argument("--output", type=Path)
-    correlated = commands.add_parser("correlate", help="match a probe report with receiver observations")
+    correlated = commands.add_parser("correlate", help="match probe or diagnosis runs with receiver observations")
     correlated.add_argument("probe_report", type=Path)
     correlated.add_argument("receiver_report", type=Path)
     correlated.add_argument("--output", type=Path)
+    correlated.add_argument("--html", type=Path, help="also write a local HTML view")
     shown = commands.add_parser("show", help="print a concise summary of a JSON report")
     shown.add_argument("report", type=Path)
     html_view = commands.add_parser("html", help="write a searchable local HTML view of a JSON report")
@@ -186,9 +187,25 @@ def main():
             print(f"Wrote {args.output}")
         else:
             require_distinct_output(args.output, args.probe_report, args.receiver_report)
+            if args.html:
+                if args.html.suffix.lower() != ".html":
+                    raise ValueError("--html must name an .html file")
+                require_distinct_output(args.html, args.probe_report, args.receiver_report)
+                if args.output and args.html.resolve() == args.output.resolve():
+                    raise ValueError("--html must differ from --output")
+                if args.html.exists():
+                    raise ValueError(f"refusing to overwrite existing file: {args.html}")
+                if not args.html.parent.is_dir():
+                    raise ValueError(f"output directory does not exist: {args.html.parent}")
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
-            report = correlate_reports(probe_report, receiver_report)
+            report = (correlate_diagnosis(probe_report, receiver_report)
+                      if isinstance(probe_report, dict) and probe_report.get("kind") == "diagnosis"
+                      else correlate_reports(probe_report, receiver_report))
+            if args.html:
+                from tunnelscope_view import render_report_html
+                html_content = render_report_html(report)
+                args.html.write_text(html_content, encoding="utf-8")
         if args.command not in ("receive", "show", "html", "diagnose"):
             rendered = json.dumps(report, indent=2)
             if args.output:

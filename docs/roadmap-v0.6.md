@@ -24,6 +24,9 @@ published to PyPI.
 - Join sender and receiver evidence by probe ID in the correlation HTML view,
   including direction, payload size and per-attempt timestamps. Keep missing
   receiver observations inconclusive when capture coverage is unknown.
+- Let `correlate` join a three-run diagnosis with one receiver capture, and
+  render the joined evidence as a single JSON and HTML report. See the
+  [diagnose guide](diagnose.md).
 - Validate the workflow across a disposable, two-namespace WireGuard tunnel.
   The [lab record](validation/wireguard-namespace.md) shows a local tunnel MTU
   boundary and does not count as independent-host VPN field validation.

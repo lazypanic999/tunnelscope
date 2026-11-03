@@ -130,19 +130,32 @@ def main(output_dir):
                 if correlation["summary"]["receiver_observed"] != 2:
                     raise RuntimeError(f"Unexpected {label} receiver coverage")
                 diagnosis_path = output_dir / f"{label}-diagnosis.json"
-                receiver = start_receiver(target, target_ip)
+                diagnosis_receiver_path = output_dir / f"{label}-diagnosis-receiver.json"
+                receiver = start_receiver(target, target_ip, diagnosis_receiver_path,
+                                          max_packets=4)
                 try:
                     ip("netns", "exec", source, sys.executable, SCRIPT, "diagnose", target_ip,
                        "--min", "1252", "--max", "1253", "--count", "1",
                        "--max-sizes", "2", "--output", str(diagnosis_path))
+                    receiver.wait(timeout=5)
                 finally:
                     stop_receiver(receiver)
                 diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
                 observed = diagnosis["summary"]["search"]["observed_interval_payload_bytes"]
                 if observed != [1252, 1253] or not diagnosis_path.with_suffix(".html").is_file():
                     raise RuntimeError(f"Unexpected {label} diagnosis interval or missing HTML")
+                joined_path = output_dir / f"{label}-joined.json"
+                joined_html_path = output_dir / f"{label}-joined.html"
+                run(sys.executable, SCRIPT, "correlate", str(diagnosis_path),
+                    str(diagnosis_receiver_path), "--output", str(joined_path),
+                    "--html", str(joined_html_path))
+                joined = json.loads(joined_path.read_text(encoding="utf-8"))
+                joined_summary = joined["receiver_evidence"]["summary"]
+                if joined_summary["receiver_observed"] != 4 or not joined_html_path.is_file():
+                    raise RuntimeError(f"Unexpected {label} joined receiver evidence")
                 summary["directions"].append({"direction": label, "probe_statuses": statuses,
-                    "receiver_observed": 2, "observed_interval_payload_bytes": observed})
+                    "receiver_observed": 2, "diagnosis_receiver_observed": 4,
+                    "observed_interval_payload_bytes": observed})
             (output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
             print(json.dumps(summary, indent=2))
         finally:

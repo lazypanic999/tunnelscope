@@ -1,7 +1,10 @@
 """Bounded single-sender workflow using existing evidence-producing probes."""
 
+from copy import deepcopy
+
 from .icmp import require_icmp_support
 from .network import compare_fragmentation, probe, require_df_support
+from .reports import correlate_reports
 
 
 def build_diagnosis(comparison, search):
@@ -72,3 +75,75 @@ def diagnose(host, port, minimum, maximum, count=2, timeout=1,
     search = probe(host, port, None, count, timeout, True, family,
                    (minimum, maximum), max_sizes, observe_icmp=True)
     return build_diagnosis(comparison, search)
+
+
+def correlate_diagnosis(diagnosis, receiver_report):
+    """Join one receiver capture to each diagnosis run by its own run ID."""
+    if not isinstance(diagnosis, dict) or diagnosis.get("schema_version") != 1 or diagnosis.get("kind") != "diagnosis":
+        raise ValueError("expected a schema_version 1 diagnosis report")
+    if (not isinstance(receiver_report, dict) or receiver_report.get("schema_version") != 1
+            or receiver_report.get("kind") != "receiver_observations"
+            or not isinstance(receiver_report.get("observations"), list)):
+        raise ValueError("expected a schema_version 1 receiver observations report")
+    if "receiver_evidence" in diagnosis:
+        raise ValueError("diagnosis already contains receiver evidence")
+    runs = diagnosis.get("runs")
+    comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
+    nested = comparison.get("runs") if isinstance(comparison, dict) else None
+    probes = {
+        "df": nested.get("df") if isinstance(nested, dict) else None,
+        "fragmentation_permitted": nested.get("fragmentation_permitted") if isinstance(nested, dict) else None,
+        "size_search": runs.get("size_search") if isinstance(runs, dict) else None,
+    }
+    if any(not isinstance(probe, dict) or probe.get("kind") != "probe" or not isinstance(probe.get("results"), list)
+           for probe in probes.values()):
+        raise ValueError("diagnosis needs three probe runs")
+    run_ids = [probe.get("run_id") for probe in probes.values()]
+    if any(not isinstance(value, str) or len(value) != 16 for value in run_ids) or len(set(run_ids)) != 3:
+        raise ValueError("diagnosis needs three distinct run IDs")
+    try:
+        for value in run_ids:
+            bytes.fromhex(value)
+    except ValueError as error:
+        raise ValueError("diagnosis needs hexadecimal run IDs") from error
+    observations = receiver_report["observations"]
+    for row in observations:
+        if not isinstance(row, dict) or not isinstance(row.get("run_id"), str):
+            raise ValueError("receiver observations need run IDs for diagnosis")
+        if len(row["run_id"]) != 16 or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
+            raise ValueError("invalid receiver observation")
+        try:
+            bytes.fromhex(row["run_id"])
+            bytes.fromhex(row["probe_id"])
+        except ValueError as error:
+            raise ValueError("invalid hexadecimal receiver identifier") from error
+    if len({row["probe_id"] for row in observations}) != len(observations):
+        raise ValueError("duplicate probe ID in receiver report")
+    sent_run_by_probe = {row.get("probe_id"): probe["run_id"]
+                         for probe in probes.values() for row in probe["results"]
+                         if isinstance(row, dict)}
+    if any(row["probe_id"] in sent_run_by_probe and
+           row["run_id"] != sent_run_by_probe[row["probe_id"]] for row in observations):
+        raise ValueError("matching probe ID has a different run ID")
+    known_ids = set(run_ids)
+    matched_rows = [row for row in observations if row["run_id"] in known_ids]
+    if observations and not matched_rows:
+        raise ValueError("receiver report has no observations from this diagnosis")
+    correlations = {}
+    for name, probe in probes.items():
+        scoped_receiver = {**receiver_report, "observations":
+                           [row for row in matched_rows if row["run_id"] == probe["run_id"]]}
+        correlations[name] = correlate_reports(probe, scoped_receiver)
+    result = deepcopy(diagnosis)
+    result["receiver_evidence"] = {
+        "summary": {
+            "receiver_observed": sum(item["summary"]["receiver_observed"] for item in correlations.values()),
+            "sent_probes": sum(item["summary"]["sent_probes"] for item in correlations.values()),
+            "unmatched_receiver_observations": sum(item["summary"]["unmatched_receiver_observations"] for item in correlations.values()),
+            "unassigned_receiver_observations": len(observations) - len(matched_rows),
+            "capture_exit_reason": receiver_report.get("exit_reason"),
+        },
+        "interpretation": "A receiver observation confirms forward arrival. Missing observations remain inconclusive unless capture coverage is independently established. Receiver and sender clocks are not compared.",
+        "correlations": correlations,
+    }
+    return result

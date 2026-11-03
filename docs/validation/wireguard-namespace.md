@@ -16,8 +16,8 @@ python3 labs/wireguard_boundary.py --output-dir output/wireguard-lab
 ```
 
 The output directory must be empty or absent. It receives sender, receiver,
-correlation, diagnosis JSON and offline HTML files for both directions, plus
-`summary.json`. Local `output/` is excluded from Git.
+correlation, diagnosis, joined diagnosis JSON and offline HTML files for both
+directions, plus `summary.json`. Local `output/` is excluded from Git.
 
 | Direction | DF payload 64, 1252 | DF payload 1253, 1400 | Receiver observations | Adaptive interval |
 | --- | --- | --- | ---: | --- |
@@ -30,6 +30,9 @@ the configured tunnel MTU after 20 bytes of IPv4 and 8 bytes of UDP headers.
 The receiver report independently recorded both successful probes; the
 correlation matched them by run and probe ID. Each `diagnose` run wrote JSON
 and HTML and reported an adjacent observed payload interval of 1252–1253.
+The receiver also captured all four successful packets from each three-run
+diagnosis; `correlate` joined those records into one diagnosis JSON and HTML
+view per direction.
 
 This verifies the TunnelScope workflow over an encrypted WireGuard tunnel, but
 both endpoints share one WSL2 kernel and the boundary is the **local WireGuard

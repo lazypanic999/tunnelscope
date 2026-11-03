@@ -6,22 +6,19 @@
 
 Evidence-based MTU and packet-size diagnostics for Linux networks.
 
-**v0.5.0 alpha:** IPv4/IPv6 UDP probes, a cooperating receiver, bounded
-payload-size search, JSON evidence, per-direction comparison and offline HTML
+**v0.6.0 alpha:** IPv4/IPv6 UDP probes, repeated measurement summaries, bounded
+payload-size search, Linux ICMP feedback observations and a single-sender
+`diagnose` workflow. Join sender and receiver evidence in JSON and offline HTML
 reports. Automatic path-MTU discovery and root-cause diagnosis are not implemented.
 
-[GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.5.0) ·
-[PyPI](https://pypi.org/project/tunnelscope/0.5.0/)
+[GitHub Release](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.6.0) ·
+[PyPI](https://pypi.org/project/tunnelscope/0.6.0/)
 
-**Development on `main` (0.6.0.dev0):** repeated no-ACK summaries, a Linux
-DF/fragmentation-permitted comparison, optional ICMP feedback observations
-and a single-sender `diagnose` command with JSON and offline HTML output.
-The correlation HTML now joins sender and receiver observations by probe ID.
-These changes are not in the v0.5.0 PyPI package. See the
+For the Linux DF/fragmentation-permitted comparison and optional ICMP feedback, see the
 [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md)
 and [ICMP guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
 The [diagnose guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/diagnose.md)
-shows the development workflow and its interpretation limits.
+shows the combined workflow and how to join its receiver observations.
 
 ![Terminal demo of TunnelScope showing a controlled blocked-feedback lab report](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/terminal-demo.gif)
 
@@ -92,7 +89,7 @@ Start a receiver at that lab address first. A timeout stops the search as
 inconclusive; even adjacent successful and explicit-error sizes are not an
 independently measured path MTU. See the [size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md).
 
-On Linux, the development version can also repeat the same sizes with DF
+On Linux, v0.6 can also repeat the same sizes with DF
 enabled and source fragmentation permitted. Use a controlled receiver and
 read the [comparison guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md)
 before interpreting differences.
@@ -115,7 +112,7 @@ sizes, not an exact end-to-end path MTU.
 - [Bounded size-search guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md): adaptive probes and how to
   interpret the observed interval.
 - [Repeated measurements and fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md):
-  development command and its limits.
+  comparison command and its limits.
 - [ICMP feedback observation](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md):
   optional Linux error-queue evidence and its limits.
 - [Two-endpoint workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/bidirectional.md) and
@@ -125,7 +122,7 @@ sizes, not an exact end-to-end path MTU.
 - [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md),
   [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md) and
   [security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md).
-- [v0.6 development roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.6.md),
+- [v0.6 scope and next steps](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.6.md),
   [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) and
   [completed milestones](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 

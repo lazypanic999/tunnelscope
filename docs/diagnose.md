@@ -1,4 +1,4 @@
-# Single-command sender diagnosis (development `main`)
+# Single-command sender diagnosis (v0.6)
 
 `diagnose` runs three sequential experiments from **one Linux sender** to an
 already running cooperating receiver: DF probes at the minimum, midpoint and
@@ -11,7 +11,7 @@ and an offline HTML view, then prints a short terminal summary.
 # On the controlled receiving host, bind to its test address first:
 tunnelscope receive --bind 192.0.2.2 --max-packets 100
 
-# On the Linux sender, using a development checkout or installation:
+# On the Linux sender, using v0.6 or newer:
 python tunnelscope.py diagnose 192.0.2.2 --min 1200 --max 1400 \
   --count 2 --max-sizes 8 --output diagnosis.json
 python tunnelscope.py show diagnosis.json

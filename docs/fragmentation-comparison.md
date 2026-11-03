@@ -1,7 +1,7 @@
 # Repeated measurements and fragmentation comparison
 
-This page describes development work on `main` after the published v0.5.0
-release. Install from the repository to try `compare-fragmentation`.
+The `compare-fragmentation` command and repeated measurement summaries are
+available in v0.6 and newer.
 
 ## Repeated measurements
 

@@ -27,4 +27,8 @@ The [v0.1 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/v0.1
 The [v0.2 receiver workflow](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md) explains how to capture and correlate receiver evidence.
 The [two-VM correlation record](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-receiver-correlation.md) documents the new workflow on independent Linux guests.
 The [blocked ACK return lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ack-return-blocked.md) validates a receiver-observed sender timeout.
-The [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) defines the next bounded size-boundary experiment and its validation gates.
+The [v0.5 scope](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.5.md) records the bounded size-boundary experiment and its validation gates.
+The [v0.6 release](releases/v0.6.0.md) adds repeated measurements, Linux ICMP
+feedback, a bounded `diagnose` workflow and joined receiver evidence.
+The [two-VM WireGuard record](validation/two-vm-wireguard.md) validates these
+workflows across independent Ubuntu and Debian guests on a controlled tunnel.

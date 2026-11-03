@@ -12,7 +12,7 @@ Open `probe.html` in a browser. Search filters visible rows; the raw JSON is
 available in a collapsed section. The view supports probe, receiver,
 correlation, bidirectional comparison and lab reports. It presents evidence
 already in the JSON; it does not run a new measurement or infer a root cause.
-On development `main`, the correlation table joins both endpoints by probe ID
+In v0.6 and newer, the correlation table joins both endpoints by probe ID
 and shows direction, size, per-attempt timestamps, ACK observations and an
 evidence-case label. A missing receiver record remains inconclusive without
 capture coverage. Timestamps from different machines are not compared.

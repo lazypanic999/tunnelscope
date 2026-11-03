@@ -1,7 +1,6 @@
 # Optional Linux ICMP feedback observation
 
-This feature is on `main` in 0.6.0.dev0; it is not in the published v0.5.0
-PyPI package. It uses Linux UDP error queues rather than raw sockets, so an
+This feature is available in v0.6 and newer. It uses Linux UDP error queues rather than raw sockets, so an
 ordinary sender does not need raw-socket privileges. The namespace validation
 scripts need root only to create their disposable network topologies.
 

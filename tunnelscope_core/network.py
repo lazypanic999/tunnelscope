@@ -15,7 +15,7 @@ from pathlib import Path
 from .icmp import drain_error_queue, enable_error_queue, require_icmp_support
 
 MAGIC = b"TS01"
-VERSION = "0.6.0.dev0"
+VERSION = "0.6.0"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # Linux UAPI values, used when Python does not expose the constants.

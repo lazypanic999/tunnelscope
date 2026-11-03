@@ -38,7 +38,7 @@ confirms that the matching payload arrived at this receiver. A timeout with
 transmission or return delivery, but does not identify which failed. A successful
 acknowledgement send call only confirms that the local socket accepted it.
 
-On development `main`, each row also shows the probe ID, source-to-target
+In v0.6 and newer, each row also shows the probe ID, source-to-target
 direction, UDP payload size, sender send-attempt time, receiver arrival time,
 sender ACK arrival time (when observed), and an `evidence_case`. Use
 `tunnelscope html correlation.json --output correlation.html` for the joined,

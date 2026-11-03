@@ -1,11 +1,10 @@
-# v0.6 development roadmap
+# v0.6 scope and next steps
 
-The published v0.5.0 release provides bounded adaptive size search. The
-current `main` branch is 0.6.0.dev0 and adds repeated no-ACK measurements and
-the `compare-fragmentation` command. These are development features, not yet
-published to PyPI.
+v0.6 extends bounded adaptive size search with repeated no-ACK measurements,
+the `compare-fragmentation` command, Linux ICMP feedback observations,
+`diagnose` and joined receiver evidence. See the [release notes](releases/v0.6.0.md).
 
-## Implemented on `main`
+## Included in v0.6
 
 - Preserve per-attempt outcomes and summarize the no-ACK fraction with a
   descriptive Wilson interval for each payload size. Explicit local size

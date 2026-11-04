@@ -70,6 +70,17 @@ tunnelscope show probe.json
 tunnelscope html probe.json --output probe.html
 ```
 
+Join the sender results with the receiver observations from the same run:
+
+```sh
+tunnelscope correlate probe.json receiver.json --output correlation.json
+tunnelscope show correlation.json
+```
+
+The joined report distinguishes a payload observed by the receiver from an
+acknowledgement received by the sender. A missing acknowledgement alone does
+not establish an MTU problem, even when the receiver observed the payload.
+
 Open `probe.html` in a browser. The receiver sends small acknowledgements, so
 this example checks delivery in one direction only. A timeout is inconclusive;
 it does not prove an MTU problem. For two machines, see the

@@ -36,6 +36,8 @@ Packet captures and these existing tools remain useful for root-cause work.
 
 ## Quick start
 
+For native Windows PowerShell, use the [Windows loopback guide](docs/windows-loopback.md).
+
 Requires Python 3.10 or newer. In an empty working directory on Linux (or
 WSL2), install the published package in a virtual environment:
 

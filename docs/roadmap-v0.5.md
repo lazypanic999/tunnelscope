@@ -48,8 +48,8 @@ These issues support the roadmap without changing the validation gates above:
 | Issue | Contribution | Roadmap role |
 | --- | --- | --- |
 | [#4](https://github.com/lazypanic999/tunnelscope/issues/4) | Add Python 3.10 to CI checks | Release compatibility; good first issue |
-| [#5](https://github.com/lazypanic999/tunnelscope/issues/5) | Show receiver correlation in the README quick start | Make existing evidence easier to use; good first issue |
-| [#6](https://github.com/lazypanic999/tunnelscope/issues/6) | Document a Windows PowerShell loopback quick start | Improve first use without promising Windows DF support; good first issue |
+| [#5](https://github.com/lazypanic999/tunnelscope/issues/5) | Show receiver correlation in the README quick start | Completed in [PR #7](https://github.com/lazypanic999/tunnelscope/pull/7); the refreshed quick start also generates joined HTML |
+| [#6](https://github.com/lazypanic999/tunnelscope/issues/6) | Document a Windows PowerShell loopback quick start | Completed in [PR #8](https://github.com/lazypanic999/tunnelscope/pull/8); see the [Windows guide](windows-loopback.md) |
 | [#1](https://github.com/lazypanic999/tunnelscope/issues/1) | Validate IPv6 Packet Too Big feedback on a routed path | Independent field evidence for the IPv6 boundary work |
 | [#2](https://github.com/lazypanic999/tunnelscope/issues/2) | Validate bidirectional probes and correlation on a real VPN | Post-lab deployment evidence; not a v0.5 release gate |
 | [#3](https://github.com/lazypanic999/tunnelscope/issues/3) | Validate pod-to-pod workflow on Kubernetes | Completed in the [two-node Calico validation](validation/kubernetes-calico.md); additional deployment modes remain open |

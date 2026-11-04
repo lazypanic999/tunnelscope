@@ -1,0 +1,583 @@
+{
+  "schema_version": 1,
+  "kind": "diagnosis",
+  "scope": "single_sender_direction",
+  "target": {
+    "host": "198.51.100.2",
+    "ipv4": "198.51.100.2",
+    "port": 9471
+  },
+  "started_at_utc": "2026-11-03T22:37:35.651118+00:00",
+  "finished_at_utc": "2026-11-03T22:37:35.986309+00:00",
+  "settings": {
+    "compared_payload_sizes": [
+      1252,
+      1253
+    ],
+    "requested_min_payload_bytes": 1252,
+    "requested_max_payload_bytes": 1253,
+    "count_per_size_per_run": 1,
+    "timeout_seconds": 1,
+    "max_search_sizes": 2,
+    "run_order": [
+      "df",
+      "fragmentation_permitted",
+      "size_search"
+    ],
+    "observe_icmp": true
+  },
+  "consistency": {
+    "comparison_source_check": "matched",
+    "search_target_check": "matched",
+    "search_source_check": "matched"
+  },
+  "summary": {
+    "attempts": 6,
+    "icmp_size_feedback_events": 1,
+    "search": {
+      "method": "bounded_binary_search",
+      "requested_min_payload_bytes": 1252,
+      "requested_max_payload_bytes": 1253,
+      "max_tested_sizes": 2,
+      "tested_payload_sizes": [
+        1252,
+        1253
+      ],
+      "largest_acknowledged_payload_bytes": 1252,
+      "smallest_packet_too_large_payload_bytes": 1253,
+      "ambiguous_payload_sizes": [],
+      "observed_interval_payload_bytes": [
+        1252,
+        1253
+      ],
+      "assessment": "adjacent_observed_bounds"
+    }
+  },
+  "interpretation": "One sender-to-target direction only. Runs are sequential and may be affected by route or PMTU-cache changes. A small ACK does not prove same-sized reverse delivery. Missing ACKs and absent ICMP are inconclusive; observed ICMP is untrusted feedback. A reported interval is not an independently measured end-to-end path MTU.",
+  "runs": {
+    "fragmentation_comparison": {
+      "schema_version": 1,
+      "kind": "fragmentation_comparison",
+      "target": {
+        "host": "198.51.100.2",
+        "ipv4": "198.51.100.2",
+        "port": 9471
+      },
+      "source_check": "matched",
+      "settings": {
+        "payload_sizes": [
+          1252,
+          1253
+        ],
+        "count_per_mode": 1,
+        "timeout_seconds": 1,
+        "run_order": [
+          "df",
+          "fragmentation_permitted"
+        ]
+      },
+      "interpretation": "Two sequential sender-side experiments. The second permits source fragmentation but does not prove fragments traversed the path. Different results suggest a useful follow-up, not a root cause. Timeouts are missing ACKs, not proven packet loss.",
+      "comparison": {
+        "by_payload_size": [
+          {
+            "payload_bytes": 1252,
+            "df": {
+              "assessment": "delivery_observed",
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              }
+            },
+            "fragmentation_permitted": {
+              "assessment": "delivery_observed",
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              }
+            },
+            "outcomes_differ": false
+          },
+          {
+            "payload_bytes": 1253,
+            "df": {
+              "assessment": "kernel_rejected_df_payload",
+              "status_counts": {
+                "acknowledged": 0,
+                "packet_too_large": 1,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 0,
+                "no_ack_count": 0,
+                "no_ack_rate": null,
+                "no_ack_wilson_95": null
+              }
+            },
+            "fragmentation_permitted": {
+              "assessment": "delivery_observed",
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              }
+            },
+            "outcomes_differ": true
+          }
+        ]
+      },
+      "runs": {
+        "df": {
+          "schema_version": 1,
+          "kind": "probe",
+          "run_id": "013f6872c49dd9d1",
+          "started_at_utc": "2026-11-03T22:37:35.651118+00:00",
+          "finished_at_utc": "2026-11-03T22:37:35.756711+00:00",
+          "source": {
+            "ipv4": "192.0.2.1",
+            "kernel_route_mtu_bytes": 1500,
+            "interface": "host-l",
+            "interface_mtu_bytes": 1500
+          },
+          "target": {
+            "host": "198.51.100.2",
+            "ipv4": "198.51.100.2",
+            "port": 9471
+          },
+          "settings": {
+            "payload_sizes": [
+              1252,
+              1253
+            ],
+            "count": 1,
+            "timeout_seconds": 1,
+            "dont_fragment": true,
+            "observe_icmp": true
+          },
+          "fragmentation_mode": "df",
+          "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+          "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+          "summary": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1252,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed"
+              },
+              {
+                "payload_bytes": 1253,
+                "status_counts": {
+                  "acknowledged": 0,
+                  "packet_too_large": 1,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 0,
+                  "no_ack_count": 0,
+                  "no_ack_rate": null,
+                  "no_ack_wilson_95": null
+                },
+                "assessment": "kernel_rejected_df_payload"
+              }
+            ],
+            "icmp_feedback": {
+              "observation_state": "complete",
+              "size_feedback_events": 1,
+              "token_matched_size_feedback_events": 1,
+              "local_error_events": 0,
+              "other_or_unparsed_events": 0
+            }
+          },
+          "evidence": {
+            "observations": [
+              {
+                "payload_bytes": 1252,
+                "status": "acknowledged",
+                "attempts": 1
+              },
+              {
+                "payload_bytes": 1253,
+                "status": "packet_too_large",
+                "attempts": 1
+              }
+            ],
+            "hypotheses": [],
+            "missing_evidence": [
+              "same_sized_reverse_payload_test"
+            ]
+          },
+          "results": [
+            {
+              "payload_bytes": 1252,
+              "attempt": 1,
+              "probe_id": "36c1dd9a626bc9be54d0f1e0a77170eb",
+              "send_attempted_at_utc": "2026-11-03T22:37:35.654687+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 0.651,
+              "ack_received_at_utc": "2026-11-03T22:37:35.655346+00:00",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            },
+            {
+              "payload_bytes": 1253,
+              "attempt": 1,
+              "probe_id": "dc0e4e43a9f881a05c3a5f39a78d412b",
+              "send_attempted_at_utc": "2026-11-03T22:37:35.705779+00:00",
+              "status": "packet_too_large",
+              "error": "[Errno 90] Message too long",
+              "errno": 90,
+              "kernel_reported_mtu_bytes": 1280,
+              "icmp_observation": {
+                "state": "completed",
+                "events": [
+                  {
+                    "origin": "icmpv4",
+                    "errno": 90,
+                    "message": "fragmentation_needed",
+                    "quoted_probe_match": true,
+                    "icmp_type": 3,
+                    "icmp_code": 4,
+                    "reported_mtu_bytes": 1280
+                  }
+                ]
+              },
+              "size_error_origin": "network_icmp_feedback"
+            }
+          ]
+        },
+        "fragmentation_permitted": {
+          "schema_version": 1,
+          "kind": "probe",
+          "run_id": "2fe234d30cca7039",
+          "started_at_utc": "2026-11-03T22:37:35.756753+00:00",
+          "finished_at_utc": "2026-11-03T22:37:35.859198+00:00",
+          "source": {
+            "ipv4": "192.0.2.1",
+            "kernel_route_mtu_bytes": 1280,
+            "interface": "host-l",
+            "interface_mtu_bytes": 1500
+          },
+          "target": {
+            "host": "198.51.100.2",
+            "ipv4": "198.51.100.2",
+            "port": 9471
+          },
+          "settings": {
+            "payload_sizes": [
+              1252,
+              1253
+            ],
+            "count": 1,
+            "timeout_seconds": 1,
+            "dont_fragment": false,
+            "observe_icmp": true
+          },
+          "fragmentation_mode": "permitted",
+          "fragmentation": "permitted: Linux IP_PMTUDISC_DONT",
+          "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+          "summary": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1252,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed"
+              },
+              {
+                "payload_bytes": 1253,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed"
+              }
+            ],
+            "icmp_feedback": {
+              "observation_state": "complete",
+              "size_feedback_events": 0,
+              "token_matched_size_feedback_events": 0,
+              "local_error_events": 0,
+              "other_or_unparsed_events": 0
+            }
+          },
+          "evidence": {
+            "observations": [
+              {
+                "payload_bytes": 1252,
+                "status": "acknowledged",
+                "attempts": 1
+              },
+              {
+                "payload_bytes": 1253,
+                "status": "acknowledged",
+                "attempts": 1
+              }
+            ],
+            "hypotheses": [],
+            "missing_evidence": [
+              "same_sized_reverse_payload_test",
+              "controlled_fragmentation_behavior"
+            ]
+          },
+          "results": [
+            {
+              "payload_bytes": 1252,
+              "attempt": 1,
+              "probe_id": "3490bda3d9593a2165fd42538c4ce034",
+              "send_attempted_at_utc": "2026-11-03T22:37:35.757004+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 0.543,
+              "ack_received_at_utc": "2026-11-03T22:37:35.757552+00:00",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            },
+            {
+              "payload_bytes": 1253,
+              "attempt": 1,
+              "probe_id": "429dc3d9694d9435b6c65391fd2dba37",
+              "send_attempted_at_utc": "2026-11-03T22:37:35.807914+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 0.973,
+              "ack_received_at_utc": "2026-11-03T22:37:35.808895+00:00",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            }
+          ]
+        }
+      }
+    },
+    "size_search": {
+      "schema_version": 1,
+      "kind": "probe",
+      "run_id": "8a88515fe133840b",
+      "started_at_utc": "2026-11-03T22:37:35.883811+00:00",
+      "finished_at_utc": "2026-11-03T22:37:35.986309+00:00",
+      "source": {
+        "ipv4": "192.0.2.1",
+        "kernel_route_mtu_bytes": 1280,
+        "interface": "host-l",
+        "interface_mtu_bytes": 1500
+      },
+      "target": {
+        "host": "198.51.100.2",
+        "ipv4": "198.51.100.2",
+        "port": 9471
+      },
+      "settings": {
+        "payload_sizes": [
+          1252,
+          1253
+        ],
+        "count": 1,
+        "timeout_seconds": 1,
+        "dont_fragment": true,
+        "observe_icmp": true
+      },
+      "fragmentation_mode": "df",
+      "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+      "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+      "summary": {
+        "by_payload_size": [
+          {
+            "payload_bytes": 1252,
+            "status_counts": {
+              "acknowledged": 1,
+              "packet_too_large": 0,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "no_ack_measurement": {
+              "sent_attempts": 1,
+              "no_ack_count": 0,
+              "no_ack_rate": 0.0,
+              "no_ack_wilson_95": [
+                0,
+                0.7935
+              ]
+            },
+            "assessment": "delivery_observed"
+          },
+          {
+            "payload_bytes": 1253,
+            "status_counts": {
+              "acknowledged": 0,
+              "packet_too_large": 1,
+              "timeout": 0,
+              "socket_error": 0
+            },
+            "no_ack_measurement": {
+              "sent_attempts": 0,
+              "no_ack_count": 0,
+              "no_ack_rate": null,
+              "no_ack_wilson_95": null
+            },
+            "assessment": "kernel_rejected_df_payload"
+          }
+        ],
+        "icmp_feedback": {
+          "observation_state": "complete",
+          "size_feedback_events": 0,
+          "token_matched_size_feedback_events": 0,
+          "local_error_events": 1,
+          "other_or_unparsed_events": 0
+        },
+        "search": {
+          "method": "bounded_binary_search",
+          "requested_min_payload_bytes": 1252,
+          "requested_max_payload_bytes": 1253,
+          "max_tested_sizes": 2,
+          "tested_payload_sizes": [
+            1252,
+            1253
+          ],
+          "largest_acknowledged_payload_bytes": 1252,
+          "smallest_packet_too_large_payload_bytes": 1253,
+          "ambiguous_payload_sizes": [],
+          "observed_interval_payload_bytes": [
+            1252,
+            1253
+          ],
+          "assessment": "adjacent_observed_bounds"
+        }
+      },
+      "evidence": {
+        "observations": [
+          {
+            "payload_bytes": 1252,
+            "status": "acknowledged",
+            "attempts": 1
+          },
+          {
+            "payload_bytes": 1253,
+            "status": "packet_too_large",
+            "attempts": 1
+          }
+        ],
+        "hypotheses": [],
+        "missing_evidence": [
+          "same_sized_reverse_payload_test"
+        ]
+      },
+      "results": [
+        {
+          "payload_bytes": 1252,
+          "attempt": 1,
+          "probe_id": "26491540efdfc60cee7aabbcd625d1f0",
+          "send_attempted_at_utc": "2026-11-03T22:37:35.884064+00:00",
+          "status": "acknowledged",
+          "rtt_ms": 0.698,
+          "ack_received_at_utc": "2026-11-03T22:37:35.884771+00:00",
+          "icmp_observation": {
+            "state": "completed",
+            "events": []
+          }
+        },
+        {
+          "payload_bytes": 1253,
+          "attempt": 1,
+          "probe_id": "15196336b71092e20e976a4e6abc03cd",
+          "send_attempted_at_utc": "2026-11-03T22:37:35.935728+00:00",
+          "status": "packet_too_large",
+          "error": "[Errno 90] Message too long",
+          "errno": 90,
+          "kernel_reported_mtu_bytes": 1280,
+          "icmp_observation": {
+            "state": "completed",
+            "events": [
+              {
+                "origin": "local",
+                "errno": 90,
+                "message": "local_error",
+                "quoted_probe_match": null,
+                "reported_mtu_bytes": 1280
+              }
+            ]
+          },
+          "size_error_origin": "local"
+        }
+      ]
+    }
+  },
+  "example_provenance": {
+    "source": "Controlled routed WireGuard namespace lab, visible ICMP feedback",
+    "recorded_on": "2026-11-04",
+    "sanitization": "Gateway tunnel address replaced with documentation address 203.0.113.2; observed outcomes, IDs and timestamps retained."
+  }
+}

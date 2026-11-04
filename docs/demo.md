@@ -1,5 +1,9 @@
 # TunnelScope: two-minute Linux demo
 
+For the current sender → receiver correlation → HTML workflow, see the
+[40-second v0.6 replay](demo-v06.md). The older comparison below remains a
+separate controlled-failure example.
+
 ![Animated comparison of explicit size errors and blocked-feedback timeouts](images/mtu-evidence-demo.gif)
 
 This illustration uses the checked-in controlled lab reports. The

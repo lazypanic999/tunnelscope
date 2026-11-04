@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "receiver_observations",
+  "receiver": {
+    "bind_ipv4": "198.51.100.2",
+    "port": 9471
+  },
+  "started_at_utc": "2026-11-03T22:37:35.434203+00:00",
+  "finished_at_utc": "2026-11-03T22:37:38.887724+00:00",
+  "exit_reason": "idle_timeout",
+  "observations": [
+    {
+      "probe_id": "36c1dd9a626bc9be54d0f1e0a77170eb",
+      "run_id": "013f6872c49dd9d1",
+      "payload_bytes": 1252,
+      "source_ipv4": "192.0.2.1",
+      "received_at_utc": "2026-11-03T22:37:35.655037+00:00",
+      "ack_send_status": "sent"
+    },
+    {
+      "probe_id": "3490bda3d9593a2165fd42538c4ce034",
+      "run_id": "2fe234d30cca7039",
+      "payload_bytes": 1252,
+      "source_ipv4": "192.0.2.1",
+      "received_at_utc": "2026-11-03T22:37:35.757319+00:00",
+      "ack_send_status": "sent"
+    },
+    {
+      "probe_id": "429dc3d9694d9435b6c65391fd2dba37",
+      "run_id": "2fe234d30cca7039",
+      "payload_bytes": 1253,
+      "source_ipv4": "192.0.2.1",
+      "received_at_utc": "2026-11-03T22:37:35.808375+00:00",
+      "ack_send_status": "sent"
+    },
+    {
+      "probe_id": "26491540efdfc60cee7aabbcd625d1f0",
+      "run_id": "8a88515fe133840b",
+      "payload_bytes": 1252,
+      "source_ipv4": "192.0.2.1",
+      "received_at_utc": "2026-11-03T22:37:35.884415+00:00",
+      "ack_send_status": "sent"
+    }
+  ],
+  "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
+  "example_provenance": {
+    "source": "Controlled routed WireGuard namespace lab, visible ICMP feedback",
+    "recorded_on": "2026-11-04",
+    "sanitization": "Gateway tunnel address replaced with documentation address 203.0.113.2; observed outcomes, IDs and timestamps retained."
+  }
+}

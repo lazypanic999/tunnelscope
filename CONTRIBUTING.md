@@ -29,6 +29,18 @@ schema-version-1 reports readable when adding fields.
 5. Explain what changed and include a reproducible test or validation record
    for new measurement behavior.
 
+Changes to `main` go through pull requests and the required `Delivery checks`
+result. That check depends on all delivery-test matrix jobs, so every supported
+platform must pass. The branch must be up to date before merging. The rule
+also applies to administrators, blocks force pushes and prevents deletion of
+`main`. No second person's approving review is required for this solo-maintainer
+workflow.
+
+The active rule is stored in GitHub; [its configuration](.github/main-branch-protection.json)
+records the settings for restoration. Keep the `Delivery checks` job name
+stable when extending the test matrix. Once its conditions pass, maintainers
+can merge their own pull requests.
+
 Use a controlled lab for the unauthenticated UDP protocol. The repository uses
 the MIT license; by submitting a contribution you agree that it can be
 distributed under that license.

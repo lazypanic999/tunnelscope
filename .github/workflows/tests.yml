@@ -22,3 +22,15 @@ jobs:
       - name: Validate isolated Linux MTU labs
         if: runner.os == 'Linux'
         run: sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 python3 -m unittest discover -s tests -v
+
+  delivery-checks:
+    name: Delivery checks
+    needs: test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify all delivery matrix jobs succeeded
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: test "$TEST_RESULT" = success

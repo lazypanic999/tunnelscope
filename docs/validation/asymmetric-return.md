@@ -1,0 +1,71 @@
+# Asymmetric return-path MTU
+
+Validated on 2026-11-05 on GitHub Actions `ubuntu-latest` runners (image
+version 20261028.624) with Python 3.10.22 and 3.12, using the code that became
+TunnelScope v0.7.0. The [lab script](../../labs/asymmetric_return.py) creates
+three disposable network namespaces: sender A, router R and receiver B.
+
+```mermaid
+flowchart LR
+    A[Sender A] -->|1500-byte link| R[Router R]
+    R -->|1500-byte link| B[Receiver B]
+    R -.->|return traffic: 1280-byte link| A
+```
+
+Traffic from A to B uses 1500-byte links. R routes traffic for A's address
+over a second link with a 1280-byte MTU, so the return direction is narrower
+than the forward direction. Reverse-path filtering is disabled inside the A
+and R namespaces because forward and return traffic use different links. All
+changes are confined to the temporary namespaces, which are removed on exit.
+
+## Reproduce
+
+Linux root, Python 3, `iproute2` and `sysctl` are required. From the
+repository root:
+
+```sh
+sudo python3 labs/asymmetric_return.py
+```
+
+The script prints one JSON object with the sized-reply probe, an ordinary
+probe, the receiver capture and their correlation. It exits with an error if
+the expected pattern does not appear. The CI test
+`test_asymmetric_return_mtu_lab` runs it when `TUNNELSCOPE_RUN_NETNS_TESTS=1`.
+
+## What was checked
+
+The receiver runs with `--sized-reply`. The sender runs:
+
+1. `probe 198.51.100.2 --sizes 64,1200,1400 --count 2 --dont-fragment --sized-reply`
+2. `probe 198.51.100.2 --sizes 1400 --count 1 --dont-fragment` (small ACK only)
+
+| Payload | Sized-reply run | Return evidence after `correlate` | Ordinary run |
+| --- | --- | --- | --- |
+| 64 bytes | 2/2 `sized_reply_received` | `sized_reply_returned` | not run |
+| 1200 bytes | 2/2 `sized_reply_received` | `sized_reply_returned` | not run |
+| 1400 bytes | 2/2 timeout, `no_reply` | 1st: `receiver_observed_sized_reply_missing`; 2nd: missing or `receiver_reply_send_failed` | `acknowledged` |
+
+The receiver observed all six sized-reply probes. A 1200-byte reply needs a
+1228-byte IPv4 packet and fits the 1280-byte return link. A 1400-byte reply
+does not: R drops the first one and returns ICMP fragmentation-needed to B.
+After that feedback, B's kernel may refuse the second reply locally with
+`EMSGSIZE`, which the receiver records as a send error. The test accepts
+either outcome for the second attempt.
+
+The ordinary probe at 1400 bytes is acknowledged because its 24-byte ACK fits
+the return link. This is the case the small acknowledgement cannot reveal.
+
+Results from the CI logs of commit `d10236d`:
+
+- Linux, Python 3.10.22: privileged run `Ran 82 tests`, `OK (skipped=1)`;
+  `test_asymmetric_return_mtu_lab ... ok`.
+- Linux, Python 3.12: the same counts and result.
+- The only privileged-run skip is the non-Linux behavior check.
+
+## Scope
+
+This is a controlled single-kernel topology. It shows that TunnelScope
+separates forward arrival from a missing same-sized reply and from a
+receiver-side send error. It does not show where a reply is lost on an
+unknown path, and it is not field evidence from a production VPN or
+Kubernetes deployment.

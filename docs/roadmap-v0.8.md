@@ -1,7 +1,9 @@
 # v0.8 plan: field evidence and wider return-path coverage
 
-Status: **in progress**. The maintainer asked on 2026-11-06 for work to
-continue on this plan; items are marked below as they land. It follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
+Status: **implemented; release pending**. All four items landed on `main` on
+2026-11-06 and are prepared as [v0.8.0](releases/v0.8.0.md). Two checks remain
+open: a maintainer dry run of the field report guide on two machines and a
+cross-host run with a Windows receiver. It follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
 measurements stay separate from conclusions, a timeout alone is never an MTU
 diagnosis, and an observed payload interval is not an end-to-end path MTU.
 

@@ -46,6 +46,9 @@ the `compare-fragmentation` command, Linux ICMP feedback observations,
 
 ## Next evidence and workflow tasks
 
+The [v0.7 plan](roadmap-v0.7.md) carries these tasks forward and proposes
+report sanitization and opt-in sized replies.
+
 1. Validate production-like VPN constraints and additional Kubernetes CNI
    modes or physical multi-host paths with permission from the operators.
    Publish sanitized reports and topology details. The controlled WireGuard

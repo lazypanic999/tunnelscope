@@ -101,8 +101,7 @@ incidents and other Kubernetes CNI modes need separate evidence.
 - [Receiver observations](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md), [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md), [Kubernetes lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md) and [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md).
 - [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [roadmap](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.6.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
-Contributions welcome: [Python 3.10 CI](https://github.com/lazypanic999/tunnelscope/issues/4)
-is a good first issue. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
+Contributions welcome. CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with
 `python -m unittest discover -s tests -v`. Privileged Linux labs require explicit
 opt-in as described in the usage reference.

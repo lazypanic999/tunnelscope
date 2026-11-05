@@ -53,6 +53,6 @@ the `compare-fragmentation` command, Linux ICMP feedback observations,
 
 The README quick start now joins sender and receiver logs in JSON and HTML.
 The [Windows PowerShell guide](windows-loopback.md) is also available.
-Python 3.10 CI remains an open good-first-issue task. Authentication,
+CI now tests Python 3.10 and 3.12 on Linux and Windows. Authentication,
 encryption and internet-facing receiver operation are outside the current
 scope; see [security boundaries](security-boundaries.md).

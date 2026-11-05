@@ -13,6 +13,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import tunnelscope
 
 
+def keep_lab_output(script, result):
+    """Copy a lab's stdout and stderr to TUNNELSCOPE_LAB_OUTPUT_DIR when it is set (CI artifacts)."""
+    directory = os.environ.get("TUNNELSCOPE_LAB_OUTPUT_DIR")
+    if not directory:
+        return
+    target = Path(directory)
+    target.mkdir(parents=True, exist_ok=True)
+    (target / f"{Path(script).stem}.json").write_text(result.stdout, encoding="utf-8")
+    if result.stderr:
+        (target / f"{Path(script).stem}.stderr.txt").write_text(result.stderr, encoding="utf-8")
+
+
 class FragmentationTests(unittest.TestCase):
     def test_unsupported_platform_rejects_df_before_sending(self):
         with patch.object(tunnelscope.sys, "platform", "win32"), patch.object(tunnelscope.socket, "socket") as sock:
@@ -64,6 +76,7 @@ class FragmentationTests(unittest.TestCase):
     def test_real_link_mtu_boundary_in_both_directions(self):
         script = Path(__file__).resolve().parents[1] / "labs" / "mtu_boundary.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertEqual(len(report["directions"]), 2)
@@ -103,6 +116,7 @@ class FragmentationTests(unittest.TestCase):
     def test_ipv6_boundary_in_both_directions(self):
         script = Path(__file__).resolve().parents[1] / "labs" / "ipv6_boundary.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertEqual(report["expected_payload_boundary_bytes"], 1232)
@@ -127,6 +141,7 @@ class FragmentationTests(unittest.TestCase):
     def test_routed_ipv6_packet_too_big_feedback(self):
         script = Path(__file__).resolve().parents[1] / "labs" / "ipv6_packet_too_big.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=25)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertEqual(report["router_egress_mtu_bytes"], 1280)
@@ -143,6 +158,7 @@ class FragmentationTests(unittest.TestCase):
     def test_vxlan_overlay_boundary_in_both_directions(self):
         script = Path(__file__).resolve().parents[1] / "labs" / "vxlan_boundary.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertEqual(report["expected_payload_boundary_bytes"], 1422)
@@ -162,6 +178,7 @@ class FragmentationTests(unittest.TestCase):
             self.skipTest("iptables is required for the routed black-hole lab")
         script = Path(__file__).resolve().parents[1] / "labs" / "pmtu_blackhole.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertEqual(report["router_egress_mtu_bytes"], 1280)
@@ -196,6 +213,7 @@ class FragmentationTests(unittest.TestCase):
             self.skipTest("iptables is required for the ACK return lab")
         script = Path(__file__).resolve().parents[1] / "labs" / "ack_return_blocked.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=45)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         self.assertGreaterEqual(report["blocked_ack_packets"], 2)

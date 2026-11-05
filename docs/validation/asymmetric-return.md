@@ -62,6 +62,30 @@ Results from the CI logs of commit `d10236d`:
 - Linux, Python 3.12: the same counts and result.
 - The only privileged-run skip is the non-Linux behavior check.
 
+## Recorded run
+
+The lab was also run once outside CI on 2026-11-05 at 22:51 UTC, as root in
+Ubuntu under WSL2 (Linux 6.6.87.2-microsoft-standard-WSL2, Python 3.12.3) with
+TunnelScope 0.7.0. Its unedited output, with a provenance block added, is
+[`examples/asymmetric-return-v07.json`](../../examples/asymmetric-return-v07.json):
+
+| Payload | Attempt | Sender | Receiver | Return evidence |
+| --- | --- | --- | --- | --- |
+| 64 | 1, 2 | acknowledged, 64-byte replies (0.30, 0.61 ms) | observed, sized reply sent | `sized_reply_returned` |
+| 1200 | 1, 2 | acknowledged, 1200-byte replies (0.78, 0.48 ms) | observed, sized reply sent | `sized_reply_returned` |
+| 1400 | 1 | timeout | observed, sized reply sent | `receiver_observed_sized_reply_missing` |
+| 1400 | 2 | timeout | observed, reply rejected locally (`EMSGSIZE`, errno 90) | `receiver_reply_send_failed` |
+
+The ordinary probe at 1400 bytes was acknowledged in 0.50 ms. The second
+1400-byte attempt shows the receiver's kernel refusing the reply after the
+router's ICMP feedback lowered its path MTU to the sender.
+
+![tunnelscope show output for the recorded run](../images/v07-terminal.png)
+
+`python tunnelscope.py show examples/asymmetric-return-v07.json` reproduces
+the terminal view above; `scripts/build_v07_images.py` rebuilds both README
+images from the same file.
+
 ## Scope
 
 This is a controlled single-kernel topology. It shows that TunnelScope

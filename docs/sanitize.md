@@ -57,7 +57,9 @@ section. A report that already has a `sanitization` object is refused.
 
 ## Review before sharing
 
-The command replaces values it can recognize. Free text that names a site,
+The command replaces values it can recognize. It errs toward replacing:
+a four-part version string such as a kernel release `6.6.87.2` is also a
+valid IPv4 address, so it is replaced like one. Free text that names a site,
 customer or device in another form, file names and anything added by hand
 are not guaranteed to be clean. Read the copies before you publish them.
 See [security boundaries](security-boundaries.md).

@@ -139,6 +139,13 @@ class SanitizeTests(unittest.TestCase):
         self.assertEqual(clean["notes"][1], report["notes"][1])
         self.assertEqual(clean["notes"][2], "mapped ::ffff:192.0.2.2, version 0.6.0, time 10:00:01")
 
+    def test_utc_z_timestamps_are_shifted_and_keep_their_form(self):
+        report = probe_report("10.77.0.1", "10.77.0.2", "enp0s8")
+        report["recorded_at_utc"] = "2026-11-03T10:00:01Z"
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["recorded_at_utc"], "2000-01-01T00:00:00Z")
+        self.assert_clean(clean)
+
     def test_replacements_avoid_documentation_addresses_already_present(self):
         report = probe_report("10.77.0.1", "192.0.2.1", "lo")
         clean, = sanitize_reports([report])

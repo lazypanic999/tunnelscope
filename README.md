@@ -119,7 +119,9 @@ these observations.
 | [Asymmetric return-path lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md) | 1400-byte probes arrive while same-sized replies are lost or rejected; a small ACK still returns | Three namespaces on one kernel, IPv4 and IPv6; runs in CI |
 
 These are controlled validations. Physical multi-host paths, production VPN
-incidents and other Kubernetes CNI modes need separate evidence.
+incidents and other Kubernetes CNI modes need separate evidence. If you can
+test such a path, the [field report guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/field-reports.md)
+shows how to collect and share a sanitized report.
 
 ## Guides and contributing
 

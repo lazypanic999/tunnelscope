@@ -200,6 +200,13 @@ def render_report_html(report):
             f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>" for label, value in fields
         ) + "<p>Timeouts and mixed outcomes do not establish a boundary.</p></section>"
     measurement_html = ""
+    sanitization = report.get("sanitization")
+    if isinstance(sanitization, dict):
+        search_html = ("<section class='search-summary'><h2>Sanitized report</h2>"
+                       f"<p><strong>Addresses:</strong> {escape(_cell(sanitization.get('addresses')))}</p>"
+                       f"<p><strong>Timestamps:</strong> {escape(_cell(sanitization.get('timestamps')))}</p>"
+                       "<p>Equal placeholders mean equal original values within one sanitized batch.</p></section>"
+                       + search_html)
     if search_report.get("kind") == "probe_receiver_correlation":
         measurement_html = ("<section class='search-summary'><h2>Joined probe observations</h2>"
                             "<p>receiver_observed_no_ack means the receiver logged the probe but the sender did not receive a matching ACK. "

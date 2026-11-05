@@ -1,6 +1,7 @@
 # v0.7 plan: reverse-path size evidence and shareable field reports
 
-Status: **proposed**. Nothing in this plan is implemented yet. It follows the
+Status: **in progress**. Report sanitization is implemented on `main`
+(see the [sanitize guide](sanitize.md)); the other items are proposed. It follows the
 [v0.6 scope](roadmap-v0.6.md) and keeps its rules: measurements stay
 separate from conclusions, a timeout alone is never presented as an MTU
 problem, and an observed payload interval is not an end-to-end path MTU.
@@ -21,17 +22,18 @@ direction at a time. Two gaps remain:
 
 ## Proposed for v0.7.0
 
-### 1. Report sanitization (`tunnelscope sanitize`)
+### 1. Report sanitization (`tunnelscope sanitize`): implemented
 
 - Read any schema-version-1 report (probe, receiver, search, comparison,
   diagnosis, combined or correlated) and write a sanitized JSON copy, with
   `--html` producing the matching offline view.
-- Replace each IPv4/IPv6 address with a stable placeholder (`host-a`,
-  `host-b`, ...) so the same address maps to the same label across every
-  file sanitized in one run. Keep the address family and whether two
-  addresses matched, because `endpoint_check` and receiver joins depend on it.
-- Redact interface names. Shift timestamps to a run-relative
-  offset by default. Keep payload sizes, outcomes, RTTs, probe IDs and ICMP
+- Replace each IPv4/IPv6 address with a documentation address (RFC 5737,
+  RFC 3849) so the same address maps to the same placeholder across every
+  file sanitized in one run. Placeholders remain valid addresses, which keeps
+  the address family and whether two addresses matched, because
+  `endpoint_check` and receiver joins depend on it.
+- Redact interface names and non-address hostnames. Shift timestamps by one
+  constant per batch by default. Keep payload sizes, outcomes, RTTs, probe IDs and ICMP
   event types, since they carry the evidence.
 - Record what was changed under a top-level `sanitization` object. Never
   modify the input file.
@@ -121,7 +123,7 @@ unauthenticated as today's acknowledgements.
   able to request a different reply size, capped at the probe size? A
   different size would allow a separate return-path search but adds
   protocol surface.
-- Should sanitization offset timestamps or truncate them to minutes? Offsets
-  keep RTT and ordering checks working, so they are the proposed default.
+- Resolved: sanitization shifts timestamps by one constant per batch, which
+  keeps RTT and ordering checks working; `--keep-timestamps` opts out.
 - Is one asymmetric namespace lab enough for the release, or should the
   two-VM WireGuard setup also be repeated with different gateway MTUs?

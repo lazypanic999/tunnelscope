@@ -22,16 +22,17 @@ from tunnelscope_core.view import render_report_html
 NETNS = os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux")
 
 
-def keep_lab_output(script, result):
+def keep_lab_output(script, result, name=None):
     """Copy a lab's stdout and stderr to TUNNELSCOPE_LAB_OUTPUT_DIR when it is set (CI artifacts)."""
     directory = os.environ.get("TUNNELSCOPE_LAB_OUTPUT_DIR")
     if not directory:
         return
     target = Path(directory)
     target.mkdir(parents=True, exist_ok=True)
-    (target / f"{Path(script).stem}.json").write_text(result.stdout, encoding="utf-8")
+    name = name or Path(script).stem
+    (target / f"{name}.json").write_text(result.stdout, encoding="utf-8")
     if result.stderr:
-        (target / f"{Path(script).stem}.stderr.txt").write_text(result.stderr, encoding="utf-8")
+        (target / f"{name}.stderr.txt").write_text(result.stderr, encoding="utf-8")
 
 
 class FakeReceiver:
@@ -267,16 +268,18 @@ class SizedReplyCorrelationTests(unittest.TestCase):
         self.assertNotIn("sized_reply_missing_after_arrival", correlation["summary"])
         self.assertNotIn("Return evidence", render_report_html(correlation))
 
-    @unittest.skipUnless(NETNS, "opt-in privileged Linux network lab")
-    def test_asymmetric_return_mtu_lab(self):
+    def check_asymmetric_return_lab(self, family):
         if not shutil.which("sysctl"):
             self.skipTest("sysctl is required for the asymmetric return lab")
         script = Path(__file__).resolve().parents[1] / "labs" / "asymmetric_return.py"
-        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=90)
-        keep_lab_output(script, result)
+        result = subprocess.run([sys.executable, str(script), "--family", family],
+                                capture_output=True, text=True, timeout=90)
+        keep_lab_output(script, result, f"asymmetric_return_{family}")
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
+        self.assertEqual(report["address_family"], family)
         sized = report["probe"]
+        self.assertIn(family, sized["target"])
         self.assertEqual([row["status"] for row in sized["results"]], ["acknowledged"] * 4 + ["timeout"] * 2)
         self.assertEqual(report["small_ack_probe"]["results"][0]["status"], "acknowledged")
         correlation = report["correlation"]["results"]
@@ -288,6 +291,14 @@ class SizedReplyCorrelationTests(unittest.TestCase):
         self.assertIn(correlation[5]["return_evidence"],
                       ("receiver_observed_sized_reply_missing", "receiver_reply_send_failed"))
         self.assertIn("Sized replies missing after arrival", tunnelscope.format_report(report))
+
+    @unittest.skipUnless(NETNS, "opt-in privileged Linux network lab")
+    def test_asymmetric_return_mtu_lab(self):
+        self.check_asymmetric_return_lab("ipv4")
+
+    @unittest.skipUnless(NETNS, "opt-in privileged Linux network lab")
+    def test_asymmetric_return_mtu_lab_ipv6(self):
+        self.check_asymmetric_return_lab("ipv6")
 
 
 class SizedReplyDiagnosisTests(unittest.TestCase):

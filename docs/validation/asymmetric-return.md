@@ -86,6 +86,32 @@ router's ICMP feedback lowered its path MTU to the sender.
 the terminal view above; `scripts/build_v07_images.py` rebuilds both README
 images from the same file.
 
+## IPv6
+
+`labs/asymmetric_return.py --family ipv6` builds the same topology with the
+IPv6 documentation prefixes `2001:db8:a1::/64`, `2001:db8:a2::/64` (the
+1280-byte return link) and `2001:db8:b::/64`. IPv6 routers do not fragment, so
+R drops an oversized reply and sends ICMPv6 Packet Too Big to the receiver.
+Duplicate address detection is disabled inside the lab namespaces and the lab
+waits until no address is tentative; without that, neighbour discovery dropped
+the first 64-byte reply in an early run. CI runs both families
+(`test_asymmetric_return_mtu_lab` and `test_asymmetric_return_mtu_lab_ipv6`).
+
+One run on 2026-11-05 at 23:26 UTC (WSL2, Linux 6.6.87.2, Python 3.12.3) is
+checked in as
+[`examples/asymmetric-return-ipv6-v08.json`](../../examples/asymmetric-return-ipv6-v08.json):
+
+| Payload | Attempt | Sender | Receiver | Return evidence |
+| --- | --- | --- | --- | --- |
+| 64 | 1, 2 | acknowledged, 64-byte replies (0.51, 1.13 ms) | observed, sized reply sent | `sized_reply_returned` |
+| 1200 | 1, 2 | acknowledged, 1200-byte replies (0.68, 1.06 ms) | observed, sized reply sent | `sized_reply_returned` |
+| 1400 | 1 | timeout | observed, sized reply sent | `receiver_observed_sized_reply_missing` |
+| 1400 | 2 | timeout | observed, reply rejected locally (`EMSGSIZE`, errno 90) | `receiver_reply_send_failed` |
+
+A 1200-byte reply needs a 1248-byte IPv6 packet and fits the 1280-byte return
+link. The ordinary probe at 1400 bytes was acknowledged in 0.26 ms. Five
+consecutive runs per family before committing gave the same pattern.
+
 ## Scope
 
 This is a controlled single-kernel topology. It shows that TunnelScope

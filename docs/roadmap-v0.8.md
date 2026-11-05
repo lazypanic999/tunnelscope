@@ -12,7 +12,7 @@ outside contributions easy to collect and to close those two coverage gaps.
 
 ## Proposed for v0.8.0
 
-### 1. A path for field reports
+### 1. A path for field reports: implemented
 
 - Add a "Field report" issue template. It asks for the environment (VPN or
   overlay type, configured MTUs where known, number of hops if known), the
@@ -23,9 +23,11 @@ outside contributions easy to collect and to close those two coverage gaps.
   sanitize it, and how a maintainer turns an accepted report into a
   validation record. Link it from the README and from issues
   [#1](https://github.com/lazypanic999/tunnelscope/issues/1) and
-  [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
+  [#2](https://github.com/lazypanic999/tunnelscope/issues/2). The template,
+  guide and README link are in place; commenting on the issues is left to
+  the maintainer.
 
-### 2. IPv6 return-path lab
+### 2. IPv6 return-path lab: implemented
 
 - Extend `labs/asymmetric_return.py` (or add an IPv6 variant) so the return
   link has a lower IPv6 MTU. The sized-reply probe should show arrival with
@@ -45,7 +47,7 @@ outside contributions easy to collect and to close those two coverage gaps.
   The loopback tests and a local send test are done; the cross-host run is
   still open because it needs a firewall rule on the Windows receiver.
 
-### 4. Keep lab output from CI
+### 4. Keep lab output from CI: implemented
 
 - Upload the JSON printed by the privileged namespace labs as a workflow
   artifact, so validation records can cite a specific CI run and its data,

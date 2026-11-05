@@ -22,6 +22,18 @@ from tunnelscope_core.view import render_report_html
 NETNS = os.environ.get("TUNNELSCOPE_RUN_NETNS_TESTS") == "1" and sys.platform.startswith("linux")
 
 
+def keep_lab_output(script, result):
+    """Copy a lab's stdout and stderr to TUNNELSCOPE_LAB_OUTPUT_DIR when it is set (CI artifacts)."""
+    directory = os.environ.get("TUNNELSCOPE_LAB_OUTPUT_DIR")
+    if not directory:
+        return
+    target = Path(directory)
+    target.mkdir(parents=True, exist_ok=True)
+    (target / f"{Path(script).stem}.json").write_text(result.stdout, encoding="utf-8")
+    if result.stderr:
+        (target / f"{Path(script).stem}.stderr.txt").write_text(result.stderr, encoding="utf-8")
+
+
 class FakeReceiver:
     """A loopback UDP peer whose reply to each probe is chosen by ``answer(data)``."""
 
@@ -236,6 +248,7 @@ class SizedReplyCorrelationTests(unittest.TestCase):
             self.skipTest("sysctl is required for the asymmetric return lab")
         script = Path(__file__).resolve().parents[1] / "labs" / "asymmetric_return.py"
         result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=90)
+        keep_lab_output(script, result)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
         sized = report["probe"]

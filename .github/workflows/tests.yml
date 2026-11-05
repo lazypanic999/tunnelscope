@@ -24,7 +24,18 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - name: Validate isolated Linux MTU labs
         if: runner.os == 'Linux'
-        run: sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 "$(command -v python)" -m unittest discover -s tests -v
+        run: >-
+          sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1
+          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-labs"
+          "$(command -v python)" -m unittest discover -s tests -v
+      - name: Keep lab output
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: lab-output-python-${{ matrix.python-version }}
+          path: ${{ runner.temp }}/tunnelscope-labs/
+          if-no-files-found: ignore
+          retention-days: 90
 
   delivery-checks:
     name: Delivery checks

@@ -35,3 +35,4 @@ workflows across independent Ubuntu and Debian guests on a controlled tunnel.
 The [v0.7 release](releases/v0.7.0.md) adds same-sized replies for return-path
 evidence and report sanitization; the
 [asymmetric return-path lab](validation/asymmetric-return.md) validates the former.
+[v0.7.1](releases/v0.7.1.md) fixes `Z`-suffixed timestamps in `sanitize`.

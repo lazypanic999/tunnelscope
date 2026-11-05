@@ -19,7 +19,15 @@ capture coverage. Timestamps from different machines are not compared.
 The logo is embedded in the generated HTML. The HTML is a self-contained file:
 the logo, report content, styles and search work without network access.
 
-![TunnelScope HTML report view](images/report-ui.png)
+In v0.7 and newer, probe and correlation views add return-direction columns
+for `--sized-reply` runs, and sanitized reports show a "Sanitized report"
+section.
+
+![TunnelScope HTML view of a sized-reply probe run from the asymmetric return-path lab](images/v07-report.png)
+
+The screenshot is the HTML generated for the sized-reply probe run in
+[`examples/asymmetric-return-v07.json`](../examples/asymmetric-return-v07.json);
+[`scripts/build_v07_images.py`](../scripts/build_v07_images.py) rebuilds it.
 
 The generated HTML contains the complete report, including addresses and any
 other fields in its JSON. Sanitize the JSON before sharing the HTML. Report

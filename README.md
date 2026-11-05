@@ -6,7 +6,7 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.7.0 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.7.0/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.7.0) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.7.1 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.7.1/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.7.1) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
@@ -34,7 +34,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.7.0
+python -m pip install tunnelscope==0.7.1
 ```
 
 In terminal 1, start the loopback receiver:
@@ -76,6 +76,23 @@ and a bounded adaptive search. It writes JSON and HTML for one sender direction.
 After the receiver saves its capture, `correlate` can join all three runs in one
 report. The [diagnose guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/diagnose.md) covers setup and interpretation.
 
+## Test the return direction
+
+The receiver's 24-byte ACK shows that a payload arrived, not that the same size
+can travel back. With `--sized-reply` on both sides, the receiver answers with
+a reply of the probe's own size (never larger):
+
+```sh
+tunnelscope receive --bind B_IP --sized-reply --output receiver.json
+tunnelscope probe B_IP --sizes 64,1200,1400 --count 2 --dont-fragment --sized-reply --output probe.json
+tunnelscope correlate probe.json receiver.json --html correlation.html
+```
+
+The receiver side needs Linux. `search`, `compare-fragmentation` and
+`diagnose` accept the same flag. Before posting reports in an issue, run
+[`tunnelscope sanitize`](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sanitize.md). The
+[sized-reply guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sized-reply.md) lists every field.
+
 ## What the evidence establishes
 
 | Result | Observation |
@@ -83,9 +100,11 @@ report. The [diagnose guide](https://github.com/lazypanic999/tunnelscope/blob/ma
 | `acknowledged` | The chosen UDP payload arrived and a small ACK returned. |
 | `packet_too_large` | Linux reported an explicit size error; ICMP evidence may distinguish local and routed feedback. |
 | `timeout` | No matching ACK arrived; the cause remains inconclusive. |
+| `sized_reply_received` | With `--sized-reply`: the payload arrived and a reply of the same size returned. |
+| `receiver_observed_sized_reply_missing` | After `correlate`: the probe arrived and the receiver sent a same-sized reply that did not return. Where it was lost stays unknown. |
 
 Payload sizes include the 24-byte TunnelScope header. Small ACKs do not prove
-same-sized reverse delivery. An observed payload interval is not an independently
+same-sized reverse delivery; use `--sized-reply` for that. An observed payload interval is not an independently
 measured end-to-end path MTU. ICMP feedback and receiver logs are unauthenticated.
 `ping`, `tracepath`, route inspection and packet captures remain useful alongside
 these observations.
@@ -97,6 +116,7 @@ these observations.
 | [Ubuntu ↔ Debian WireGuard VMs](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-wireguard.md) | Both directions, receiver pairing and a 1252/1253-byte boundary | Local tunnel MTU on a host-only link |
 | [Routed WireGuard lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/wireguard-routed.md) | Token-matched ICMP when visible; inconclusive timeouts when blocked | Four namespaces on one kernel |
 | [Cross-node Kubernetes/Calico](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/kubernetes-calico.md) | 6/6 baseline deliveries per direction; policy block and recovery | Two Docker-based Minikube nodes, IPv4 IP-in-IP |
+| [Asymmetric return-path lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md) | 1400-byte probes arrive while same-sized replies are lost or rejected; a small ACK still returns | Three namespaces on one kernel; runs in CI |
 
 These are controlled validations. Physical multi-host paths, production VPN
 incidents and other Kubernetes CNI modes need separate evidence.

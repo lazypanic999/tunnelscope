@@ -85,29 +85,37 @@ def _table_data(report):
         feedback_enabled = isinstance(report.get("summary"), dict) and isinstance(report["summary"].get("icmp_feedback"), dict)
         if feedback_enabled:
             headers.extend(("Size error origin", "ICMP feedback"))
+        settings = report.get("settings")
+        sized = isinstance(settings, dict) and settings.get("sized_reply") is True
+        if sized:
+            headers.extend(("Return", "Reply bytes"))
         return headers, [
             [row.get("payload_bytes"), row.get("attempt"), row.get("status"),
              row.get("rtt_ms"), row.get("kernel_reported_mtu_bytes"),
-             *([row.get("size_error_origin"), _feedback_cell(row)] if feedback_enabled else [])]
+             *([row.get("size_error_origin"), _feedback_cell(row)] if feedback_enabled else []),
+             *([row.get("return_status"), row.get("reply_bytes")] if sized else [])]
             for row in _records(report.get("results"))
         ]
     if kind == "receiver_observations":
-        return ["Run ID", "Bytes", "Source", "ACK send"], [
+        return ["Run ID", "Bytes", "Source", "ACK send", "Reply bytes"], [
             [row.get("run_id"), row.get("payload_bytes"),
-             row.get("source_ipv4", row.get("source_ipv6")), row.get("ack_send_status")]
+             row.get("source_ipv4", row.get("source_ipv6")), row.get("ack_send_status"),
+             row.get("reply_bytes")]
             for row in _records(report.get("observations"))
         ]
     if kind == "probe_receiver_correlation":
+        rows = _records(report.get("results"))
+        sized = any("return_evidence" in row for row in rows)
         return ["Probe ID", "Direction", "Bytes", "Send attempted (UTC)", "Receiver saw",
                 "Receiver received (UTC)", "ACK send", "Sender ACK received (UTC)",
-                "Sender status", "Evidence case"], [
+                "Sender status", "Evidence case", *(["Return evidence"] if sized else [])], [
             [row.get("probe_id"), row.get("direction"), row.get("payload_bytes"),
              row.get("send_attempted_at_utc"),
              "yes" if row.get("receiver_observed") else "no",
              row.get("receiver_received_at_utc"), row.get("ack_send_status"),
              row.get("sender_ack_received_at_utc"), row.get("sender_status"),
-             row.get("evidence_case")]
-            for row in _records(report.get("results"))
+             row.get("evidence_case"), *([row.get("return_evidence")] if sized else [])]
+            for row in rows
         ]
     if kind == "bidirectional_comparison":
         comparison = report.get("comparison")

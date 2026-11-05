@@ -111,6 +111,8 @@ def main():
     receiver.add_argument("--max-packets", type=bounded_int(1, 1000), default=100)
     receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30)
     receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
+    receiver.add_argument("--sized-reply", action="store_true",
+                          help="Linux: answer probes that request it with a same-sized DF reply")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
     sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
@@ -125,6 +127,8 @@ def main():
     sender.add_argument("--output", type=Path)
     sender.add_argument("--dont-fragment", action="store_true", help="Linux: prevent IPv4 or IPv6 fragmentation")
     sender.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
+    sender.add_argument("--sized-reply", action="store_true",
+                        help="ask a v0.7 receiver started with --sized-reply for same-sized replies")
     search = commands.add_parser("search", help="search a bounded observed payload-size interval (Linux no-fragment)")
     search.add_argument("host")
     search.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
@@ -182,13 +186,14 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "receive":
-            receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output, args.family)
+            receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output, args.family,
+                    sized_reply=args.sized_reply)
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
                            args.count, args.timeout, args.dont_fragment, args.family,
-                           observe_icmp=args.observe_icmp)
+                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
                            args.family, (args.minimum, args.maximum), args.max_sizes,

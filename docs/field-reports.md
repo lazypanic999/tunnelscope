@@ -14,8 +14,11 @@ restrict its port to the sender. See [security boundaries](security-boundaries.m
 ## What you need
 
 - TunnelScope v0.7.0 or newer on both endpoints (`python -m pip install --upgrade tunnelscope`).
-- A Linux receiver for `--sized-reply`; the sender for `diagnose` must also be
-  Linux (WSL2 works). With a Windows sender, use `probe` instead (below).
+- A Linux (including WSL2) or Windows receiver for `--sized-reply`; Windows
+  receivers need TunnelScope from `main` until the next release, and Windows
+  Firewall must allow inbound UDP 9471 for the test. The sender for
+  `diagnose` must be Linux (WSL2 works). With a Windows sender, use `probe`
+  instead (below).
 - UDP port 9471 reachable from the sender to the receiver's address.
 
 Replace `B_IP` below with the receiver's address on the path you are testing.

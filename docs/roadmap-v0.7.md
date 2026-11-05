@@ -1,7 +1,8 @@
 # v0.7 plan: reverse-path size evidence and shareable field reports
 
-Status: **in progress**. Report sanitization is implemented on `main`
-(see the [sanitize guide](sanitize.md)); the other items are proposed. It follows the
+Status: **in progress**. Report sanitization ([guide](sanitize.md)) and
+same-sized replies ([guide](sized-reply.md)) are implemented on `main`; the
+workflow pass-through in item 3 is still proposed. It follows the
 [v0.6 scope](roadmap-v0.6.md) and keeps its rules: measurements stay
 separate from conclusions, a timeout alone is never presented as an MTU
 problem, and an observed payload interval is not an end-to-end path MTU.
@@ -41,19 +42,20 @@ direction at a time. Two gaps remain:
   `correlate` on sanitized inputs gives the same per-probe result as on the
   originals.
 
-### 2. Opt-in sized replies for return-path evidence
+### 2. Opt-in sized replies for return-path evidence: implemented
 
-- New receiver flag, tentatively `--sized-reply`. For each valid probe the
+- Receiver flag `--sized-reply`. For each probe that requests it, the
   receiver returns a reply of the **same size** as the received datagram
   instead of the fixed acknowledgement. The reply is never larger than the
   request, so the receiver adds no amplification. On Linux the reply is
   sent with DF set, so an oversized reply fails instead of being fragmented.
-- New reply magic (`TA02`) so v0.6 senders ignore sized replies and v0.6
-  receivers keep working with v0.7 senders. Sized replies require both sides
-  at v0.7 and an explicit sender flag.
+- New reply magic (`TA02`). A sender with `--sized-reply` puts a request
+  marker (`SR01`) after the run ID; v0.6 receivers ignore it and send the
+  small acknowledgement, which the sender records as `small_ack_only`.
+  Unmarked probes from v0.6 senders always get the small acknowledgement.
 - New sender outcome per attempt, added to the existing schema:
-  `reply_size_bytes` and `return_status` (`sized_reply_received`,
-  `no_reply`). With receiver evidence joined, the report can separate
+  `reply_bytes` and `return_status` (`sized_reply_received`,
+  `small_ack_only`, `no_reply`). With receiver evidence joined, the report can separate
   "forward probe arrived, same-sized reply did not return" from forward loss.
   Without receiver evidence, a missing sized reply stays inconclusive, as a
   timeout does today.
@@ -119,10 +121,9 @@ unauthenticated as today's acknowledgements.
 
 ## Open questions
 
-- Should a sized reply mirror the probe size exactly, or should the sender be
-  able to request a different reply size, capped at the probe size? A
-  different size would allow a separate return-path search but adds
-  protocol surface.
+- Resolved: a sized reply mirrors the probe size exactly. A separately
+  requested reply size would allow a return-path search but adds protocol
+  surface; it can be revisited after field use.
 - Resolved: sanitization shifts timestamps by one constant per batch, which
   keeps RTT and ordering checks working; `--keep-timestamps` opts out.
 - Is one asymmetric namespace lab enough for the release, or should the

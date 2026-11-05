@@ -18,6 +18,11 @@ MAGIC = b"TS01"
 VERSION = "0.6.0"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
+# v0.7: a probe asks for a same-sized reply with this marker after its run ID.
+# Receivers without --sized-reply (and v0.6 receivers) keep sending ACK.
+REPLY_REQUEST = b"SR01"
+SIZED_ACK = b"TA02"
+SIZED_REPLY_MIN_BYTES = HEADER.size + 8 + len(REPLY_REQUEST)
 # Linux UAPI values, used when Python does not expose the constants.
 IP_MTU_DISCOVER = getattr(socket, "IP_MTU_DISCOVER", 10)
 IP_PMTUDISC_DO = getattr(socket, "IP_PMTUDISC_DO", 2)
@@ -78,7 +83,18 @@ def udp_address(host, port, family="auto"):
     return resolved[0][0], resolved[0][4]
 
 
-def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
+def sized_reply_for(data):
+    """Return a reply of the same length as the probe, or None if it was not requested."""
+    if len(data) < SIZED_REPLY_MIN_BYTES or data[HEADER.size + 8:SIZED_REPLY_MIN_BYTES] != REPLY_REQUEST:
+        return None
+    _, token, size = HEADER.unpack_from(data)
+    reply = HEADER.pack(SIZED_ACK, token, size) + data[HEADER.size:HEADER.size + 8]
+    return reply + bytes(len(data) - len(reply))
+
+
+def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False):
+    if sized_reply and not sys.platform.startswith("linux"):
+        raise ValueError("--sized-reply currently requires Linux (including WSL2)")
     observations = []
     exit_reason = "max_packets"
     address_family, bind_address = udp_address(bind, port, family)
@@ -88,6 +104,9 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
     with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
         if address_family == socket.AF_INET6:
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        if sized_reply:
+            # Oversized replies must fail visibly instead of being fragmented.
+            configure_fragmentation(sock, True)
         sock.bind(bind_address)
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
@@ -110,9 +129,17 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
                     "received_at_utc": utc_now(),
                 }
                 observations.append(observation)
-                # A fixed small acknowledgement does not echo the large payload.
+                # By default a fixed small acknowledgement does not echo the payload.
+                # With --sized-reply, a requesting probe gets a reply of its own size,
+                # never larger, so the receiver does not amplify traffic.
+                reply = sized_reply_for(data) if sized_reply else None
+                if reply is None:
+                    reply = HEADER.pack(ACK, token, len(data))
+                else:
+                    observation["reply_kind"] = "sized"
+                observation["reply_bytes"] = len(reply)
                 try:
-                    sock.sendto(HEADER.pack(ACK, token, len(data)), peer)
+                    sock.sendto(reply, peer)
                     observation["ack_send_status"] = "sent"
                 except OSError as error:
                     observation["ack_send_status"] = "socket_error"
@@ -129,7 +156,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto"):
                     "schema_version": 1,
                     "kind": "receiver_observations",
                     "receiver": {f"bind_{address_key}": sock.getsockname()[0],
-                                 "port": sock.getsockname()[1]},
+                                 "port": sock.getsockname()[1],
+                                 **({"sized_reply": True} if sized_reply else {})},
                     "started_at_utc": started_at_utc,
                     "finished_at_utc": utc_now(),
                     "exit_reason": exit_reason,
@@ -188,7 +216,7 @@ def source_snapshot(sock):
 
 def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
           search_bounds=None, max_sizes=16, allow_fragmentation=False,
-          observe_icmp=False):
+          observe_icmp=False, sized_reply=False):
     require_df_support(dont_fragment or allow_fragmentation)
     require_icmp_support(observe_icmp)
     if dont_fragment and allow_fragmentation:
@@ -205,6 +233,8 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         from .search import assess_search
     else:
         sizes = list(sizes)
+    if sized_reply and min(sizes) < SIZED_REPLY_MIN_BYTES:
+        raise ValueError(f"--sized-reply needs payload sizes of at least {SIZED_REPLY_MIN_BYTES} bytes")
     started_at_utc = utc_now()
     run_id = secrets.token_bytes(8)
     address_family, destination = udp_address(host, port, family)
@@ -217,7 +247,10 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         size = sizes[size_index]
         for attempt in range(1, count + 1):
             token = secrets.token_bytes(16)
-            payload = HEADER.pack(MAGIC, token, size) + run_id + bytes(size - HEADER.size - len(run_id))
+            payload = HEADER.pack(MAGIC, token, size) + run_id + (REPLY_REQUEST if sized_reply else b"")
+            payload += bytes(size - len(payload))
+            small_ack = HEADER.pack(ACK, token, size)
+            sized_ack = sized_reply_for(payload) if sized_reply else None
             result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
             # A new connected socket isolates replies from earlier attempts.
             with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
@@ -238,13 +271,18 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                         if remaining <= 0:
                             raise socket.timeout()
                         sock.settimeout(remaining)
-                        reply = sock.recv(1024)
-                        if reply == HEADER.pack(ACK, token, size):
+                        reply = sock.recv(8193)
+                        if reply == small_ack or (sized_ack is not None and reply == sized_ack):
                             result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3),
                                           ack_received_at_utc=utc_now())
+                            if sized_reply:
+                                result.update(reply_bytes=len(reply), return_status=(
+                                    "sized_reply_received" if reply == sized_ack else "small_ack_only"))
                             break
                 except socket.timeout:
                     result["status"] = "timeout"
+                    if sized_reply:
+                        result["return_status"] = "no_reply"
                 except OSError as error:
                     result.update(socket_failure(error, sock, dont_fragment))
                 if observe_icmp:
@@ -271,6 +309,10 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                 sizes.append(next_size)
     by_payload_size = summarize_results(sizes, results)
     summary = {"by_payload_size": by_payload_size}
+    # The return direction counts as tested only if the receiver demonstrably sent
+    # same-sized replies and never fell back to the small acknowledgement.
+    reverse_tested = (any(row.get("return_status") == "sized_reply_received" for row in results)
+                      and not any(row.get("return_status") == "small_ack_only" for row in results))
     if observe_icmp:
         observations = [row["icmp_observation"] for row in results]
         events = [event for observation in observations for event in observation["events"]]
@@ -298,14 +340,17 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         "source": source,
         "target": {"host": host, address_key: destination[0], "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout,
-                     "dont_fragment": dont_fragment, "observe_icmp": observe_icmp},
+                     "dont_fragment": dont_fragment, "observe_icmp": observe_icmp,
+                     **({"sized_reply": True} if sized_reply else {})},
         "fragmentation_mode": "df" if dont_fragment else "permitted" if allow_fragmentation else "os_default",
         "fragmentation": (("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else
                           ("permitted: Linux IPV6_DONTFRAG=0" if address_family == socket.AF_INET6 else "permitted: Linux IP_PMTUDISC_DONT") if allow_fragmentation else
                           "OS default; fragmentation behavior is not controlled"),
-        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+        "interpretation": ("Acknowledgement confirms delivery and a same-sized reply when return_status is "
+                           "sized_reply_received; small_ack_only means the receiver sent only a small reply. "
+                           if sized_reply else "Acknowledgement confirms delivery and a small reply. ") + "Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
         "summary": summary,
-        "evidence": explain_evidence(by_payload_size, dont_fragment),
+        "evidence": explain_evidence(by_payload_size, dont_fragment, reverse_tested),
         "results": results,
     }
 

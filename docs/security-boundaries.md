@@ -9,6 +9,10 @@ traffic are under your control. It is not a public UDP service.
   small acknowledgement to the packet's claimed source address. Neither side
   authenticates the peer. The random probe ID helps match an acknowledgement
   to a sent probe; it is not a secret or proof of identity.
+- With [`--sized-reply`](sized-reply.md) on both sides, the receiver answers
+  a requesting probe with a reply of the same size. The reply is never larger
+  than the probe, so it does not amplify traffic, but a spoofed source address
+  still receives it. Use it only on controlled paths.
 - UDP probes, acknowledgements and JSON reports are not encrypted or signed.
   An attacker who can observe or inject traffic can affect results. Do not
   interpret a receiver report or a matching acknowledgement as trusted proof

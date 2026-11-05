@@ -1,0 +1,81 @@
+# Same-sized replies for return-path evidence
+
+By default the receiver answers every probe with a fixed 24-byte
+acknowledgement. A sender therefore learns that its payload arrived, but not
+whether traffic of the same size can travel back. Asymmetric paths, such as
+two VPN gateways with different tunnel MTUs, can pass large packets in one
+direction only.
+
+`--sized-reply` lets one sender run test both directions at each payload size.
+It is on `main` and first planned for release in v0.7.0; the PyPI v0.6.0
+package does not include it.
+
+## Run it
+
+On the receiver (Linux, including WSL2):
+
+```sh
+tunnelscope receive --bind B_IP --sized-reply --output receiver.json
+```
+
+On the sender:
+
+```sh
+tunnelscope probe B_IP --sizes 64,1200,1400 --count 3 --dont-fragment --sized-reply --output probe.json
+tunnelscope correlate probe.json receiver.json --html correlation.html
+```
+
+Both sides must opt in. The sender adds a request marker to each probe, and
+the receiver answers a marked probe with a reply of exactly the probe's size
+only when it was started with `--sized-reply`. Payload sizes must be at least
+36 bytes to hold the marker.
+
+## What the reports record
+
+| Where | Field | Meaning |
+| --- | --- | --- |
+| Probe result | `return_status: sized_reply_received` | The probe arrived and a same-sized reply returned. |
+| Probe result | `return_status: small_ack_only` | The probe arrived, but the receiver sent only the small acknowledgement (no `--sized-reply`, or a v0.6 receiver). The return path was not tested. |
+| Probe result | `return_status: no_reply` | No matching reply. On its own this is as inconclusive as any timeout. |
+| Probe summary | `return_status_counts` | The three counts per payload size. |
+| Receiver observation | `reply_kind`, `reply_bytes` | What the receiver tried to send. `ack_send_status: socket_error` with `ack_send_errno` 90 (`EMSGSIZE`) means its own kernel rejected the reply. |
+
+Joining both logs with `correlate` adds `return_evidence` to each probe:
+
+| `return_evidence` | Meaning |
+| --- | --- |
+| `sized_reply_returned` | Both directions carried this size. |
+| `receiver_observed_sized_reply_missing` | The probe arrived and the receiver sent a same-sized reply that never reached the sender. The reply was lost somewhere on the return path; the report does not say where. |
+| `receiver_reply_send_failed` | The probe arrived, but the receiver's kernel refused to send a reply that large, for example after learning a smaller path MTU from ICMP feedback. |
+| `receiver_sent_small_reply` | The receiver did not send a sized reply. |
+| `no_receiver_observation` | The receiver has no record of the probe. Inconclusive without verified capture coverage. |
+| `small_ack_only` | As in the probe result. |
+
+The correlation summary counts `sized_reply_missing_after_arrival` and
+`receiver_reply_send_failed`. `show` and the HTML view add a return column.
+
+A sized-reply run that received only same-sized replies no longer lists
+`same_sized_reverse_payload_test` under `missing_evidence`.
+
+## Limits
+
+- A missing reply does not show where it was lost or why. Combine it with
+  receiver logs, ICMP observations and packet captures.
+- Sized replies double the bytes sent per probe. The reply is never larger
+  than the probe, so the receiver does not amplify traffic, but the receiver
+  is still an unauthenticated UDP responder. Follow
+  [security boundaries](security-boundaries.md).
+- On Linux the receiver sends sized replies with fragmentation disabled, so
+  an oversized reply fails instead of being fragmented. Other platforms do
+  not support `receive --sized-reply` yet; the sender works anywhere.
+- `diagnose` and `search` do not pass `--sized-reply` through yet.
+
+## Controlled validation
+
+`labs/asymmetric_return.py` builds three network namespaces: sender, router
+and receiver. Traffic to the receiver uses 1500-byte links; the router sends
+traffic back over a 1280-byte link. With `--sized-reply`, 64- and 1200-byte
+probes return same-sized replies, while 1400-byte probes reach the receiver
+and their replies do not return. An ordinary probe at 1400 bytes is still
+acknowledged, because its 24-byte acknowledgement fits. CI runs the lab on
+Linux with `TUNNELSCOPE_RUN_NETNS_TESTS=1`.

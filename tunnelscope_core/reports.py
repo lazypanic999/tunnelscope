@@ -37,13 +37,19 @@ def summarize_results(sizes, results):
             "timeout": "inconclusive",
             "socket_error": "socket_error",
         }[observed[0]] if len(observed) == 1 else "mixed_observations"
-        summary.append({"payload_bytes": size, "status_counts": counts,
-                        "no_ack_measurement": no_ack_measurement(counts),
-                        "assessment": assessment})
+        row = {"payload_bytes": size, "status_counts": counts,
+               "no_ack_measurement": no_ack_measurement(counts),
+               "assessment": assessment}
+        returns = [result["return_status"] for result in results
+                   if result["payload_bytes"] == size and "return_status" in result]
+        if returns:
+            row["return_status_counts"] = {status: returns.count(status) for status in
+                                           ("sized_reply_received", "small_ack_only", "no_reply")}
+        summary.append(row)
     return summary
 
 
-def explain_evidence(by_payload_size, dont_fragment):
+def explain_evidence(by_payload_size, dont_fragment, reverse_tested=False):
     """State observations, tentative size patterns and evidence still needed."""
     observations = [
         {"payload_bytes": row["payload_bytes"], "status": status, "attempts": count}
@@ -63,7 +69,7 @@ def explain_evidence(by_payload_size, dont_fragment):
                 "basis": basis,
                 "alternatives": ["size_dependent_filtering", "ordinary_packet_loss"],
             })
-    missing_evidence = ["same_sized_reverse_payload_test"]
+    missing_evidence = [] if reverse_tested else ["same_sized_reverse_payload_test"]
     if timed_out:
         missing_evidence.append("receiver_or_path_packet_observation")
         if dont_fragment:
@@ -71,6 +77,24 @@ def explain_evidence(by_payload_size, dont_fragment):
     if not dont_fragment:
         missing_evidence.append("controlled_fragmentation_behavior")
     return {"observations": observations, "hypotheses": hypotheses, "missing_evidence": missing_evidence}
+
+
+def return_evidence(row, observation):
+    """Separate same-sized reply outcomes without guessing which direction lost a packet."""
+    status = row.get("return_status")
+    if status == "sized_reply_received":
+        return "sized_reply_returned"
+    if status == "small_ack_only":
+        return "small_ack_only"
+    if row.get("status") != "timeout":
+        return None
+    if observation is None:
+        return "no_receiver_observation"
+    if observation.get("ack_send_status") == "socket_error":
+        return "receiver_reply_send_failed"
+    if observation.get("reply_kind") != "sized":
+        return "receiver_sent_small_reply"
+    return "receiver_observed_sized_reply_missing"
 
 
 def correlate_reports(probe_report, receiver_report):
@@ -127,6 +151,8 @@ def correlate_reports(probe_report, receiver_report):
     direction = (f"{source_address} -> {target_address}"
                  if isinstance(source_address, str) and isinstance(target_address, str)
                  else "unavailable")
+    settings = probe_report.get("settings")
+    sized = isinstance(settings, dict) and settings.get("sized_reply") is True
     matched = []
     for row in sent:
         observation = observations.get(row["probe_id"])
@@ -157,6 +183,12 @@ def correlate_reports(probe_report, receiver_report):
             "ack_send_status": observation.get("ack_send_status") if observation else None,
             "evidence_case": evidence_case,
         })
+        if sized:
+            matched[-1].update({
+                "return_status": row.get("return_status"),
+                "receiver_reply_bytes": observation.get("reply_bytes") if observation else None,
+                "return_evidence": return_evidence(row, observation),
+            })
     receiver = receiver_report.get("receiver")
     receiver = receiver if isinstance(receiver, dict) else {}
     endpoint_checks = {
@@ -167,6 +199,21 @@ def correlate_reports(probe_report, receiver_report):
         endpoint_checks[f"target_{address_key}_matches_receiver_bind"] = (
             target_ip == bind_ip if isinstance(target_ip, str) and isinstance(bind_ip, str) and bind_ip != wildcard else None
         )
+    interpretation = ("Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared.")
+    summary = {
+        "sent_probes": len(sent),
+        "receiver_observed": sum(row["receiver_observed"] for row in matched),
+        "timed_out_but_receiver_observed": sum(row["sender_status"] == "timeout" and row["receiver_observed"] for row in matched),
+        "unmatched_receiver_observations": len(observations.keys() - sent_ids),
+    }
+    if sized:
+        interpretation += (" With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver"
+                           " sent a same-sized reply that the sender did not receive; it does not identify where it was lost."
+                           " receiver_reply_send_failed means the receiver's own socket rejected the reply.")
+        summary["sized_reply_missing_after_arrival"] = sum(
+            row["return_evidence"] == "receiver_observed_sized_reply_missing" for row in matched)
+        summary["receiver_reply_send_failed"] = sum(
+            row["return_evidence"] == "receiver_reply_send_failed" for row in matched)
     return {
         "schema_version": 1,
         "kind": "probe_receiver_correlation",
@@ -177,13 +224,8 @@ def correlate_reports(probe_report, receiver_report):
             "receiver_window_utc": [receiver_report.get("started_at_utc"), receiver_report.get("finished_at_utc")],
             "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized",
         },
-        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared.",
-        "summary": {
-            "sent_probes": len(sent),
-            "receiver_observed": sum(row["receiver_observed"] for row in matched),
-            "timed_out_but_receiver_observed": sum(row["sender_status"] == "timeout" and row["receiver_observed"] for row in matched),
-            "unmatched_receiver_observations": len(observations.keys() - sent_ids),
-        },
+        "interpretation": interpretation,
+        "summary": summary,
         "results": matched,
     }
 
@@ -321,6 +363,8 @@ def format_report(report):
                         and event.get("quoted_probe_match") is not False
                         for event in observation["events"]
                     )
+        settings = report.get("settings")
+        sized = isinstance(settings, dict) and settings.get("sized_reply") is True
         values = []
         for row in rows:
             if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
@@ -332,6 +376,10 @@ def format_report(report):
                      counts.get("socket_error", 0), no_ack_text(measurement)]
             if isinstance(feedback, dict):
                 value.append(ptb_by_size.get(row.get("payload_bytes"), 0))
+            if sized:
+                returns = row.get("return_status_counts") or {}
+                value.append(f"{returns.get('sized_reply_received', 0)}/{sum(returns.values())}"
+                             + (" (small ACK)" if returns.get("small_ack_only") else ""))
             value.append(row.get("assessment", "?"))
             values.append(value)
         search = summary.get("search")
@@ -351,9 +399,13 @@ def format_report(report):
         headers = ["Bytes", "Ack", "Too large", "Timeout", "Error", "No ACK (95% CI)"]
         if isinstance(feedback, dict):
             headers.append("ICMP size")
+        if sized:
+            headers.append("Sized reply")
         headers.append("Assessment")
         return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) +
                 search_text + feedback_text +
+                ("\nSized reply counts same-sized replies received per sent attempt; a missing reply does not show which direction failed."
+                 if sized else "") +
                 "\nNo ACK is a sender timeout, not proven packet loss. ICMP feedback may be spoofed or absent; no feedback does not prove blocking.")
     if kind == "fragmentation_comparison":
         comparison = report.get("comparison")
@@ -383,16 +435,21 @@ def format_report(report):
                 raise ValueError("invalid receiver observation")
             key = (run_id, size)
             if key not in counts:
-                counts[key] = {"observed": 0, "ack_sent": 0, "ack_errors": 0}
+                counts[key] = {"observed": 0, "ack_sent": 0, "ack_errors": 0, "sized": 0}
             counts[key]["observed"] += 1
+            counts[key]["sized"] += row.get("reply_kind") == "sized"
             if row.get("ack_send_status") == "sent":
                 counts[key]["ack_sent"] += 1
             elif row.get("ack_send_status") == "socket_error":
                 counts[key]["ack_errors"] += 1
-        values = [(run_id, size, item["observed"], item["ack_sent"], item["ack_errors"])
+        receiver = report.get("receiver")
+        sized = isinstance(receiver, dict) and receiver.get("sized_reply") is True
+        values = [(run_id, size, item["observed"], item["ack_sent"], item["ack_errors"],
+                   *([item["sized"]] if sized else []))
                   for (run_id, size), item in sorted(counts.items())]
-        return (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}\n"
-                + text_table(["Run ID", "Bytes", "Seen", "ACK sent", "ACK error"], values)
+        return (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}"
+                + ("; sized replies enabled" if sized else "") + "\n"
+                + text_table(["Run ID", "Bytes", "Seen", "ACK sent", "ACK error", *(["Sized"] if sized else [])], values)
                 + "\nACK sent means the local socket accepted the reply, not that it arrived.")
     if kind == "bidirectional_comparison":
         comparison = report.get("comparison")
@@ -411,16 +468,22 @@ def format_report(report):
             raise ValueError("correlation report has no results")
         if any(not isinstance(row, dict) for row in rows):
             raise ValueError("invalid correlation result")
+        sized = any("return_evidence" in row for row in rows)
         values = [(str(row.get("probe_id") or "?")[:8], row.get("direction") or "-",
                    row.get("payload_bytes", "?"), row.get("sender_status", "?"),
                    "yes" if row.get("receiver_observed") else "no", row.get("ack_send_status") or "-",
-                   row.get("evidence_case") or "-")
+                   row.get("evidence_case") or "-", *([row.get("return_evidence") or "-"] if sized else []))
                   for row in rows]
+        sized_text = (f"\nSized replies missing after arrival: {summary.get('sized_reply_missing_after_arrival', '?')}; "
+                      f"rejected by the receiver socket: {summary.get('receiver_reply_send_failed', '?')}."
+                      if sized else "")
         pairing = report.get("pairing")
         run_check = pairing.get("run_id_check", "unavailable") if isinstance(pairing, dict) else "unavailable"
         return (f"Correlation: {summary.get('receiver_observed', '?')}/{summary.get('sent_probes', '?')} observed at receiver; "
                 f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; "
                 f"{summary.get('unmatched_receiver_observations', '?')} unmatched receiver observations; run ID: {run_check}\n"
-                + text_table(["Probe", "Direction", "Bytes", "Sender", "Receiver saw", "ACK send", "Evidence case"], values)
+                + text_table(["Probe", "Direction", "Bytes", "Sender", "Receiver saw", "ACK send", "Evidence case",
+                              *(["Return"] if sized else [])], values)
+                + sized_text
                 + "\nNo receiver observation is inconclusive without confirmed capture coverage.")
     raise ValueError(f"unsupported report kind: {kind}")

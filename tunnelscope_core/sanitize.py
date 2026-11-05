@@ -25,7 +25,7 @@ INTERFACE_KEYS = {"interface"}
 
 IPV4_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\.?\d)")
 IPV6_TEXT = re.compile(r"(?<![\w:.%])[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[\w.-]+)?")
-DATETIME_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:[+-]\d{2}:\d{2})$")
+DATETIME_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:[+-]\d{2}:\d{2}|Z)$")
 DATE_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -125,7 +125,8 @@ class Sanitizer:
     @staticmethod
     def _moment(text):
         if DATETIME_TEXT.match(text):
-            return datetime.fromisoformat(text)
+            # Python 3.10's fromisoformat does not accept a trailing "Z".
+            return datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
         if DATE_TEXT.match(text):
             try:
                 return datetime.combine(date.fromisoformat(text), datetime.min.time(), timezone.utc)
@@ -193,7 +194,8 @@ class Sanitizer:
             if DATE_TEXT.match(text):
                 return shifted.date().isoformat()
             timespec = "microseconds" if "." in text else "seconds"
-            return shifted.astimezone(moment.tzinfo).isoformat(timespec=timespec)
+            shifted = shifted.astimezone(moment.tzinfo).isoformat(timespec=timespec)
+            return shifted[:-6] + "Z" if text.endswith("Z") else shifted
         text = IPV6_TEXT.sub(self._replace_ipv6, text)
         text = IPV4_TEXT.sub(self._replace_ipv4, text)
         for original, label in (*self.interfaces.items(), *self.names.items()):

@@ -13,11 +13,17 @@ UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
 size errors, timeouts and optional Linux ICMP feedback. Join both endpoints'
 logs by probe ID and browse the evidence in an offline HTML report.
 
-![40-second replay of the v0.6 diagnose, receiver correlation and offline HTML workflow](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v06-workflow-demo.gif)
+![tunnelscope show output: 64- and 1200-byte probes return same-sized replies; 1400-byte probes reach the receiver but their replies are lost or rejected](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-terminal.png)
 
-This **40-second replay** uses sanitized, recorded WireGuard lab evidence and
-actual generated HTML views. It is not a live network capture. [Replay the
-example or rebuild the GIF](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v06.md).
+![HTML report of the same sized-reply run: return status and reply bytes for each attempt](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-report.png)
+
+Real output from the [asymmetric return-path lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md),
+recorded on 2026-11-05 in Ubuntu under WSL2 with v0.7.0. Return traffic
+crosses a 1280-byte link: 1400-byte probes **arrive**, but their same-sized
+replies do not come back, while an ordinary 24-byte ACK at 1400 bytes still
+does. The images are rebuilt from the [checked-in report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/asymmetric-return-v07.json)
+by [`scripts/build_v07_images.py`](https://github.com/lazypanic999/tunnelscope/blob/main/scripts/build_v07_images.py). The
+[v0.6 workflow replay](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v06.md) is still available.
 
 ## Quick start: join both endpoint logs
 

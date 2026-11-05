@@ -32,3 +32,6 @@ The [v0.6 release](releases/v0.6.0.md) adds repeated measurements, Linux ICMP
 feedback, a bounded `diagnose` workflow and joined receiver evidence.
 The [two-VM WireGuard record](validation/two-vm-wireguard.md) validates these
 workflows across independent Ubuntu and Debian guests on a controlled tunnel.
+The [v0.7 release](releases/v0.7.0.md) adds same-sized replies for return-path
+evidence and report sanitization; the
+[asymmetric return-path lab](validation/asymmetric-return.md) validates the former.

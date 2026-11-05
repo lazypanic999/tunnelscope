@@ -1,8 +1,9 @@
 # v0.7 plan: reverse-path size evidence and shareable field reports
 
-Status: **in progress**. Report sanitization ([guide](sanitize.md)) and
-same-sized replies ([guide](sized-reply.md)), including the workflow
-pass-through in item 3, are implemented on `main`; the release is pending. It follows the
+Status: **released in [v0.7.0](releases/v0.7.0.md)**. Report sanitization
+([guide](sanitize.md)) and same-sized replies ([guide](sized-reply.md)),
+including the workflow pass-through, are implemented. Field evidence below
+remains open. It follows the
 [v0.6 scope](roadmap-v0.6.md) and keeps its rules: measurements stay
 separate from conclusions, a timeout alone is never presented as an MTU
 problem, and an observed payload interval is not an end-to-end path MTU.

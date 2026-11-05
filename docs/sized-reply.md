@@ -7,8 +7,7 @@ two VPN gateways with different tunnel MTUs, can pass large packets in one
 direction only.
 
 `--sized-reply` lets one sender run test both directions at each payload size.
-It is on `main` and first planned for release in v0.7.0; the PyPI v0.6.0
-package does not include it.
+It was added in v0.7.0.
 
 ## Run it
 
@@ -82,4 +81,5 @@ traffic back over a 1280-byte link. With `--sized-reply`, 64- and 1200-byte
 probes return same-sized replies, while 1400-byte probes reach the receiver
 and their replies do not return. An ordinary probe at 1400 bytes is still
 acknowledged, because its 24-byte acknowledgement fits. CI runs the lab on
-Linux with `TUNNELSCOPE_RUN_NETNS_TESTS=1`.
+Linux with `TUNNELSCOPE_RUN_NETNS_TESTS=1`; see the
+[validation record](validation/asymmetric-return.md).

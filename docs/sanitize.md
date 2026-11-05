@@ -2,8 +2,7 @@
 
 `tunnelscope sanitize` writes copies of reports with network identifiers and
 absolute times replaced, so that field evidence can be shared in issues and
-validation records. It is on `main` and is first planned for release in v0.7.0;
-the PyPI v0.6.0 package does not include it. From a source checkout, run
+validation records. It was added in v0.7.0. From a source checkout, run
 `python tunnelscope.py sanitize ...`.
 
 ```sh

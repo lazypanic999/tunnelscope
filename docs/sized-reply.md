@@ -76,7 +76,7 @@ A sized-reply run that received only same-sized replies no longer lists
 ## Controlled validation
 
 `labs/asymmetric_return.py` builds three network namespaces: sender, router
-and receiver. Traffic to the receiver uses 1500-byte links; the router sends
+and receiver, over IPv4 or, with `--family ipv6`, IPv6. Traffic to the receiver uses 1500-byte links; the router sends
 traffic back over a 1280-byte link. With `--sized-reply`, 64- and 1200-byte
 probes return same-sized replies, while 1400-byte probes reach the receiver
 and their replies do not return. An ordinary probe at 1400 bytes is still

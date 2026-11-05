@@ -88,7 +88,7 @@ tunnelscope probe B_IP --sizes 64,1200,1400 --count 2 --dont-fragment --sized-re
 tunnelscope correlate probe.json receiver.json --html correlation.html
 ```
 
-The receiver side needs Linux. `search`, `compare-fragmentation` and
+The receiver side needs Linux (including WSL2) or Windows. `search`, `compare-fragmentation` and
 `diagnose` accept the same flag. Before posting reports in an issue, run
 [`tunnelscope sanitize`](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sanitize.md). The
 [sized-reply guide](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sized-reply.md) lists every field.

@@ -112,7 +112,7 @@ def main():
     receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30)
     receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
     receiver.add_argument("--sized-reply", action="store_true",
-                          help="Linux: answer probes that request it with a same-sized DF reply")
+                          help="Linux or Windows: answer probes that request it with a same-sized reply sent without fragmentation")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
     sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",

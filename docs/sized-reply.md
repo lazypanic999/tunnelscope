@@ -11,7 +11,7 @@ It was added in v0.7.0.
 
 ## Run it
 
-On the receiver (Linux, including WSL2):
+On the receiver (Linux, including WSL2, or Windows):
 
 ```sh
 tunnelscope receive --bind B_IP --sized-reply --output receiver.json
@@ -37,7 +37,7 @@ only when it was started with `--sized-reply`. Payload sizes must be at least
 | Probe result | `return_status: small_ack_only` | The probe arrived, but the receiver sent only the small acknowledgement (no `--sized-reply`, or a v0.6 receiver). The return path was not tested. |
 | Probe result | `return_status: no_reply` | No matching reply. On its own this is as inconclusive as any timeout. |
 | Probe summary | `return_status_counts` | The three counts per payload size. |
-| Receiver observation | `reply_kind`, `reply_bytes` | What the receiver tried to send. `ack_send_status: socket_error` with `ack_send_errno` 90 (`EMSGSIZE`) means its own kernel rejected the reply. |
+| Receiver observation | `reply_kind`, `reply_bytes` | What the receiver tried to send. `ack_send_status: socket_error` with `ack_send_errno` 90 on Linux (`EMSGSIZE`) or 10040 on Windows (`WSAEMSGSIZE`) means its own kernel rejected the reply. The receiver block records `reply_fragmentation`, the socket option used. |
 
 Joining both logs with `correlate` adds `return_evidence` to each probe:
 
@@ -64,9 +64,16 @@ A sized-reply run that received only same-sized replies no longer lists
   than the probe, so the receiver does not amplify traffic, but the receiver
   is still an unauthenticated UDP responder. Follow
   [security boundaries](security-boundaries.md).
-- On Linux the receiver sends sized replies with fragmentation disabled, so
-  an oversized reply fails instead of being fragmented. Other platforms do
-  not support `receive --sized-reply` yet; the sender works anywhere.
+- The receiver sends sized replies with fragmentation disabled, so an
+  oversized reply fails instead of being fragmented: `IP_PMTUDISC_DO` or
+  `IPV6_DONTFRAG` on Linux, `IP_DONTFRAGMENT` or `IPV6_DONTFRAG` on Windows.
+  If the option cannot be set, the receiver refuses to start. Other platforms
+  do not support `receive --sized-reply`; the sender works anywhere.
+- Windows receiver support is checked on loopback (64-, 1400- and 8192-byte
+  replies) and by a send test in which `IP_DONTFRAGMENT` turned an oversized
+  2000-byte datagram into `WSAEMSGSIZE`. A cross-host run with a Windows
+  receiver has not been recorded yet; Windows Firewall blocks inbound UDP
+  9471 unless a rule allows it for the test.
 - `search`, `compare-fragmentation` and `diagnose` also accept
   `--sized-reply`. There an acknowledged attempt means the size crossed both
   directions, so a search interval reflects the smaller of the two. A

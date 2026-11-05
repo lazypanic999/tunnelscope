@@ -32,7 +32,7 @@ outside contributions easy to collect and to close those two coverage gaps.
   missing or locally rejected replies, as the IPv4 lab does, and the small
   ACK should still return. Run it in CI next to the IPv4 lab.
 
-### 3. Sized replies from a Windows receiver
+### 3. Sized replies from a Windows receiver: implemented
 
 - `receive --sized-reply` currently refuses to run outside Linux because the
   reply must be sent without fragmentation. Windows exposes
@@ -42,6 +42,8 @@ outside contributions easy to collect and to close those two coverage gaps.
   keep refusing on platforms where it cannot be set.
 - Validation: loopback tests in the Windows CI job, plus one manual
   Windows-receiver run against a Linux sender documented as a record.
+  The loopback tests and a local send test are done; the cross-host run is
+  still open because it needs a firewall rule on the Windows receiver.
 
 ### 4. Keep lab output from CI
 

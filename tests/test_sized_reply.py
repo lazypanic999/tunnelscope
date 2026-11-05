@@ -153,10 +153,33 @@ class SizedReplyProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, str(SIZED_REPLY_MIN_BYTES)):
             probe("127.0.0.1", 9, [32, 64], 1, 1, sized_reply=True)
 
-    @unittest.skipIf(sys.platform.startswith("linux"), "non-Linux behavior")
-    def test_receiver_sized_reply_requires_linux(self):
-        with self.assertRaisesRegex(ValueError, "requires Linux"):
-            receive("127.0.0.1", 0, 1, 1, sized_reply=True)
+    def test_receiver_sized_reply_refuses_unsupported_platforms(self):
+        from unittest.mock import patch
+        with patch("tunnelscope_core.network.sys.platform", "darwin"):
+            with self.assertRaisesRegex(ValueError, "requires Linux .* or Windows"):
+                receive("127.0.0.1", 0, 1, 1, sized_reply=True)
+
+    def test_reply_fragmentation_uses_the_platform_option(self):
+        from unittest.mock import Mock, patch
+        from tunnelscope_core import network
+        cases = (
+            ("win32", socket.AF_INET, (socket.IPPROTO_IP, 14, 1), "disabled: Windows IP_DONTFRAGMENT"),
+            ("win32", socket.AF_INET6, (socket.IPPROTO_IPV6, 14, 1), "disabled: Windows IPV6_DONTFRAG"),
+            ("linux", socket.AF_INET, (socket.IPPROTO_IP, network.IP_MTU_DISCOVER, network.IP_PMTUDISC_DO),
+             "disabled: Linux IP_PMTUDISC_DO"),
+            ("linux", socket.AF_INET6, (socket.IPPROTO_IPV6, network.IPV6_DONTFRAG, 1),
+             "disabled: Linux IPV6_DONTFRAG"),
+        )
+        for platform, family, option, label in cases:
+            with self.subTest(platform=platform, family=family):
+                sock = Mock(family=family)
+                with patch.object(network.sys, "platform", platform):
+                    self.assertEqual(network.disable_reply_fragmentation(sock), label)
+                sock.setsockopt.assert_called_once_with(*option)
+        failing = Mock(family=socket.AF_INET)
+        failing.setsockopt.side_effect = OSError(10042, "option not supported")
+        with patch.object(network.sys, "platform", "win32"), self.assertRaises(OSError):
+            network.disable_reply_fragmentation(failing)
 
     def test_v07_sender_with_receiver_without_sized_reply_gets_small_ack(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -172,7 +195,8 @@ class SizedReplyProtocolTests(unittest.TestCase):
         self.assertEqual([row["reply_bytes"] for row in observations], [HEADER.size] * 2)
         self.assertNotIn("reply_kind", observations[0])
 
-    @unittest.skipUnless(sys.platform.startswith("linux"), "receiver --sized-reply requires Linux")
+    @unittest.skipUnless(sys.platform.startswith("linux") or sys.platform == "win32",
+                         "receiver --sized-reply requires Linux or Windows")
     def test_real_receiver_sends_sized_replies_only_when_requested(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "receiver.json"
@@ -188,6 +212,7 @@ class SizedReplyProtocolTests(unittest.TestCase):
         self.assertEqual([row["reply_bytes"] for row in sized["results"]], [64, 1400, 8192])
         self.assertEqual(plain["results"][0]["status"], "acknowledged")
         self.assertTrue(receiver["receiver"]["sized_reply"])
+        self.assertTrue(receiver["receiver"]["reply_fragmentation"].startswith("disabled: "))
         self.assertEqual([row.get("reply_kind") for row in receiver["observations"]], ["sized"] * 3 + [None])
         self.assertEqual([row["reply_bytes"] for row in receiver["observations"]], [64, 1400, 8192, HEADER.size])
         self.assertIn("sized replies enabled", format_report(receiver))

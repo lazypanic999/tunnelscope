@@ -30,6 +30,9 @@ IP_PMTUDISC_DONT = getattr(socket, "IP_PMTUDISC_DONT", 0)
 IP_MTU = getattr(socket, "IP_MTU", 14)
 IPV6_DONTFRAG = getattr(socket, "IPV6_DONTFRAG", 62)
 IPV6_MTU = getattr(socket, "IPV6_MTU", 24)
+# Winsock values (ws2ipdef.h); Python does not export IP_DONTFRAGMENT on Windows.
+WINDOWS_IP_DONTFRAGMENT = 14
+WINDOWS_IPV6_DONTFRAG = 14
 SIOCGIFADDR = 0x8915
 SIOCGIFMTU = 0x8921
 
@@ -92,9 +95,25 @@ def sized_reply_for(data):
     return reply + bytes(len(data) - len(reply))
 
 
+def disable_reply_fragmentation(sock):
+    """Make oversized sized replies fail instead of being fragmented; return how it was done."""
+    if sys.platform.startswith("linux"):
+        configure_fragmentation(sock, True)
+        return ("disabled: Linux IPV6_DONTFRAG" if sock.family == socket.AF_INET6
+                else "disabled: Linux IP_PMTUDISC_DO")
+    if sys.platform == "win32":
+        # Fail the receiver if the option cannot be set; never fall back.
+        if sock.family == socket.AF_INET6:
+            sock.setsockopt(socket.IPPROTO_IPV6, WINDOWS_IPV6_DONTFRAG, 1)
+            return "disabled: Windows IPV6_DONTFRAG"
+        sock.setsockopt(socket.IPPROTO_IP, WINDOWS_IP_DONTFRAGMENT, 1)
+        return "disabled: Windows IP_DONTFRAGMENT"
+    raise ValueError("--sized-reply currently requires Linux (including WSL2) or Windows")
+
+
 def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False):
-    if sized_reply and not sys.platform.startswith("linux"):
-        raise ValueError("--sized-reply currently requires Linux (including WSL2)")
+    if sized_reply and not (sys.platform.startswith("linux") or sys.platform == "win32"):
+        raise ValueError("--sized-reply currently requires Linux (including WSL2) or Windows")
     observations = []
     exit_reason = "max_packets"
     address_family, bind_address = udp_address(bind, port, family)
@@ -104,9 +123,10 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
     with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
         if address_family == socket.AF_INET6:
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        reply_fragmentation = None
         if sized_reply:
             # Oversized replies must fail visibly instead of being fragmented.
-            configure_fragmentation(sock, True)
+            reply_fragmentation = disable_reply_fragmentation(sock)
         sock.bind(bind_address)
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
@@ -157,7 +177,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     "kind": "receiver_observations",
                     "receiver": {f"bind_{address_key}": sock.getsockname()[0],
                                  "port": sock.getsockname()[1],
-                                 **({"sized_reply": True} if sized_reply else {})},
+                                 **({"sized_reply": True, "reply_fragmentation": reply_fragmentation}
+                                    if sized_reply else {})},
                     "started_at_utc": started_at_utc,
                     "finished_at_utc": utc_now(),
                     "exit_reason": exit_reason,

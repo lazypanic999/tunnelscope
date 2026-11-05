@@ -25,7 +25,7 @@ outside contributions easy to collect and to close those two coverage gaps.
   [#1](https://github.com/lazypanic999/tunnelscope/issues/1) and
   [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
 
-### 2. IPv6 return-path lab
+### 2. IPv6 return-path lab: implemented
 
 - Extend `labs/asymmetric_return.py` (or add an IPv6 variant) so the return
   link has a lower IPv6 MTU. The sized-reply probe should show arrival with
@@ -43,7 +43,7 @@ outside contributions easy to collect and to close those two coverage gaps.
 - Validation: loopback tests in the Windows CI job, plus one manual
   Windows-receiver run against a Linux sender documented as a record.
 
-### 4. Keep lab output from CI
+### 4. Keep lab output from CI: implemented
 
 - Upload the JSON printed by the privileged namespace labs as a workflow
   artifact, so validation records can cite a specific CI run and its data,

@@ -140,6 +140,8 @@ def main():
     search.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     search.add_argument("--output", type=Path)
     search.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
+    search.add_argument("--sized-reply", action="store_true",
+                        help="request same-sized replies; acknowledged then means both directions carried the size")
     comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
     comparison.add_argument("host")
     comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
@@ -151,6 +153,7 @@ def main():
     comparison.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     comparison.add_argument("--output", type=Path)
     comparison.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
+    comparison.add_argument("--sized-reply", action="store_true", help="request same-sized replies in both runs")
     diagnosis_command = commands.add_parser("diagnose", help="run one bounded Linux sender-side diagnostic workflow")
     diagnosis_command.add_argument("host")
     diagnosis_command.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
@@ -162,6 +165,8 @@ def main():
     diagnosis_command.add_argument("--timeout", type=bounded_int(1, 5), default=1)
     diagnosis_command.add_argument("--output", type=Path, required=True, help="new JSON report path")
     diagnosis_command.add_argument("--html", type=Path, help="new HTML report path (default: JSON stem with .html)")
+    diagnosis_command.add_argument("--sized-reply", action="store_true",
+                                   help="request same-sized replies in all three runs")
     combined = commands.add_parser("combine", help="combine two independently measured directions")
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
@@ -197,13 +202,13 @@ def main():
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
                            args.family, (args.minimum, args.maximum), args.max_sizes,
-                           observe_icmp=args.observe_icmp)
+                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
         elif args.command == "compare-fragmentation":
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = compare_fragmentation(args.host, args.port,
                                            sizes if sizes is not None else [64, 1200, 1400],
                                            args.count, args.timeout, args.family,
-                                           observe_icmp=args.observe_icmp)
+                                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
         elif args.command == "diagnose":
             if args.output.suffix.lower() != ".json":
                 raise ValueError("--output must name a .json file")
@@ -216,7 +221,8 @@ def main():
                 if not path.parent.is_dir():
                     raise ValueError(f"output directory does not exist: {path.parent}")
             report = diagnose(args.host, args.port, args.minimum, args.maximum,
-                              args.count, args.timeout, args.max_sizes, args.family)
+                              args.count, args.timeout, args.max_sizes, args.family,
+                              sized_reply=args.sized_reply)
             from tunnelscope_view import render_report_html
             rendered_html = render_report_html(report)
             args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

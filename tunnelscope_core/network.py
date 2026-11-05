@@ -356,7 +356,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
 
 
 def compare_fragmentation(host, port, sizes, count, timeout, family="auto",
-                          observe_icmp=False):
+                          observe_icmp=False, sized_reply=False):
     """Measure each configured size with DF and source fragmentation permitted."""
     require_df_support(True)
     sizes = list(sizes)
@@ -369,8 +369,8 @@ def compare_fragmentation(host, port, sizes, count, timeout, family="auto",
     if 2 * len(sizes) * count > 100 or 2 * len(sizes) * count * timeout > 120:
         raise ValueError("comparison budget exceeds 100 probes or 120 seconds of timeout allowance")
     df = probe(host, port, sizes, count, timeout, True, family,
-               observe_icmp=observe_icmp)
+               observe_icmp=observe_icmp, sized_reply=sized_reply)
     permitted = probe(host, port, sizes, count, timeout, False, family,
-                      allow_fragmentation=True, observe_icmp=observe_icmp)
+                      allow_fragmentation=True, observe_icmp=observe_icmp, sized_reply=sized_reply)
     from .fragmentation import compare_fragmentation_reports
     return compare_fragmentation_reports(df, permitted)

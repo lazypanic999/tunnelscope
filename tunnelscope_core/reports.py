@@ -334,7 +334,12 @@ def format_report(report):
                 f"attempts: {summary.get('attempts', '?')}; ICMP size feedback events: {summary.get('icmp_size_feedback_events', '?')}."
                 f"\nTarget check: {consistency.get('search_target_check', 'unknown')}; "
                 f"source check: {consistency.get('search_source_check', 'unknown')}."
-                "\nRuns were sequential. This is not a two-way test or a proven path MTU.")
+                + (f"\nSame-sized replies: {summary['return'].get('sized_reply_received', 0)} received, "
+                   f"{summary['return'].get('small_ack_only', 0)} small ACK only, {summary['return'].get('no_reply', 0)} no reply. "
+                   "Acknowledged sizes crossed both directions; the interval reflects the smaller direction."
+                   if isinstance(summary.get("return"), dict) else "") +
+                ("\nRuns were sequential. This is not a proven path MTU." if isinstance(summary.get("return"), dict) else
+                 "\nRuns were sequential. This is not a two-way test or a proven path MTU."))
         evidence = report.get("receiver_evidence")
         if isinstance(evidence, dict):
             receiver_summary = evidence.get("summary")
@@ -344,6 +349,9 @@ def format_report(report):
                      f"{receiver_summary.get('sent_probes', '?')} attempts; "
                      f"other run observations: {receiver_summary.get('unassigned_receiver_observations', '?')}."
                      " Missing receiver observations remain inconclusive without verified capture coverage.")
+            if "sized_reply_missing_after_arrival" in receiver_summary:
+                text += (f"\nSized replies missing after arrival: {receiver_summary['sized_reply_missing_after_arrival']}; "
+                         f"rejected by the receiver socket: {receiver_summary.get('receiver_reply_send_failed', 0)}.")
         return text
     if kind == "probe":
         summary = report.get("summary")

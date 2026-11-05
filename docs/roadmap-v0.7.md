@@ -1,8 +1,8 @@
 # v0.7 plan: reverse-path size evidence and shareable field reports
 
 Status: **in progress**. Report sanitization ([guide](sanitize.md)) and
-same-sized replies ([guide](sized-reply.md)) are implemented on `main`; the
-workflow pass-through in item 3 is still proposed. It follows the
+same-sized replies ([guide](sized-reply.md)), including the workflow
+pass-through in item 3, are implemented on `main`; the release is pending. It follows the
 [v0.6 scope](roadmap-v0.6.md) and keeps its rules: measurements stay
 separate from conclusions, a timeout alone is never presented as an MTU
 problem, and an observed payload interval is not an end-to-end path MTU.
@@ -64,10 +64,10 @@ direction at a time. Two gaps remain:
 - Keep the fixed small acknowledgement as the default. Sized replies double
   the bytes on the path, so the documentation must say when to use them.
 
-### 3. Workflow and report updates
+### 3. Workflow and report updates: implemented
 
-- Let `diagnose` pass the sized-reply option through and show forward and
-  return evidence in separate columns of the HTML view.
+- `diagnose`, `search` and `compare-fragmentation` pass `--sized-reply`
+  through; the HTML view adds return evidence next to forward evidence.
 - Show sanitization status in `show` and the HTML header.
 - Update the usage reference, the security boundaries and the README
   evidence table.

@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Install isolated lab dependencies
@@ -35,7 +35,7 @@ jobs:
         run: sudo python3 labs/wireguard_boundary.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/local"
       - name: Validate routed feedback in both directions
         run: sudo python3 labs/wireguard_routed.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/routed"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: wireguard-lab-reports

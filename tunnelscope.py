@@ -16,11 +16,52 @@ from tunnelscope_core.reports import (
     summarize_results, text_table,
 )
 from tunnelscope_core.diagnose import correlate_diagnosis, diagnose
+from tunnelscope_core.sanitize import sanitize_reports
 
 
 def require_distinct_output(output, *inputs):
     if output is not None and any(output.resolve() == source.resolve() for source in inputs):
         raise ValueError("--output must differ from the input report path")
+
+
+def write_sanitized(inputs, output_dir, with_html, keep_timestamps):
+    """Sanitize reports as one batch and write new files without touching the inputs."""
+    if len(inputs) > 32:
+        raise ValueError("sanitize accepts at most 32 reports per batch")
+    if not output_dir.is_dir():
+        raise ValueError(f"output directory does not exist: {output_dir}")
+    resolved_inputs = {path.resolve() for path in inputs}
+    if len(resolved_inputs) != len(inputs):
+        raise ValueError("each input report may be given only once")
+    targets = []
+    for path in inputs:
+        if path.suffix.lower() != ".json":
+            raise ValueError(f"input must be a .json report: {path}")
+        outputs = [output_dir / path.name] + ([output_dir / (path.stem + ".html")] if with_html else [])
+        targets.append(outputs)
+    flat = [target for outputs in targets for target in outputs]
+    if len({target.resolve() for target in flat}) != len(flat):
+        raise ValueError("input reports need distinct file names")
+    for target in flat:
+        if target.resolve() in resolved_inputs:
+            raise ValueError("--output-dir must not contain the input reports")
+        if target.exists():
+            raise ValueError(f"refusing to overwrite existing file: {target}")
+    reports = [json.loads(path.read_text(encoding="utf-8")) for path in inputs]
+    sanitized = sanitize_reports(reports, keep_timestamps)
+    rendered = []
+    if with_html:
+        from tunnelscope_view import render_report_html
+        rendered = [render_report_html(report) for report in sanitized]
+    for index, (report, outputs) in enumerate(zip(sanitized, targets)):
+        outputs[0].write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        if with_html:
+            outputs[1].write_text(rendered[index], encoding="utf-8")
+        print("Wrote " + " and ".join(str(target) for target in outputs))
+    summary = sanitized[0]["sanitization"]
+    print(f"Replaced {summary['replaced_addresses']} addresses, {summary['replaced_interfaces']} interface names "
+          f"and {summary['replaced_hostnames']} hostnames; timestamps {summary['timestamps'].split(';')[0]}.")
+    print("Review the copies before sharing: free-text fields and file names are not guaranteed to be clean.")
 
 
 def bounded_int(low, high):
@@ -128,6 +169,13 @@ def main():
     correlated.add_argument("--html", type=Path, help="also write a local HTML view")
     shown = commands.add_parser("show", help="print a concise summary of a JSON report")
     shown.add_argument("report", type=Path)
+    sanitized = commands.add_parser("sanitize", help="write copies of reports without addresses, interfaces or absolute times")
+    sanitized.add_argument("reports", type=Path, nargs="+",
+                           help="JSON reports sanitized together with one consistent mapping")
+    sanitized.add_argument("--output-dir", type=Path, required=True,
+                           help="existing directory for the sanitized copies (same file names)")
+    sanitized.add_argument("--html", action="store_true", help="also write an HTML view next to each copy")
+    sanitized.add_argument("--keep-timestamps", action="store_true", help="do not shift timestamps")
     html_view = commands.add_parser("html", help="write a searchable local HTML view of a JSON report")
     html_view.add_argument("report", type=Path)
     html_view.add_argument("--output", type=Path, required=True)
@@ -175,8 +223,13 @@ def main():
             a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
             b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
             report = combine_reports(a_to_b, b_to_a)
+        elif args.command == "sanitize":
+            write_sanitized(args.reports, args.output_dir, args.html, args.keep_timestamps)
         elif args.command == "show":
-            print(format_report(json.loads(args.report.read_text(encoding="utf-8"))))
+            shown_report = json.loads(args.report.read_text(encoding="utf-8"))
+            if isinstance(shown_report, dict) and isinstance(shown_report.get("sanitization"), dict):
+                print("Sanitized report: addresses, interfaces, hostnames and absolute times were replaced.")
+            print(format_report(shown_report))
         elif args.command == "html":
             require_distinct_output(args.output, args.report)
             from tunnelscope_view import render_report_html
@@ -206,7 +259,7 @@ def main():
                 from tunnelscope_view import render_report_html
                 html_content = render_report_html(report)
                 args.html.write_text(html_content, encoding="utf-8")
-        if args.command not in ("receive", "show", "html", "diagnose"):
+        if args.command not in ("receive", "show", "html", "diagnose", "sanitize"):
             rendered = json.dumps(report, indent=2)
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")

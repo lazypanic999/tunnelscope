@@ -27,6 +27,8 @@ sizes; it is not an exact path-MTU measurement. See the [size sweep guide](https
 
 ## Probe and report details
 
+Before sharing any report, see [sanitize reports](sanitize.md).
+
 No third-party runtime packages are needed. The commands below also work from
 a source checkout by replacing `tunnelscope` with `python tunnelscope.py`.
 By default, the receiver exits after 100 datagrams or 30 seconds without a

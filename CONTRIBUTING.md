@@ -7,7 +7,8 @@ change so the scope and expected evidence are clear.
 ## Report a problem
 
 Include the TunnelScope version, Python version, OS, command line, expected
-behavior and actual behavior. Attach a small, sanitized JSON report when useful.
+behavior and actual behavior. Attach a small, sanitized JSON report when useful; see
+[docs/sanitize.md](docs/sanitize.md).
 Do not post credentials, real packet captures or private network details.
 For a security issue, follow [SECURITY.md](SECURITY.md) instead.
 

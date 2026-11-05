@@ -24,7 +24,8 @@ traffic are under your control. It is not a public UDP service.
   of service defense against traffic from untrusted hosts.
 - JSON and generated HTML can contain IP addresses, timestamps and other
   report fields. The HTML embeds the full JSON. Sanitize either file before
-  sharing it.
+  sharing it; [`tunnelscope sanitize`](sanitize.md) replaces addresses,
+  interface names and absolute times, but review the copies before sharing.
 
 ## Safe operating pattern
 

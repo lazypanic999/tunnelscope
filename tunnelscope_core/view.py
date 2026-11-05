@@ -54,21 +54,26 @@ def _table_data(report):
             if not isinstance(correlations, dict):
                 raise ValueError("diagnosis has invalid receiver correlations")
             rows = []
+            sized = False
             for name in ("df", "fragmentation_permitted", "size_search"):
                 correlation = correlations.get(name)
                 if not isinstance(correlation, dict):
                     raise ValueError("diagnosis is missing a receiver correlation")
                 for row in _records(correlation.get("results")):
+                    sized = sized or "return_evidence" in row
                     rows.append([name, row.get("probe_id"), row.get("payload_bytes"),
                                  row.get("sender_status"),
                                  "yes" if row.get("receiver_observed") else "no",
                                  row.get("send_attempted_at_utc"),
                                  row.get("receiver_received_at_utc"),
                                  row.get("sender_ack_received_at_utc"),
-                                 row.get("evidence_case")])
+                                 row.get("evidence_case"), row.get("return_evidence")])
+            if not sized:
+                rows = [row[:-1] for row in rows]
             return ["Run", "Probe ID", "Bytes", "Sender status", "Receiver saw",
                     "Send attempted (UTC)", "Receiver received (UTC)",
-                    "Sender ACK received (UTC)", "Evidence case"], rows
+                    "Sender ACK received (UTC)", "Evidence case",
+                    *(["Return evidence"] if sized else [])], rows
         runs = report.get("runs")
         comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
         search = runs.get("size_search") if isinstance(runs, dict) else None
@@ -223,7 +228,12 @@ def render_report_html(report):
     if search_report.get("kind") == "diagnosis":
         consistency = search_report.get("consistency", {})
         summary = search_report.get("summary", {})
+        returns = summary.get("return")
         fields = (("Scope", search_report.get("scope")), ("Attempts", summary.get("attempts")),
+                  *((("Same-sized replies",
+                      f"{returns.get('sized_reply_received', 0)} received, "
+                      f"{returns.get('small_ack_only', 0)} small ACK only, "
+                      f"{returns.get('no_reply', 0)} no reply"),) if isinstance(returns, dict) else ()),
                   ("ICMP size feedback events", summary.get("icmp_size_feedback_events")),
                   ("Target check", consistency.get("search_target_check")),
                   ("Source check", consistency.get("search_source_check")))

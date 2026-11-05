@@ -252,5 +252,104 @@ class SizedReplyCorrelationTests(unittest.TestCase):
         self.assertIn("Sized replies missing after arrival", tunnelscope.format_report(report))
 
 
+class SizedReplyDiagnosisTests(unittest.TestCase):
+    TARGET = {"ipv4": "198.51.100.2", "port": 9471}
+    SOURCE = {"ipv4": "192.0.2.1", "interface": "ts-a"}
+
+    def run_report(self, run_id, rows, dont_fragment=True, sized=True):
+        settings = {"payload_sizes": sorted({size for size, _, _ in rows}), "count": 1, "timeout_seconds": 1,
+                    "dont_fragment": dont_fragment, **({"sized_reply": True} if sized else {})}
+        results = [{"probe_id": f"{run_id[0]}{index:031x}", "payload_bytes": size, "status": status,
+                    **({"return_status": returned} if sized else {})}
+                   for index, (size, status, returned) in enumerate(rows)]
+        return {"schema_version": 1, "kind": "probe", "run_id": run_id, "target": self.TARGET,
+                "source": self.SOURCE, "settings": settings,
+                "fragmentation_mode": "df" if dont_fragment else "permitted",
+                "summary": {"by_payload_size": tunnelscope.summarize_results(settings["payload_sizes"], results),
+                            "icmp_feedback": {"size_feedback_events": 0}},
+                "results": results}
+
+    def diagnosis(self, search_sized=True):
+        from tunnelscope_core.diagnose import build_diagnosis
+        from tunnelscope_core.fragmentation import compare_fragmentation_reports
+        rows = [(1200, "acknowledged", "sized_reply_received"), (1400, "timeout", "no_reply")]
+        comparison = compare_fragmentation_reports(self.run_report("a" * 16, rows),
+                                                   self.run_report("b" * 16, rows, dont_fragment=False))
+        search = self.run_report("c" * 16, [(1300, "timeout", "no_reply")], sized=search_sized)
+        search["summary"]["search"] = {"assessment": "inconclusive", "observed_interval_payload_bytes": None}
+        return build_diagnosis(comparison, search)
+
+    def test_diagnosis_summarizes_returns_and_states_meaning(self):
+        report = self.diagnosis()
+        self.assertTrue(report["settings"]["sized_reply"])
+        self.assertEqual(report["summary"]["return"],
+                         {"sized_reply_received": 2, "small_ack_only": 0, "no_reply": 3})
+        self.assertIn("both directions", report["interpretation"])
+        comparison = report["runs"]["fragmentation_comparison"]
+        self.assertTrue(comparison["settings"]["sized_reply"])
+        self.assertEqual(comparison["comparison"]["by_payload_size"][0]["df"]["return_status_counts"],
+                         {"sized_reply_received": 1, "small_ack_only": 0, "no_reply": 0})
+        text = format_report(report)
+        self.assertIn("Same-sized replies: 2 received, 0 small ACK only, 3 no reply", text)
+        self.assertNotIn("not a two-way test", text)
+        self.assertIn("Same-sized replies", render_report_html(report))
+
+    def test_runs_must_agree_about_sized_replies(self):
+        with self.assertRaisesRegex(ValueError, "disagree about sized replies"):
+            self.diagnosis(search_sized=False)
+        from tunnelscope_core.fragmentation import compare_fragmentation_reports
+        rows = [(1200, "acknowledged", "sized_reply_received")]
+        with self.assertRaisesRegex(ValueError, "sized_reply"):
+            compare_fragmentation_reports(self.run_report("a" * 16, rows),
+                                          self.run_report("b" * 16, rows, dont_fragment=False, sized=False))
+
+    def test_receiver_evidence_counts_missing_replies_across_runs(self):
+        from tunnelscope_core.diagnose import correlate_diagnosis
+        report = self.diagnosis()
+        runs = report["runs"]["fragmentation_comparison"]["runs"]
+        observations = [
+            {"probe_id": row["probe_id"], "run_id": run["run_id"], "payload_bytes": row["payload_bytes"],
+             "reply_kind": "sized", "reply_bytes": row["payload_bytes"], "ack_send_status": "sent"}
+            for run in (runs["df"], runs["fragmentation_permitted"], report["runs"]["size_search"])
+            for row in run["results"]
+        ]
+        receiver = {"schema_version": 1, "kind": "receiver_observations", "exit_reason": "idle_timeout",
+                    "receiver": {"bind_ipv4": "198.51.100.2", "port": 9471, "sized_reply": True},
+                    "observations": observations}
+        joined = correlate_diagnosis(report, receiver)
+        self.assertEqual(joined["receiver_evidence"]["summary"]["sized_reply_missing_after_arrival"], 3)
+        self.assertEqual(joined["receiver_evidence"]["summary"]["receiver_reply_send_failed"], 0)
+        self.assertIn("Sized replies missing after arrival: 3", format_report(joined))
+        self.assertIn("Return evidence", render_report_html(joined))
+
+    def test_diagnose_passes_sized_reply_to_every_run(self):
+        from unittest.mock import patch
+        from tunnelscope_core import diagnose as module
+        report = self.diagnosis()
+        with patch.object(module, "require_df_support"), patch.object(module, "require_icmp_support"), \
+                patch.object(module, "compare_fragmentation",
+                             return_value=report["runs"]["fragmentation_comparison"]) as compare, \
+                patch.object(module, "probe", return_value=report["runs"]["size_search"]) as search:
+            module.diagnose("198.51.100.2", 9471, 1200, 1400, count=1, sized_reply=True)
+            with self.assertRaisesRegex(ValueError, "--min of at least"):
+                module.diagnose("198.51.100.2", 9471, 32, 1400, count=1, sized_reply=True)
+        self.assertTrue(compare.call_args.kwargs["sized_reply"])
+        self.assertTrue(search.call_args.kwargs["sized_reply"])
+        self.assertEqual(compare.call_count, 1)
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "diagnose and receive --sized-reply require Linux")
+    def test_real_diagnose_with_sized_replies_on_loopback(self):
+        from tunnelscope_core.diagnose import diagnose
+        process, port = start_receiver("--sized-reply", "--max-packets", "8")
+        try:
+            report = diagnose("127.0.0.1", port, 1200, 1400, count=1, max_sizes=2, sized_reply=True)
+            self.assertEqual(process.wait(timeout=8), 0)
+        finally:
+            stop(process)
+        self.assertEqual(report["summary"]["return"],
+                         {"sized_reply_received": 8, "small_ack_only": 0, "no_reply": 0})
+        self.assertEqual(report["summary"]["search"]["assessment"], "no_explicit_bracket")
+
+
 if __name__ == "__main__":
     unittest.main()

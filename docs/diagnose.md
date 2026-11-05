@@ -32,7 +32,9 @@ an interval of UDP payload sizes under these conditions, **not** a verified
 path MTU. Missing ACKs and absent ICMP are inconclusive. ICMP feedback may be
 spoofed. Permitting source fragmentation does not prove fragments traversed
 the path. The receiver's small ACK cannot establish same-sized return-path
-delivery. Route and PMTU-cache changes between sequential runs can affect the
+delivery; with `--sized-reply` on both sides, an acknowledged attempt covers
+both directions and the interval reflects the smaller one (see
+[sized replies](sized-reply.md)). Route and PMTU-cache changes between sequential runs can affect the
 comparison.
 
 To join receiver observations after the capture ends, give the diagnosis and

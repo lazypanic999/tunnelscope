@@ -68,7 +68,11 @@ A sized-reply run that received only same-sized replies no longer lists
 - On Linux the receiver sends sized replies with fragmentation disabled, so
   an oversized reply fails instead of being fragmented. Other platforms do
   not support `receive --sized-reply` yet; the sender works anywhere.
-- `diagnose` and `search` do not pass `--sized-reply` through yet.
+- `search`, `compare-fragmentation` and `diagnose` also accept
+  `--sized-reply`. There an acknowledged attempt means the size crossed both
+  directions, so a search interval reflects the smaller of the two. A
+  diagnosis adds `summary.return` with the three counts, and its joined
+  receiver evidence counts missing and rejected sized replies across runs.
 
 ## Controlled validation
 

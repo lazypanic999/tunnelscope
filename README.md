@@ -6,7 +6,7 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.7.1 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.7.1/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.7.1) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.8.0 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.0/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.0) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
@@ -34,7 +34,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.7.1
+python -m pip install tunnelscope==0.8.0
 ```
 
 In terminal 1, start the loopback receiver:

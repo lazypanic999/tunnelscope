@@ -15,7 +15,7 @@ from pathlib import Path
 from .icmp import drain_error_queue, enable_error_queue, require_icmp_support
 
 MAGIC = b"TS01"
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # v0.7: a probe asks for a same-sized reply with this marker after its run ID.

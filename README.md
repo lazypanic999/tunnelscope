@@ -6,22 +6,25 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.8.0 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.0/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.0) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.8.1 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.1/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.1) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
 size errors, timeouts and optional Linux ICMP feedback. Join both endpoints'
-logs by probe ID and browse the evidence in an offline HTML report.
+logs by probe ID and browse the evidence in an offline HTML report. With
+`--sized-reply`, a Linux or Windows receiver answers with replies of the
+probe's own size, so one run also tests the return direction.
 
 ![tunnelscope show output: 64- and 1200-byte probes return same-sized replies; 1400-byte probes reach the receiver but their replies are lost or rejected](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-terminal.png)
 
-![HTML report of the same sized-reply run: return status and reply bytes for each attempt](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-report.png)
+![HTML view of the same run after joining the receiver log: each probe arrived; the 1400-byte replies were lost or rejected](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-report.png)
 
 Real output from the [asymmetric return-path lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md),
 recorded on 2026-11-05 in Ubuntu under WSL2 with v0.7.0. Return traffic
 crosses a 1280-byte link: 1400-byte probes **arrive**, but their same-sized
 replies do not come back, while an ordinary 24-byte ACK at 1400 bytes still
-does. The images are rebuilt from the [checked-in report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/asymmetric-return-v07.json)
+does. The same lab also runs over [IPv6](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md#ipv6)
+with the same result. The images are rebuilt from the [checked-in report](https://github.com/lazypanic999/tunnelscope/blob/main/examples/asymmetric-return-v07.json)
 by [`scripts/build_v07_images.py`](https://github.com/lazypanic999/tunnelscope/blob/main/scripts/build_v07_images.py). The
 [v0.6 workflow replay](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v06.md) is still available.
 
@@ -34,7 +37,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.8.0
+python -m pip install tunnelscope==0.8.1
 ```
 
 In terminal 1, start the loopback receiver:

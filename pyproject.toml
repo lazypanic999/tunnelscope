@@ -4,22 +4,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tunnelscope"
-version = "0.8.0"
-description = "Evidence-based MTU and packet-size diagnostics for Linux networks"
+version = "0.8.1"
+description = "Evidence-based MTU and packet-size diagnostics for tunnels, VPNs and overlay networks"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-keywords = ["network", "mtu", "pmtu", "diagnostics"]
+keywords = ["network", "mtu", "pmtu", "diagnostics", "udp", "vpn", "wireguard", "kubernetes", "ipv6", "troubleshooting"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "Intended Audience :: Telecommunications Industry",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Networking",
+  "Topic :: System :: Networking :: Monitoring",
 ]
 
 [project.urls]
+Homepage = "https://github.com/lazypanic999/tunnelscope"
 Repository = "https://github.com/lazypanic999/tunnelscope"
+Documentation = "https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md"
+Issues = "https://github.com/lazypanic999/tunnelscope/issues"
+Changelog = "https://github.com/lazypanic999/tunnelscope/releases"
 
 [project.scripts]
 tunnelscope = "tunnelscope:main"

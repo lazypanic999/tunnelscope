@@ -4,12 +4,41 @@ import base64
 from html import escape
 from importlib.resources import files
 import json
+import re
 
 from .reports import no_ack_measurement, no_ack_text
 
 
 def _cell(value):
     return "—" if value is None else str(value)
+
+
+PROBE_ID = re.compile(r"^[0-9a-f]{32}$")
+TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2}:\d{2}(?:\.\d{3})?)\d*(?:Z|[+-]\d{2}:\d{2})$")
+
+
+def _short(value):
+    """Return a compact display text for long identifiers and timestamps, or None to show the value as is."""
+    if not isinstance(value, str):
+        return None
+    if PROBE_ID.match(value):
+        return value[:8] + "…"
+    match = TIMESTAMP.match(value)
+    return match.group(1) if match else None
+
+
+def _td(value):
+    short = _short(value)
+    if short is None:
+        return f"<td>{escape(_cell(value))}</td>"
+    return f"<td title='{escape(value)}'>{escape(short)}</td>"
+
+
+def _row(row):
+    # Full values stay searchable even where the cell shows a shortened form.
+    full = " ".join(str(value) for value in row if _short(value) is not None)
+    attribute = f" data-search='{escape(full)}'" if full else ""
+    return f"<tr{attribute}>" + "".join(_td(value) for value in row) + "</tr>"
 
 
 def _logo_data_uri():
@@ -61,19 +90,18 @@ def _table_data(report):
                     raise ValueError("diagnosis is missing a receiver correlation")
                 for row in _records(correlation.get("results")):
                     sized = sized or "return_evidence" in row
-                    rows.append([name, row.get("probe_id"), row.get("payload_bytes"),
-                                 row.get("sender_status"),
+                    rows.append([name, row.get("payload_bytes"), row.get("sender_status"),
                                  "yes" if row.get("receiver_observed") else "no",
-                                 row.get("send_attempted_at_utc"),
+                                 row.get("evidence_case"), row.get("return_evidence"),
+                                 row.get("probe_id"), row.get("send_attempted_at_utc"),
                                  row.get("receiver_received_at_utc"),
-                                 row.get("sender_ack_received_at_utc"),
-                                 row.get("evidence_case"), row.get("return_evidence")])
+                                 row.get("sender_ack_received_at_utc")])
             if not sized:
-                rows = [row[:-1] for row in rows]
-            return ["Run", "Probe ID", "Bytes", "Sender status", "Receiver saw",
+                rows = [row[:5] + row[6:] for row in rows]
+            return ["Run", "Bytes", "Sender status", "Receiver saw", "Evidence case",
+                    *(["Return evidence"] if sized else []), "Probe ID",
                     "Send attempted (UTC)", "Receiver received (UTC)",
-                    "Sender ACK received (UTC)", "Evidence case",
-                    *(["Return evidence"] if sized else [])], rows
+                    "Sender ACK received (UTC)"], rows
         runs = report.get("runs")
         comparison = runs.get("fragmentation_comparison") if isinstance(runs, dict) else None
         search = runs.get("size_search") if isinstance(runs, dict) else None
@@ -111,15 +139,14 @@ def _table_data(report):
     if kind == "probe_receiver_correlation":
         rows = _records(report.get("results"))
         sized = any("return_evidence" in row for row in rows)
-        return ["Probe ID", "Direction", "Bytes", "Send attempted (UTC)", "Receiver saw",
-                "Receiver received (UTC)", "ACK send", "Sender ACK received (UTC)",
-                "Sender status", "Evidence case", *(["Return evidence"] if sized else [])], [
-            [row.get("probe_id"), row.get("direction"), row.get("payload_bytes"),
-             row.get("send_attempted_at_utc"),
-             "yes" if row.get("receiver_observed") else "no",
-             row.get("receiver_received_at_utc"), row.get("ack_send_status"),
-             row.get("sender_ack_received_at_utc"), row.get("sender_status"),
-             row.get("evidence_case"), *([row.get("return_evidence")] if sized else [])]
+        return ["Bytes", "Sender status", "Receiver saw", "Evidence case",
+                *(["Return evidence"] if sized else []), "ACK send", "Probe ID", "Direction",
+                "Send attempted (UTC)", "Receiver received (UTC)", "Sender ACK received (UTC)"], [
+            [row.get("payload_bytes"), row.get("sender_status"),
+             "yes" if row.get("receiver_observed") else "no", row.get("evidence_case"),
+             *([row.get("return_evidence")] if sized else []), row.get("ack_send_status"),
+             row.get("probe_id"), row.get("direction"), row.get("send_attempted_at_utc"),
+             row.get("receiver_received_at_utc"), row.get("sender_ack_received_at_utc")]
             for row in rows
         ]
     if kind == "bidirectional_comparison":
@@ -189,8 +216,7 @@ def render_report_html(report):
     else:
         raise ValueError("expected a schema_version 1 TunnelScope report")
     header_html = "".join(f"<th scope='col'>{escape(label)}</th>" for label in headers)
-    row_html = "".join("<tr>" + "".join(f"<td>{escape(_cell(value))}</td>" for value in row) + "</tr>"
-                       for row in rows)
+    row_html = "".join(_row(row) for row in rows)
     if not rows:
         row_html = f"<tr class='empty-report'><td colspan='{len(headers)}'>No observations in this report.</td></tr>"
     raw_json = escape(json.dumps(report, indent=2, ensure_ascii=False))
@@ -296,7 +322,7 @@ def render_report_html(report):
 <title>TunnelScope · {safe_title}</title>
 <style>
 :root {{ color-scheme: dark; font-family: system-ui, sans-serif; background: #090f22; color: #eef4ff; }}
-body {{ max-width: 1100px; margin: 0 auto; padding: 24px; }}
+body {{ max-width: 1400px; margin: 0 auto; padding: 24px; }}
 header {{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }}
 header .mark {{ width:64px; height:64px; border-radius:14px; flex:0 0 64px;
 background: #0a1024 url('{logo_data_uri}') center / 180px auto no-repeat; }}
@@ -305,10 +331,11 @@ main {{ background:#101a33; border:1px solid #274473; border-radius:16px; paddin
 input {{ box-sizing:border-box; width:100%; padding:12px; margin:8px 0 18px; color:inherit;
 background:#0b1430; border:1px solid #4269af; border-radius:8px; font:inherit; }}
 #match-count {{ display:block; color:#9eb5d8; margin-bottom:8px; }}
+.hint {{ color:#9eb5d8; font-size:.85rem; margin:0 0 10px; }}
 #no-matches[hidden] {{ display:none; }}
 .scroll {{ overflow-x:auto; }} table {{ width:100%; border-collapse:collapse; }}
 th,td {{ padding:10px 12px; border-bottom:1px solid #273a61; text-align:left; white-space:nowrap; }}
-th {{ color:#9dc4ff; }} tr:hover td {{ background:#17264a; }}
+th {{ color:#9dc4ff; }} tr:hover td {{ background:#17264a; }} td[title] {{ cursor:help; }}
 details {{ margin-top:24px; }} summary {{ cursor:pointer; color:#9dc4ff; }}
 .search-summary {{ border:1px solid #4269af; border-radius:10px; padding:12px 18px; margin-bottom:18px; }}
 .search-summary h2 {{ margin:0 0 8px; font-size:1.2rem; }}
@@ -321,6 +348,7 @@ footer {{ margin-top:20px; color:#9eb5d8; font-size:.9rem; }}
 <div><h1>TunnelScope</h1><small>{safe_title} · local report view</small></div></header>
 <main>{search_html}{measurement_html}<label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
 <output id="match-count" role="status" aria-live="polite">Showing {row_count} of {row_count} rows</output>
+<p class="hint">Probe IDs show their first 8 characters and timestamps their UTC time of day; hover a cell for the full value. Search matches full values.</p>
 <div class="scroll"><table><thead><tr>{header_html}</tr></thead><tbody>{row_html}</tbody></table></div>
 <p id="no-matches" hidden>No matching rows.</p>
 <details><summary>Raw JSON evidence</summary><pre>{raw_json}</pre></details></main>
@@ -330,7 +358,7 @@ const resultRows=[...document.querySelectorAll('tbody tr:not(.empty-report)')];
 search.addEventListener('input',()=>{{
 const q=search.value.toLowerCase();let visible=0;
 for(const row of resultRows){{
-row.hidden=!row.textContent.toLowerCase().includes(q);
+row.hidden=!(row.textContent+' '+(row.dataset.search||'')).toLowerCase().includes(q);
 if(!row.hidden)visible++;
 }}
 document.getElementById('match-count').textContent=`Showing ${{visible}} of ${{resultRows.length}} rows`;

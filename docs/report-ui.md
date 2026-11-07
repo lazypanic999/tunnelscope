@@ -23,9 +23,14 @@ In v0.7 and newer, probe and correlation views add return-direction columns
 for `--sized-reply` runs, and sanitized reports show a "Sanitized report"
 section.
 
-![TunnelScope HTML view of a sized-reply probe run from the asymmetric return-path lab](images/v07-report.png)
+From v0.8.1, joined tables put the evidence columns first (sender status,
+receiver observation, evidence case and return evidence) and show probe IDs by
+their first 8 characters and timestamps by their UTC time of day. Hover a cell
+for the full value; the filter also matches full values.
 
-The screenshot is the HTML generated for the sized-reply probe run in
+![TunnelScope HTML view of a joined sized-reply run from the asymmetric return-path lab](images/v07-report.png)
+
+The screenshot is the HTML generated for the joined correlation in
 [`examples/asymmetric-return-v07.json`](../examples/asymmetric-return-v07.json);
 [`scripts/build_v07_images.py`](../scripts/build_v07_images.py) rebuilds it.
 

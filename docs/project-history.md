@@ -38,3 +38,4 @@ evidence and report sanitization; the
 [v0.7.1](releases/v0.7.1.md) fixes `Z`-suffixed timestamps in `sanitize`.
 [v0.8.0](releases/v0.8.0.md) adds Windows receivers for sized replies, an IPv6
 asymmetric lab, CI lab artifacts and a [field report guide](field-reports.md).
+[v0.8.1](releases/v0.8.1.md) makes joined HTML tables readable.

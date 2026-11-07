@@ -6,10 +6,8 @@ Inputs: examples/asymmetric-return-v07.json, the unedited JSON printed by
 - docs/images/v07-terminal.png: the real `tunnelscope show` output for that
   report, rendered as a terminal panel (text is not edited or reordered);
 - docs/images/v07-report.png: a headless-browser screenshot of the real HTML
-  produced by `tunnelscope html` for the lab's sized-reply probe run (the
-  `probe` member of the same report, written out unchanged). The joined
-  correlation table is too wide for one screenshot, so the terminal image
-  shows it instead.
+  produced by `tunnelscope html` for the lab's joined correlation (the
+  `correlation` member of the same report, written out unchanged).
 
 Requires Pillow and Microsoft Edge or Google Chrome. Set TUNNELSCOPE_BROWSER
 to a browser executable to override the search.
@@ -83,7 +81,7 @@ def browser():
 def report_image(html_path, work):
     shot = work / "report-full.png"
     subprocess.run([browser(), "--headless=new", "--disable-gpu", "--hide-scrollbars",
-                    f"--user-data-dir={work / 'profile'}", "--window-size=1400,1400",
+                    f"--user-data-dir={work / 'profile'}", "--window-size=1500,1100",
                     f"--screenshot={shot}", html_path.resolve().as_uri()],
                    check=True, capture_output=True, timeout=60)
     # msedge.exe can hand the work to another process and exit before the file exists.
@@ -102,8 +100,8 @@ def report_image(html_path, work):
     framed = Image.new("RGB", (image.width + 32, image.height + 66), BG)
     framed.paste(image, (16, 16))
     ImageDraw.Draw(framed).text((24, image.height + 28),
-                                "Screenshot of `tunnelscope html` for the lab's sized-reply probe run "
-                                "(the `probe` member of examples/asymmetric-return-v07.json)",
+                                "Screenshot of `tunnelscope html` for the lab's joined correlation "
+                                "(the `correlation` member of examples/asymmetric-return-v07.json)",
                                 fill=MUTED, font=font(15))
     return framed
 
@@ -117,7 +115,7 @@ def main():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
         work = Path(directory)
         probe_path, html_path = work / "probe.json", work / "report.html"
-        probe = json.loads(REPORT.read_text(encoding="utf-8"))["probe"]
+        probe = json.loads(REPORT.read_text(encoding="utf-8"))["correlation"]
         probe_path.write_text(json.dumps(probe, indent=2), encoding="utf-8")
         cli("html", str(probe_path), "--output", str(html_path))
         report_image(html_path, work).save(REPORT_OUT, optimize=True)

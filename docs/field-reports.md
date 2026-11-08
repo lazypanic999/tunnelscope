@@ -25,6 +25,21 @@ restrict its port to the sender. See [security boundaries](security-boundaries.m
   instead (below).
 - UDP port 9471 reachable from the sender to the receiver's address.
 
+### Sender OS × receiver support
+
+| Sender OS (endpoint A) | Sender command | `--sized-reply` receiver OS (endpoint B) | Notes |
+| --- | --- | --- | --- |
+| Linux (including WSL2) | `diagnose` or `probe` | Linux (including WSL2, v0.7.0+) or Windows (v0.8.0+) | `diagnose` and its DF comparison are Linux-only |
+| Windows | `probe` | Linux (including WSL2, v0.7.0+) or Windows (v0.8.0+) | Use explicit `--sizes`; scope inbound UDP 9471 to the sender for the test |
+
+### Operator checklist
+
+- **Authorized path and fresh directory:** Test only networks you own or have permission to test, using a new directory so outputs never collide. Independent VPN, overlay and physical-host paths are separate from controlled lab or single-host VM records.
+- **Bounded receiver first:** Start `tunnelscope receive --sized-reply` on Linux or Windows with `--max-packets` and `--idle-timeout`.
+- **Sender run:** Run `diagnose` from a Linux/WSL2 sender or `probe` from a Windows sender.
+- **Completed capture before copying:** Wait for the receiver process to finish writing `receiver.json` and return to the shell prompt (after packet/timeout limits or a single Ctrl+C) before copying the file.
+- **Same-batch sanitization and manual review:** Run `correlate`, then pass the sender, receiver and correlation JSON files to one `tunnelscope sanitize` invocation so placeholders match across files, and manually read the outputs in `shared/` before attaching them.
+
 Replace `B_IP` below with the receiver's address on the path you are testing.
 
 ## 1. Start the receiver (endpoint B)

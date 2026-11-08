@@ -1,0 +1,56 @@
+name: OpenVPN routed validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'labs/openvpn_routed.py'
+      - 'labs/_routed_feedback.py'
+      - 'tests/test_openvpn.py'
+      - 'tunnelscope.py'
+      - 'tunnelscope_core/**'
+      - '.github/workflows/openvpn-labs.yml'
+  pull_request:
+    paths:
+      - 'labs/openvpn_routed.py'
+      - 'labs/_routed_feedback.py'
+      - 'tests/test_openvpn.py'
+      - 'tunnelscope.py'
+      - 'tunnelscope_core/**'
+      - '.github/workflows/openvpn-labs.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  openvpn:
+    name: OpenVPN (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install lab dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openvpn openssl iproute2 iptables
+          test -c /dev/net/tun
+      - name: Validate routed OpenVPN evidence
+        run: >-
+          sudo env TUNNELSCOPE_RUN_OPENVPN_TESTS=1
+          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-openvpn"
+          "$(command -v python)" -m unittest discover -s tests -p test_openvpn.py -v
+      - name: Keep non-secret lab reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openvpn-lab-python-${{ matrix.python-version }}
+          path: ${{ runner.temp }}/tunnelscope-openvpn/
+          if-no-files-found: ignore
+          retention-days: 90

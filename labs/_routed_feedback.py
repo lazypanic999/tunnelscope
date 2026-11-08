@@ -9,12 +9,14 @@ import sys
 from tunnelscope_core.reports import correlate_reports
 
 
-def run_case(sender, destination, script, directory, label, *, target, sizes, family, search_maximum=1400):
+def run_case(sender, destination, script, directory, label, *, target, sizes, family,
+             search_maximum=1400, sized_reply=False, search=None):
+    reply_options = ["--sized-reply"] if sized_reply else []
     receiver_path = Path(directory) / f"receiver-{label}.json"
     receiver = subprocess.Popen(
         ["ip", "netns", "exec", destination, sys.executable, "-u", script,
          "receive", "--bind", target, "--max-packets", "200", "--idle-timeout", "8",
-         "--output", str(receiver_path)],
+         "--output", str(receiver_path), *reply_options],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
     try:
@@ -27,14 +29,14 @@ def run_case(sender, destination, script, directory, label, *, target, sizes, fa
         command = ["ip", "netns", "exec", sender, sys.executable, script]
         sent = subprocess.run(
             [*command, "probe", target, "--family", family, "--sizes", sizes,
-             "--count", "1", "--timeout", "2", "--dont-fragment", "--observe-icmp"],
+             "--count", "1", "--timeout", "2", "--dont-fragment", "--observe-icmp", *reply_options],
             check=True, capture_output=True, text=True, timeout=15,
         )
         result = {"probe": json.loads(sent.stdout)}
-        if label == "blocked":
+        if search is True or (search is None and label == "blocked"):
             searched = subprocess.run(
                 [*command, "search", target, "--family", family, "--min", "1200",
-                 "--max", str(search_maximum), "--count", "1", "--timeout", "2", "--observe-icmp"],
+                 "--max", str(search_maximum), "--count", "1", "--timeout", "2", "--observe-icmp", *reply_options],
                 check=True, capture_output=True, text=True, timeout=15,
             )
             result["search"] = json.loads(searched.stdout)

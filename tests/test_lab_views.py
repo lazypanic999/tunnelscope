@@ -9,6 +9,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tunnelscope_core.reports import format_report
+from tunnelscope_core.markdown import render_report_markdown
+from tunnelscope_core.view import render_report_html
 
 
 class LabViewTests(unittest.TestCase):
@@ -32,6 +34,16 @@ class LabViewTests(unittest.TestCase):
         self.assertIn("No observations", format_report({"lab": "empty", "cases": {}}))
         with self.assertRaises(ValueError):
             format_report({"lab": "bad", "cases": {"blocked": []}})
+
+    def test_grouped_sized_replies_keep_joined_return_evidence(self):
+        report = json.loads((ROOT / "examples/openvpn-asymmetric-return-v09.json").read_text(encoding="utf-8"))
+        from html import unescape
+        for renderer in (format_report, render_report_html, render_report_markdown):
+            with self.subTest(renderer=renderer.__name__):
+                rendered = unescape(renderer(report))
+                self.assertTrue("Return evidence" in rendered)
+                self.assertTrue("receiver_observed_sized_reply_missing" in rendered)
+                self.assertTrue("receiver_reply_send_failed" in rendered)
 
 
 if __name__ == "__main__":

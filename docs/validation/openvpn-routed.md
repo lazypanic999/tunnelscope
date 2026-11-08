@@ -9,6 +9,11 @@ This is a controlled, single-kernel lab. It adds an actual OpenVPN data path
 to the existing WireGuard evidence; independent operator VPN reports remain
 open in [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
 
+A separate [same-sized return-path experiment](openvpn-asymmetric-return.md)
+compares successful small ACKs with missing larger replies across a lower
+server TUN egress. It uses the same temporary TLS setup and keeps receiver
+arrivals separate from local reply-send failures.
+
 ## Topology
 
 ```text

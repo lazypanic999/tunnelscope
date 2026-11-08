@@ -34,6 +34,9 @@ Controlled [OpenVPN routed validation](validation/openvpn-routed.md) was
 added under [#36](https://github.com/lazypanic999/tunnelscope/issues/36),
 with temporary TLS peers and visible/blocked feedback. This adds lab coverage
 without closing the independent evidence below.
+The [asymmetric OpenVPN return scenario](validation/openvpn-asymmetric-return.md)
+also joins receiver arrivals to missing same-sized replies, including
+separate local send failures, under [#44](https://github.com/lazypanic999/tunnelscope/issues/44).
 
 - Independent VPN evidence: [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
 - A Windows receiver reached from a separate Linux host or VM:

@@ -7,6 +7,7 @@ on:
       - 'labs/openvpn_routed.py'
       - 'labs/_routed_feedback.py'
       - 'tests/test_openvpn.py'
+      - 'scripts/write_lab_manifest.py'
       - 'tunnelscope.py'
       - 'tunnelscope_core/**'
       - '.github/workflows/openvpn-labs.yml'
@@ -15,6 +16,7 @@ on:
       - 'labs/openvpn_routed.py'
       - 'labs/_routed_feedback.py'
       - 'tests/test_openvpn.py'
+      - 'scripts/write_lab_manifest.py'
       - 'tunnelscope.py'
       - 'tunnelscope_core/**'
       - '.github/workflows/openvpn-labs.yml'
@@ -42,10 +44,16 @@ jobs:
           sudo apt-get install -y --no-install-recommends openvpn openssl iproute2 iptables
           test -c /dev/net/tun
       - name: Validate routed OpenVPN evidence
-        run: >-
-          sudo env TUNNELSCOPE_RUN_OPENVPN_TESTS=1
-          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-openvpn"
+        run: |
+          mkdir -p "${{ runner.temp }}/tunnelscope-openvpn"
+          sudo env TUNNELSCOPE_RUN_OPENVPN_TESTS=1 \
+          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-openvpn" \
           "$(command -v python)" -m unittest discover -s tests -p test_openvpn.py -v
+      - name: Record lab artifact provenance
+        if: always()
+        env:
+          TUNNELSCOPE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/write_lab_manifest.py --directory "${{ runner.temp }}/tunnelscope-openvpn"
       - name: Keep non-secret lab reports
         if: always()
         uses: actions/upload-artifact@v7

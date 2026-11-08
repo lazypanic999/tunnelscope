@@ -19,8 +19,9 @@ def version_details(report):
         "diagnosis": (("Comparison input version", "fragmentation_comparison"), ("Search input version", "size_search")),
     }
     inputs = report.get("input_versions")
-    if isinstance(inputs, dict):
-        for label, key in roles.get(report.get("kind"), ()):
+    kind = report.get("kind")
+    if isinstance(inputs, dict) and isinstance(kind, str):
+        for label, key in roles.get(kind, ()):
             value = inputs.get(key)
             fields.append((label, value if isinstance(value, str) and value else "unknown (not recorded)"))
     evidence = report.get("receiver_evidence")

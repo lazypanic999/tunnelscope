@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import errno
 import ipaddress
 import json
+import os
 import secrets
 import socket
 import struct
@@ -208,15 +209,15 @@ def source_snapshot(sock):
         import fcntl
         if sock.family == socket.AF_INET6:
             address = ipaddress.IPv6Address(local[0].split("%")[0])
-            with open("/proc/net/if_inet6", encoding="ascii") as interfaces:
+            with open("/proc/net/if_inet6", "rb") as interfaces:
                 for line in interfaces:
                     encoded, index, _, _, _, name = line.split()
                     if ipaddress.IPv6Address(int(encoded, 16)) == address and (not local[3] or int(index, 16) == local[3]):
-                        source["interface"] = name
+                        source["interface"] = os.fsdecode(name)
                         break
         else:
             for _, name in socket.if_nameindex():
-                request = struct.pack("256s", name.encode())
+                request = struct.pack("256s", os.fsencode(name))
                 try:
                     address = socket.inet_ntoa(fcntl.ioctl(sock.fileno(), SIOCGIFADDR, request)[20:24])
                 except OSError:
@@ -225,7 +226,7 @@ def source_snapshot(sock):
                     source["interface"] = name
                     break
         if "interface" in source:
-            request = struct.pack("256s", source["interface"].encode())
+            request = struct.pack("256s", os.fsencode(source["interface"]))
             try:
                 source["interface_mtu_bytes"] = struct.unpack_from("I", fcntl.ioctl(sock.fileno(), SIOCGIFMTU, request), 16)[0]
             except OSError:

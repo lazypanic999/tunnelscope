@@ -19,6 +19,11 @@ the new renderer and table module. The source JSON remains the full evidence.
 
 ## Validation still needing separate endpoints
 
+Controlled [OpenVPN routed validation](validation/openvpn-routed.md) is also
+being added under [#36](https://github.com/lazypanic999/tunnelscope/issues/36),
+with temporary TLS peers and visible/blocked feedback. This adds lab coverage
+without closing the independent evidence below.
+
 - Independent VPN evidence: [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
 - A Windows receiver reached from a separate Linux host or VM:
   [#28](https://github.com/lazypanic999/tunnelscope/issues/28).

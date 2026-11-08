@@ -368,6 +368,8 @@ def format_report(report):
             raise ValueError("diagnosis needs comparison and search runs")
         consistency = report.get("consistency", {})
         summary = report.get("summary", {})
+        if not isinstance(summary, dict):
+            raise ValueError("invalid diagnosis summary")
         search_summary = summary.get("search", {})
         if not all(isinstance(item, dict) for item in (consistency, summary, search_summary)):
             raise ValueError("invalid diagnosis summary")

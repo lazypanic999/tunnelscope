@@ -9,6 +9,8 @@ Collect sender and receiver evidence when packet size affects delivery.
 **v0.9.0 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.9.0/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.9.0) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 v0.9 adds [Markdown evidence export](https://github.com/lazypanic999/tunnelscope/blob/main/docs/markdown-reports.md).
+Watch the [30-second recorded evidence replay](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v09.md)
+for the OpenVPN return-path example and report-sharing steps.
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit

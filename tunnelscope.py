@@ -20,6 +20,17 @@ from tunnelscope_core.diagnose import correlate_diagnosis, diagnose
 from tunnelscope_core.sanitize import sanitize_reports
 
 
+def read_report(path):
+    """Read JSON including BOM-marked PowerShell exports; keep errors contextual."""
+    try:
+        report = json.loads(path.read_bytes())
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"invalid JSON report {path}: {error}") from error
+    if not isinstance(report, dict):
+        raise ValueError(f"expected a TunnelScope JSON object in {path}")
+    return report
+
+
 def require_distinct_output(output, *inputs):
     if output is not None and any(output.resolve() == source.resolve() for source in inputs):
         raise ValueError("--output must differ from the input report path")
@@ -58,7 +69,7 @@ def write_sanitized(inputs, output_dir, with_html, keep_timestamps):
             raise ValueError("--output-dir must not contain the input reports")
         if target.exists():
             raise ValueError(f"refusing to overwrite existing file: {target}")
-    reports = [json.loads(path.read_text(encoding="utf-8")) for path in inputs]
+    reports = [read_report(path) for path in inputs]
     sanitized = sanitize_reports(reports, keep_timestamps)
     rendered = []
     if with_html:
@@ -245,13 +256,13 @@ def main():
             print(f"Wrote {args.output} and {html_path}")
         elif args.command == "combine":
             require_distinct_output(args.output, args.a_to_b, args.b_to_a)
-            a_to_b = json.loads(args.a_to_b.read_text(encoding="utf-8"))
-            b_to_a = json.loads(args.b_to_a.read_text(encoding="utf-8"))
+            a_to_b = read_report(args.a_to_b)
+            b_to_a = read_report(args.b_to_a)
             report = combine_reports(a_to_b, b_to_a)
         elif args.command == "sanitize":
             write_sanitized(args.reports, args.output_dir, args.html, args.keep_timestamps)
         elif args.command == "show":
-            shown_report = json.loads(args.report.read_text(encoding="utf-8"))
+            shown_report = read_report(args.report)
             if args.format == "markdown":
                 from tunnelscope_core.markdown import render_report_markdown
                 print(render_report_markdown(shown_report), end="")
@@ -266,7 +277,7 @@ def main():
             require_distinct_output(args.output, args.report)
             from tunnelscope_view import render_report_html
             args.output.write_text(
-                render_report_html(json.loads(args.report.read_text(encoding="utf-8"))),
+                render_report_html(read_report(args.report)),
                 encoding="utf-8",
             )
             print(f"Wrote {args.output}")
@@ -281,8 +292,8 @@ def main():
                 if args.html.exists():
                     raise ValueError(f"refusing to overwrite existing file: {args.html}")
                 require_output_target(args.html)
-            probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
-            receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
+            probe_report = read_report(args.probe_report)
+            receiver_report = read_report(args.receiver_report)
             report = (correlate_diagnosis(probe_report, receiver_report)
                       if isinstance(probe_report, dict) and probe_report.get("kind") == "diagnosis"
                       else correlate_reports(probe_report, receiver_report))

@@ -71,7 +71,10 @@ def render_report_html(report):
     search = search_report.get("summary") if isinstance(search_report, dict) else None
     search = search.get("search") if isinstance(search, dict) else None
     if search_report.get("kind") == "diagnosis":
-        search = search_report.get("summary", {}).get("search")
+        if not isinstance(search_report.get("summary", {}), dict):
+            raise ValueError("invalid diagnosis summary")
+        if not isinstance(search_report.get("consistency", {}), dict):
+            raise ValueError("invalid diagnosis consistency")
     search_html = ""
     if isinstance(search, dict):
         interval = search.get("observed_interval_payload_bytes")

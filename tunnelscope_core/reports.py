@@ -125,6 +125,8 @@ def return_evidence(row, observation):
         return "no_receiver_observation"
     if observation.get("ack_send_status") == "socket_error":
         return "receiver_reply_send_failed"
+    if observation.get("ack_send_status") != "sent":
+        return "receiver_reply_send_unverified"
     if observation.get("reply_kind") != "sized":
         return "receiver_sent_small_reply"
     return "receiver_observed_sized_reply_missing"
@@ -241,12 +243,16 @@ def correlate_reports(probe_report, receiver_report):
     }
     if sized:
         interpretation += (" With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver"
-                           " sent a same-sized reply that the sender did not receive; it does not identify where it was lost."
-                           " receiver_reply_send_failed means the receiver's own socket rejected the reply.")
+                           " had a same-sized reply accepted by its local socket, but the sender recorded none before its deadline."
+                           " This does not identify where or why the return failed. receiver_reply_send_failed means the"
+                           " receiver's own socket rejected the attempted reply. receiver_reply_send_unverified means the"
+                           " receiver did not record the local send outcome; it does not establish that a reply was sent.")
         summary["sized_reply_missing_after_arrival"] = sum(
             row["return_evidence"] == "receiver_observed_sized_reply_missing" for row in matched)
         summary["receiver_reply_send_failed"] = sum(
             row["return_evidence"] == "receiver_reply_send_failed" for row in matched)
+        summary["receiver_reply_send_unverified"] = sum(
+            row["return_evidence"] == "receiver_reply_send_unverified" for row in matched)
     return {
         "schema_version": 1,
         "kind": "probe_receiver_correlation",
@@ -399,6 +405,8 @@ def format_report(report):
             if "sized_reply_missing_after_arrival" in receiver_summary:
                 text += (f"\nSized replies missing after arrival: {receiver_summary['sized_reply_missing_after_arrival']}; "
                          f"rejected by the receiver socket: {receiver_summary.get('receiver_reply_send_failed', 0)}.")
+            if receiver_summary.get("receiver_reply_send_unverified"):
+                text += f"\nReceiver reply sends unverified: {receiver_summary['receiver_reply_send_unverified']}."
         return text
     if kind == "probe":
         summary = report.get("summary")
@@ -532,10 +540,12 @@ def format_report(report):
         sized_text = (f"\nSized replies missing after arrival: {summary.get('sized_reply_missing_after_arrival', '?')}; "
                       f"rejected by the receiver socket: {summary.get('receiver_reply_send_failed', '?')}."
                       if sized else "")
+        if sized and summary.get("receiver_reply_send_unverified"):
+            sized_text += f"\nReceiver reply sends unverified: {summary['receiver_reply_send_unverified']}."
         pairing = report.get("pairing")
         run_check = pairing.get("run_id_check", "unavailable") if isinstance(pairing, dict) else "unavailable"
         return (f"Correlation: {summary.get('receiver_observed', '?')}/{summary.get('sent_probes', '?')} observed at receiver; "
-                f"{summary.get('timed_out_but_receiver_observed', '?')} timed out after arrival; "
+                f"{summary.get('timed_out_but_receiver_observed', '?')} timed out with receiver arrival recorded; "
                 f"{summary.get('unmatched_receiver_observations', '?')} unmatched receiver observations; run ID: {run_check}\n"
                 + text_table(["Probe", "Direction", "Bytes", "Sender", "Receiver saw", "ACK send", "Evidence case",
                               *(["Return"] if sized else [])], values)

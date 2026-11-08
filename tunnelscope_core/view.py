@@ -139,6 +139,13 @@ def render_report_html(report):
                                          for label, value in fields) +
                                  "<p>No receiver observation is inconclusive without verified capture coverage. "
                                  "Clocks on separate hosts are not compared.</p></section>")
+    send_summary = (search_report.get("receiver_evidence", {}).get("summary", {})
+                    if isinstance(search_report.get("receiver_evidence"), dict)
+                    else search_report.get("summary", {}))
+    if isinstance(send_summary, dict) and send_summary.get("receiver_reply_send_unverified"):
+        measurement_html += ("<section class='search-summary'><h2>Unverified receiver reply sends</h2>"
+                             f"<p>Without a recorded local send outcome: {escape(_cell(send_summary['receiver_reply_send_unverified']))}.</p>"
+                             "<p>Receiver arrival was logged, but a missing send outcome does not establish that a reply was sent or rejected.</p></section>")
     if search_report.get("kind") == "probe":
         summary = search_report.get("summary")
         size_rows = summary.get("by_payload_size") if isinstance(summary, dict) else None

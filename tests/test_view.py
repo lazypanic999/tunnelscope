@@ -66,6 +66,17 @@ class ReportTableTests(unittest.TestCase):
         self.assertNotIn("<b>x</b>", html.split("<details>")[0])
         self.assertIn("&lt;b&gt;x&lt;/b&gt;", html)
 
+    def test_lab_cases_show_both_feedback_conditions(self):
+        report = json.loads((EXAMPLE.parent / "ipv6-routed-feedback.json").read_text(encoding="utf-8"))
+        html = render_report_html(report)
+        self.assertEqual(header_cells(html), ["Case", "Bytes", "Status", "Receiver saw"])
+        self.assertEqual(html.count("<td>blocked</td>"), 4)
+        self.assertEqual(html.count("<td>visible</td>"), 4)
+        self.assertEqual(html.count("<td>timeout</td>"), 2)
+        report["cases"]["visible"] = []
+        with self.assertRaisesRegex(ValueError, "invalid case results"):
+            render_report_html(report)
+
     def test_diagnosis_join_without_sized_replies_keeps_alignment(self):
         from tunnelscope_core.view import _table_data
         result = dict(self.correlation["results"][0])

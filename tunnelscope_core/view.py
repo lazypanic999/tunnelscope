@@ -185,9 +185,18 @@ def _table_data(report):
 
 
 def _lab_data(report):
-    headers = ["Direction", "Bytes", "Status", "Receiver saw"]
+    cases = report.get("cases")
+    if isinstance(cases, dict):
+        directions = []
+        for label, case in cases.items():
+            if not isinstance(case, dict):
+                raise ValueError("lab report has invalid case results")
+            directions.append({**case, "direction": label})
+    else:
+        directions = _records(report.get("directions"))
+    headers = ["Case" if isinstance(cases, dict) else "Direction", "Bytes", "Status", "Receiver saw"]
     rows = []
-    for direction in _records(report.get("directions")):
+    for direction in directions:
         probe = direction.get("probe", direction)
         correlation = direction.get("correlation", {})
         if not isinstance(probe, dict) or not isinstance(correlation, dict):
@@ -208,7 +217,7 @@ def render_report_html(report):
     search_report = report
     if isinstance(report.get("lab"), str):
         title = f"Lab: {report['lab']}"
-        if isinstance(report.get("directions"), list):
+        if isinstance(report.get("directions"), list) or isinstance(report.get("cases"), dict):
             headers, rows = _lab_data(report)
         else:
             nested = report.get("correlation", report.get("probe"))

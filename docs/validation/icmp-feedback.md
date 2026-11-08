@@ -19,5 +19,9 @@ filtering. The reported MTU is feedback from the kernel/error message, not
 independent proof of an end-to-end path limit. The tests also check local
 versus remote origins, mismatched or truncated payload quotes, bounded queue
 reads, unsupported platforms and terminal/HTML output.
-The routed IPv6 PTB test does not require a UDP receiver; it checks the
-router's explicit feedback for an oversized packet, not application delivery.
+
+On 2026-11-08, the [routed IPv6 validation](ipv6-routed-feedback.md) extended
+the original PTB-only test with a receiver, small-payload baseline,
+1232/1233-byte boundary observations and a blocked-feedback variant. Its
+blocked search stays inconclusive; the full probe, receiver and correlation
+records are retained. The earlier results above describe the 31 October run.

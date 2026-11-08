@@ -66,7 +66,7 @@ def _table_data(report):
             raise ValueError("diagnosis needs comparison and search runs")
         _, compare_rows = _table_data(comparison)
         search_rows = _records(search.get("results"))
-        rows = [["DF vs permitted", *row, ""] for row in compare_rows]
+        rows = [["DF vs permitted", *row] for row in compare_rows]
         rows.extend(["Size search", row.get("payload_bytes"), row.get("status"), "", "", ""]
                     for row in search_rows)
         return ["Run", "Bytes", "DF / search status", "DF no ACK", "Permitted", "Permitted no ACK"], rows

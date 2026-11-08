@@ -5,7 +5,8 @@ Inputs: examples/asymmetric-return-v07.json, the unedited JSON printed by
 
 - docs/images/v07-terminal.png: the real `tunnelscope show` output for that
   report, rendered as a terminal panel (text is not edited or reordered);
-- docs/images/v07-report.png: a headless-browser screenshot of the real HTML
+- docs/images/v07-report.png and v07-report-dark.png: headless-browser
+  screenshots, in the light and dark colour schemes, of the real HTML
   produced by `tunnelscope html` for the lab's joined correlation (the
   `correlation` member of the same report, written out unchanged).
 
@@ -28,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "examples/asymmetric-return-v07.json"
 TERMINAL_OUT = ROOT / "docs/images/v07-terminal.png"
 REPORT_OUT = ROOT / "docs/images/v07-report.png"
+REPORT_DARK_OUT = ROOT / "docs/images/v07-report-dark.png"
 BG, PANEL, WHITE, MUTED, GREEN, BLUE = "#090f22", "#101b35", "#eef4ff", "#aec2dd", "#63e2af", "#78b0ff"
 BROWSERS = (
     "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
@@ -78,10 +80,13 @@ def browser():
     raise RuntimeError("Install Edge or Chrome, or set TUNNELSCOPE_BROWSER")
 
 
-def report_image(html_path, work):
-    shot = work / "report-full.png"
+def report_image(html_path, work, dark=False):
+    """Screenshot the report in the light or dark colour scheme it declares."""
+    shot = work / f"report-{'dark' if dark else 'light'}.png"
+    # Chromium: preferredColorScheme 0 is dark, 1 is light.
     subprocess.run([browser(), "--headless=new", "--disable-gpu", "--hide-scrollbars",
-                    f"--user-data-dir={work / 'profile'}", "--window-size=1500,1100",
+                    f"--user-data-dir={work / ('profile-dark' if dark else 'profile-light')}",
+                    "--window-size=1500,1000", f"--blink-settings=preferredColorScheme={0 if dark else 1}",
                     f"--screenshot={shot}", html_path.resolve().as_uri()],
                    check=True, capture_output=True, timeout=60)
     # msedge.exe can hand the work to another process and exit before the file exists.
@@ -97,12 +102,13 @@ def report_image(html_path, work):
     if box:
         image = image.crop((max(box[0] - 24, 0), max(box[1] - 24, 0),
                             min(box[2] + 24, image.width), min(box[3] + 24, image.height)))
-    framed = Image.new("RGB", (image.width + 32, image.height + 66), BG)
+    page = image.getpixel((2, 2))
+    framed = Image.new("RGB", (image.width + 32, image.height + 66), page)
     framed.paste(image, (16, 16))
     ImageDraw.Draw(framed).text((24, image.height + 28),
                                 "Screenshot of `tunnelscope html` for the lab's joined correlation "
                                 "(the `correlation` member of examples/asymmetric-return-v07.json)",
-                                fill=MUTED, font=font(15))
+                                fill=MUTED if dark else "#5b6b85", font=font(15))
     return framed
 
 
@@ -119,7 +125,9 @@ def main():
         probe_path.write_text(json.dumps(probe, indent=2), encoding="utf-8")
         cli("html", str(probe_path), "--output", str(html_path))
         report_image(html_path, work).save(REPORT_OUT, optimize=True)
-    print(f"Wrote {TERMINAL_OUT.relative_to(ROOT)} and {REPORT_OUT.relative_to(ROOT)}")
+        report_image(html_path, work, dark=True).save(REPORT_DARK_OUT, optimize=True)
+    print(f"Wrote {TERMINAL_OUT.relative_to(ROOT)}, {REPORT_OUT.relative_to(ROOT)} "
+          f"and {REPORT_DARK_OUT.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

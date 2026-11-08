@@ -89,6 +89,9 @@ class FieldReportWorkflowTests(unittest.TestCase):
             self.assertIn("Receiver observed: 6/6" if mode == "diagnose" else "Correlation: 2/2", shown)
             html = (shared / "correlation.html").read_text(encoding="utf-8")
             self.assertTrue("Sanitized report" in html and "sized_reply_returned" in html)
+            markdown = self.run_cli(root, "show", "shared/correlation.json", "--format", "markdown")
+            self.assertTrue(markdown.startswith("# TunnelScope - "))
+            self.assertIn("Sanitization record present", markdown)
 
             # Sanitized source files must still pair with the same outcomes.
             self.run_cli(shared, "correlate", sender_name, "receiver.json", "--output", "rejoined.json")

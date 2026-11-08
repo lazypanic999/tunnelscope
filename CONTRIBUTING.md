@@ -21,6 +21,10 @@ Implementation code is in `tunnelscope_core`: `network.py` handles probes and
 the receiver, `reports.py` handles evidence and terminal output, `search.py`
 selects bounded sizes, and `view.py` renders the offline HTML report. Keep
 schema-version-1 reports readable when adding fields.
+`tables.py` supplies observation tables to HTML and Markdown, while
+`markdown.py` renders the bounded issue summary. `sanitize.py` handles batch
+identifier replacement, and `timestamps.py` parses aware timestamps across
+supported Python versions.
 
 1. Fork the repository and create a branch.
 2. Keep measurements separate from conclusions. A timeout alone must not be

@@ -8,6 +8,8 @@ Collect sender and receiver evidence when packet size affects delivery.
 
 **v0.8.2 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.2/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.2) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
+Development `main` is `0.9.0.dev0`, with [Markdown evidence export](https://github.com/lazypanic999/tunnelscope/blob/main/docs/markdown-reports.md).
+
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
 size errors, timeouts and optional Linux ICMP feedback. Join both endpoints'
@@ -132,7 +134,7 @@ shows how to collect and share a sanitized report.
 - [Usage and JSON reference](https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md), [size search](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md), [fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md) and [ICMP feedback](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
 - [Sanitize reports before sharing](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sanitize.md) and [same-sized replies for return-path evidence](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sized-reply.md).
 - [Receiver observations](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md), [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md), [Kubernetes lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md) and [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md).
-- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
+- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.9 development](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.9.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
 Contributions welcome. CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with

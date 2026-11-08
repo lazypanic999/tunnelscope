@@ -4,6 +4,19 @@ Thanks for helping improve TunnelScope. The project is an early Python CLI for
 controlled Linux network experiments. Open an issue before making a large
 change so the scope and expected evidence are clear.
 
+## Choose a task
+
+Start with the [open good first issues](https://github.com/lazypanic999/tunnelscope/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
+Each issue states its expected behavior and validation; local report or CI
+tasks can be completed without a VPN lab. Comment on the issue before
+starting so work is coordinated, and ask questions there if setup is unclear.
+For a larger change, discuss the scope before implementing it.
+
+Operators with two permitted endpoints can instead contribute a
+[field report](docs/field-reports.md). A healthy path is useful too; remote
+access, credentials and private captures are not required. These reports
+remain separate from the project's controlled lab results.
+
 ## Report a problem
 
 Include the TunnelScope version, Python version, OS, command line, expected

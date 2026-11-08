@@ -24,6 +24,16 @@ def require_distinct_output(output, *inputs):
         raise ValueError("--output must differ from the input report path")
 
 
+def require_output_target(output):
+    """Reject unavailable report destinations before collection starts."""
+    if output is None:
+        return
+    if not output.parent.is_dir():
+        raise ValueError(f"output directory does not exist: {output.parent}")
+    if output.is_dir():
+        raise ValueError(f"output path names a directory: {output}")
+
+
 def write_sanitized(inputs, output_dir, with_html, keep_timestamps):
     """Sanitize reports as one batch and write new files without touching the inputs."""
     if len(inputs) > 32:
@@ -192,6 +202,8 @@ def main():
     html_view.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
+        if args.command != "diagnose":
+            require_output_target(getattr(args, "output", None))
         if args.command == "receive":
             receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output, args.family,
                     sized_reply=args.sized_reply)
@@ -220,8 +232,7 @@ def main():
             for path in (args.output, html_path):
                 if path.exists():
                     raise ValueError(f"refusing to overwrite existing file: {path}")
-                if not path.parent.is_dir():
-                    raise ValueError(f"output directory does not exist: {path.parent}")
+                require_output_target(path)
             report = diagnose(args.host, args.port, args.minimum, args.maximum,
                               args.count, args.timeout, args.max_sizes, args.family,
                               sized_reply=args.sized_reply)
@@ -266,8 +277,7 @@ def main():
                     raise ValueError("--html must differ from --output")
                 if args.html.exists():
                     raise ValueError(f"refusing to overwrite existing file: {args.html}")
-                if not args.html.parent.is_dir():
-                    raise ValueError(f"output directory does not exist: {args.html.parent}")
+                require_output_target(args.html)
             probe_report = json.loads(args.probe_report.read_text(encoding="utf-8"))
             receiver_report = json.loads(args.receiver_report.read_text(encoding="utf-8"))
             report = (correlate_diagnosis(probe_report, receiver_report)

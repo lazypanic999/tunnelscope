@@ -36,6 +36,12 @@ By default, the receiver exits after 100 datagrams or 30 seconds without a
 datagram. Restart it if it has already exited. `--max-packets` and
 `--idle-timeout` change these limits.
 
+On development `main`, CLI commands check that an output's parent directory
+exists and its target is not a directory before starting collection. A typo
+there fails before a receiver listens or probes are sent. Choose output
+filenames deliberately: `diagnose` and `sanitize` require new files; the
+other commands retain their existing overwrite behavior for regular files.
+
 Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. They exclude IP and UDP headers. The receiver sends only a small acknowledgement, so this is not a same-sized round-trip test. Reverse endpoint roles to investigate delivery in the other direction.
 
 Each probe report includes a `source` snapshot taken from the first connected sender socket. It records the local IPv4 or IPv6 address. On Linux, it also records the selected interface and its link MTU when discoverable, plus `kernel_route_mtu_bytes` when the kernel supplies it. The link MTU and kernel route MTU are different facts; neither is an independently measured end-to-end path MTU. A failed connection may leave `source` as `null`, and optional fields may be absent.

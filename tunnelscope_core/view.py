@@ -1,13 +1,14 @@
 """Build a small local HTML view of a TunnelScope JSON report."""
 
 import base64
-from datetime import datetime, timezone
+from datetime import timezone
 from html import escape
 from importlib.resources import files
 import json
 import re
 
 from .reports import no_ack_measurement, no_ack_text
+from .timestamps import parse_timestamp
 
 
 def _cell(value):
@@ -15,7 +16,6 @@ def _cell(value):
 
 
 PROBE_ID = re.compile(r"^[0-9a-f]{32}$")
-TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$")
 
 
 def _short(value):
@@ -24,13 +24,10 @@ def _short(value):
         return None
     if PROBE_ID.match(value):
         return value[:8] + "…"
-    if not TIMESTAMP.fullmatch(value):
+    moment = parse_timestamp(value)
+    if moment is None:
         return None
     try:
-        # Python 3.10 accepts fractional seconds with three or six digits only.
-        normalized = re.sub(r"\.(\d{1,6})(?=Z|[+-])",
-                            lambda match: "." + match.group(1).ljust(6, "0"), value)
-        moment = datetime.fromisoformat(normalized[:-1] + "+00:00" if normalized.endswith("Z") else normalized)
         utc = moment.astimezone(timezone.utc)
     except (ValueError, OverflowError):
         return None

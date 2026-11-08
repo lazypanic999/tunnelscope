@@ -47,6 +47,12 @@ including `endpoint_check` and the target/bind address checks. Placeholders
 from different batches are unrelated: `192.0.2.1` in two separate batches
 may stand for two different hosts.
 
+Interface and hostname labels avoid names already present in the input batch,
+so the first interface is not necessarily `if-1`. An IPv6 scope ID gets a
+consistent interface label even when no separate `interface` field names it;
+different scope IDs keep different labels. Known names in free text are
+replaced in one pass so a generated label is not renamed again.
+
 ## What the record says
 
 Each copy gets a top-level `sanitization` object listing what kind of values

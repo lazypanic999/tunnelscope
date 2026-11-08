@@ -12,6 +12,8 @@ v0.9 adds [Markdown evidence export](https://github.com/lazypanic999/tunnelscope
 Watch the [30-second recorded evidence replay](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v09.md)
 for the OpenVPN return-path example and report-sharing steps.
 
+Development `main` is `0.9.1.dev0`, with [partial receiver-capture handling](https://github.com/lazypanic999/tunnelscope/blob/main/docs/releases/v0.9.1.md).
+
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
 size errors, timeouts and optional Linux ICMP feedback. Join both endpoints'
@@ -108,7 +110,8 @@ The receiver side needs Linux (including WSL2) or Windows. `search`, `compare-fr
 | `packet_too_large` | Linux reported an explicit size error; ICMP evidence may distinguish local and routed feedback. |
 | `timeout` | No matching ACK arrived; the cause remains inconclusive. |
 | `sized_reply_received` | With `--sized-reply`: the payload arrived and a reply of the same size returned. |
-| `receiver_observed_sized_reply_missing` | After `correlate`: the probe arrived and the receiver sent a same-sized reply that did not return. Where it was lost stays unknown. |
+| `receiver_observed_sized_reply_missing` | After `correlate`: the probe arrived and the receiver's socket accepted a same-sized reply; the sender recorded none before its deadline. The failure location remains unknown. |
+| `receiver_reply_send_unverified` | Development: arrival was recorded, but the receiver's local send outcome is absent or unknown. A sent or rejected reply is not assumed. |
 
 Payload sizes include the 24-byte TunnelScope header. Small ACKs do not prove
 same-sized reverse delivery; use `--sized-reply` for that. An observed payload interval is not an independently

@@ -146,7 +146,7 @@ shows how to collect and share a sanitized report.
 
 Contributions welcome. Pick an [open starter task](https://github.com/lazypanic999/tunnelscope/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
 or help with a [field report](https://github.com/lazypanic999/tunnelscope/blob/main/docs/field-reports.md).
-CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
+CI runs on Linux and Windows with Python 3.10, 3.12 and 3.13. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with
 `python -m unittest discover -s tests -v`. Privileged Linux labs require explicit
 opt-in as described in the usage reference.

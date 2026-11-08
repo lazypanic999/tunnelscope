@@ -22,6 +22,27 @@ class ReportTableTests(unittest.TestCase):
         self.correlation = json.loads(EXAMPLE.read_text(encoding="utf-8"))["correlation"]
         self.html = render_report_html(self.correlation)
 
+    def test_every_example_row_has_one_cell_per_header(self):
+        from tunnelscope_core.tables import report_table
+        for path in sorted(EXAMPLE.parent.glob("*.json")):
+            with self.subTest(example=path.name):
+                report = json.loads(path.read_text(encoding="utf-8"))
+                try:
+                    _, headers, rows, _ = report_table(report)
+                except ValueError:
+                    continue  # not a table-backed report
+                self.assertTrue(all(len(row) == len(headers) for row in rows),
+                                f"{path.name}: {len(headers)} headers, row widths {sorted({len(r) for r in rows})}")
+
+    def test_theme_supports_light_and_dark_and_colours_known_statuses_only(self):
+        self.assertIn("color-scheme: light dark", self.html)
+        self.assertIn("@media (prefers-color-scheme: dark)", self.html)
+        self.assertIn("@media print", self.html)
+        # Status colours are applied by script from exact cell text; the markup stays plain.
+        self.assertIn("'receiver_reply_send_failed'", self.html)
+        self.assertNotIn("class='s-", self.html)
+        self.assertIn("<td>receiver_reply_send_failed</td>", self.html)
+
     def test_evidence_columns_come_before_identifiers_and_times(self):
         headers = header_cells(self.html)
         self.assertEqual(headers[:5], ["Bytes", "Sender status", "Receiver saw", "Evidence case", "Return evidence"])

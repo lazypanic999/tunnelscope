@@ -185,40 +185,102 @@ def render_report_html(report):
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TunnelScope · {safe_title}</title>
 <style>
-:root {{ color-scheme: dark; font-family: system-ui, sans-serif; background: #090f22; color: #eef4ff; }}
-body {{ max-width: 1400px; margin: 0 auto; padding: 24px; }}
-header {{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }}
-header .mark {{ width:64px; height:64px; border-radius:14px; flex:0 0 64px;
-background: #0a1024 url('{logo_data_uri}') center / 180px auto no-repeat; }}
-h1 {{ margin:0; font-size:1.8rem; }} small {{ color:#9eb5d8; }}
-main {{ background:#101a33; border:1px solid #274473; border-radius:16px; padding:24px; }}
-input {{ box-sizing:border-box; width:100%; padding:12px; margin:8px 0 18px; color:inherit;
-background:#0b1430; border:1px solid #4269af; border-radius:8px; font:inherit; }}
-#match-count {{ display:block; color:#9eb5d8; margin-bottom:8px; }}
-.hint {{ color:#9eb5d8; font-size:.85rem; margin:0 0 10px; }}
-#no-matches[hidden] {{ display:none; }}
-.scroll {{ overflow-x:auto; }} table {{ width:100%; border-collapse:collapse; }}
-th,td {{ padding:10px 12px; border-bottom:1px solid #273a61; text-align:left; white-space:nowrap; }}
-th {{ color:#9dc4ff; }} tr:hover td {{ background:#17264a; }} td[title] {{ cursor:help; }}
-details {{ margin-top:24px; }} summary {{ cursor:pointer; color:#9dc4ff; }}
-.search-summary {{ border:1px solid #4269af; border-radius:10px; padding:12px 18px; margin-bottom:18px; }}
-.search-summary h2 {{ margin:0 0 8px; font-size:1.2rem; }}
-.search-summary p {{ margin:6px 0; }}
-pre {{ overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; padding:16px;
-background:#0b1430; border-radius:8px; }}
-footer {{ margin-top:20px; color:#9eb5d8; font-size:.9rem; }}
-</style></head><body>
+:root {{
+  color-scheme: light dark;
+  --bg: #f5f7fb; --panel: #ffffff; --panel-2: #f0f4fa; --line: #dde4ef; --text: #172033;
+  --muted: #5b6b85; --accent: #2f6fde; --accent-soft: #e6eefc;
+  --good: #137a4b; --good-bg: #e3f5ec; --warn: #8a5a00; --warn-bg: #fdf1d8;
+  --bad: #b42335; --bad-bg: #fde6e9; --info: #4b5a75; --info-bg: #eaeef5;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}}
+@media (prefers-color-scheme: dark) {{
+  :root {{
+    --bg: #0b1020; --panel: #121a2e; --panel-2: #172238; --line: #26324d; --text: #e8eefb;
+    --muted: #93a3c0; --accent: #7aa8ff; --accent-soft: #1b2a4a;
+    --good: #5fd39a; --good-bg: #12392a; --warn: #f2c163; --warn-bg: #3d3014;
+    --bad: #ff8a96; --bad-bg: #44161e; --info: #b4c1d9; --info-bg: #222e47;
+    --shadow: none;
+  }}
+}}
+* {{ box-sizing: border-box; }}
+body {{ margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }}
+.wrap {{ max-width: 1400px; margin: 0 auto; padding: 28px 24px 40px; }}
+header {{ display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }}
+header .mark {{ width: 56px; height: 56px; border-radius: 14px; flex: 0 0 56px;
+  background: #0a1024 url('{logo_data_uri}') center / 160px auto no-repeat; box-shadow: var(--shadow); }}
+h1 {{ margin: 0; font-size: 1.6rem; letter-spacing: -.01em; }}
+header small {{ color: var(--muted); font-size: .95rem; }}
+main {{ display: grid; gap: 16px; min-width: 0; }}
+main > *, .cards > * {{ min-width: 0; }}
+.cards {{ display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }}
+.search-summary {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 18px; box-shadow: var(--shadow); }}
+.search-summary h2 {{ margin: 0 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--accent); }}
+.search-summary p {{ margin: 5px 0; }}
+.search-summary p:last-child {{ color: var(--muted); font-size: .88rem; margin-top: 10px; }}
+.search-summary strong {{ color: var(--muted); font-weight: 600; }}
+.search-summary table {{ font-size: .92rem; }}
+.panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+  box-shadow: var(--shadow); }}
+label {{ font-weight: 600; font-size: .9rem; }}
+input {{ width: 100%; padding: 10px 12px; margin: 6px 0 10px; color: inherit; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 8px; font: inherit; }}
+input:focus {{ outline: 2px solid var(--accent); outline-offset: 1px; }}
+#match-count {{ display: block; color: var(--muted); font-size: .9rem; }}
+.hint {{ color: var(--muted); font-size: .82rem; margin: 2px 0 12px; }}
+#no-matches[hidden] {{ display: none; }}
+.scroll {{ overflow: auto; max-height: 72vh; border: 1px solid var(--line); border-radius: 10px; }}
+table {{ width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }}
+th, td {{ padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }}
+th {{ position: sticky; top: 0; z-index: 1; background: var(--panel-2); color: var(--muted);
+  font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }}
+tbody tr:nth-child(even) td {{ background: color-mix(in srgb, var(--panel-2) 45%, transparent); }}
+tbody tr:hover td {{ background: var(--accent-soft); }}
+td[title] {{ cursor: help; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }}
+td.s-good, td.s-warn, td.s-bad, td.s-info {{ font-weight: 600; }}
+td.s-good {{ color: var(--good); }} td.s-warn {{ color: var(--warn); }}
+td.s-bad {{ color: var(--bad); }} td.s-info {{ color: var(--info); }}
+td.s-good::before, td.s-warn::before, td.s-bad::before, td.s-info::before {{
+  content: ""; display: inline-block; width: .55em; height: .55em; border-radius: 50%;
+  margin-right: .45em; vertical-align: .08em; background: currentColor; }}
+details {{ margin-top: 16px; }} summary {{ cursor: pointer; color: var(--accent); font-weight: 600; }}
+pre {{ overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; margin: 10px 0 0;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: .85rem; }}
+.legend {{ display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: .82rem; margin: 0 0 10px; }}
+.legend span::before {{ content: ""; display: inline-block; width: .55em; height: .55em; border-radius: 50%;
+  margin-right: .4em; background: currentColor; }}
+.legend .good {{ color: var(--good); }} .legend .warn {{ color: var(--warn); }} .legend .bad {{ color: var(--bad); }}
+footer {{ margin-top: 22px; color: var(--muted); font-size: .85rem; }}
+@media (max-width: 640px) {{ .wrap {{ padding: 18px 14px 30px; }} h1 {{ font-size: 1.3rem; }} }}
+@media print {{
+  :root {{ color-scheme: light; }}
+  body {{ background: #fff; }} .scroll {{ max-height: none; overflow: visible; }}
+  input, label[for="filter"], #match-count, .hint {{ display: none; }}
+  .search-summary, .panel {{ box-shadow: none; }}
+}}
+</style></head><body><div class="wrap">
 <header><span class="mark" role="img" aria-label="TunnelScope logo"></span>
 <div><h1>TunnelScope</h1><small>{safe_title} · local report view</small></div></header>
-<main>{search_html}{measurement_html}<label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
+<main><div class="cards">{search_html}{measurement_html}</div>
+<section class="panel"><label for="filter">Filter rows</label><input id="filter" type="search" placeholder="Search sizes, statuses, directions…">
 <output id="match-count" role="status" aria-live="polite">Showing {row_count} of {row_count} rows</output>
 <p class="hint">Probe IDs show their first 8 characters and timestamps their UTC time of day; hover a cell for the full value. Search matches full values.</p>
+<p class="legend" aria-hidden="true"><span class="good">delivered / returned</span><span class="warn">no answer, inconclusive</span><span class="bad">refused or failed</span></p>
 <div class="scroll"><table><thead><tr>{header_html}</tr></thead><tbody>{row_html}</tbody></table></div>
 <p id="no-matches" hidden>No matching rows.</p>
-<details><summary>Raw JSON evidence</summary><pre>{raw_json}</pre></details></main>
-<footer>Observed results only. Timeouts do not prove an MTU problem. Keep unsanitized reports private.</footer>
+<details><summary>Raw JSON evidence</summary><pre>{raw_json}</pre></details></section></main>
+<footer>Observed results only. Timeouts do not prove an MTU problem. Keep unsanitized reports private.</footer></div>
 <script>const search=document.getElementById('filter');
 const resultRows=[...document.querySelectorAll('tbody tr:not(.empty-report)')];
+// Colour known status values; the report text itself is unchanged.
+const statusClass={{good:['acknowledged','sized_reply_received','sized_reply_returned','acknowledged_and_receiver_observed','delivery_observed'],
+warn:['timeout','no_reply','inconclusive','receiver_observed_no_ack','no_ack_no_receiver_observation','receiver_observed_sized_reply_missing','acknowledged_receiver_log_missing','mixed_observations'],
+bad:['packet_too_large','kernel_rejected_df_payload','receiver_reply_send_failed','socket_error','socket_error_or_unknown','explicit_size_error'],
+info:['small_ack_only','receiver_reply_send_unverified','receiver_sent_small_reply','no_receiver_observation']}};
+const lookup=new Map();for(const [k,v] of Object.entries(statusClass))for(const s of v)lookup.set(s,'s-'+k);
+for(const cell of document.querySelectorAll('tbody td')){{const c=lookup.get(cell.textContent.trim());if(c)cell.classList.add(c);}}
 search.addEventListener('input',()=>{{
 const q=search.value.toLowerCase();let visible=0;
 for(const row of resultRows){{

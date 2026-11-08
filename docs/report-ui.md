@@ -33,7 +33,16 @@ receiver observation, evidence case and return evidence) and show probe IDs by
 their first 8 characters and timestamps by their UTC time of day. Hover a cell
 for the full value; the filter also matches full values.
 
-![TunnelScope HTML view of a joined sized-reply run from the asymmetric return-path lab](images/v07-report.png)
+The page follows the browser's light or dark setting and prints cleanly.
+Known status values are coloured green (delivered or returned), amber (no
+answer, inconclusive) or red (refused or failed) by a small script when the
+page opens; the cell text is the same with scripts disabled, and the raw JSON
+stays at the bottom of the page.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/v07-report-dark.png">
+  <img src="images/v07-report.png" alt="TunnelScope HTML view of a joined sized-reply run from the asymmetric return-path lab">
+</picture>
 
 The screenshot is the HTML generated for the joined correlation in
 [`examples/asymmetric-return-v07.json`](../examples/asymmetric-return-v07.json);

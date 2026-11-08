@@ -39,6 +39,18 @@ legacy compatibility are described in [docs/report-versions.md](docs/report-vers
 5. Explain what changed and include a reproducible test or validation record
    for new measurement behavior.
 
+After changing package layout, assets or report rendering, install the package
+and verify the installed distribution with isolated imports:
+
+```sh
+python -m pip install .
+python -I scripts/check_installed.py
+```
+
+The CI matrix runs this offline workflow on both operating systems. It checks
+version metadata, correlation, sanitization, text, Markdown and the packaged
+HTML logo without relying on source files being importable from the checkout.
+
 Changes to `main` go through pull requests and the required `Delivery checks`
 result. That check depends on all delivery-test matrix jobs, so every supported
 platform must pass. The branch must be up to date before merging. The rule

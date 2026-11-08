@@ -310,6 +310,14 @@ def no_ack_text(measurement):
 def format_report(report):
     """Render existing JSON evidence as a compact terminal view."""
     if isinstance(report, dict) and isinstance(report.get("lab"), str):
+        if isinstance(report.get("cases"), dict) or isinstance(report.get("directions"), list):
+            # Import at call time: table data also uses this module's summaries.
+            from .tables import report_table
+            title, headers, rows, _ = report_table(report)
+            body = (text_table(headers, [["-" if value is None else value for value in row] for row in rows])
+                    if rows else "No observations in this lab report.")
+            return (title + "\n" + body + "\nReceiver absence and timeouts remain inconclusive without "
+                    "verified capture coverage; these are controlled lab observations, not a proven path MTU.")
         for key in ("correlation", "probe"):
             if isinstance(report.get(key), dict):
                 return f"Lab: {report['lab']}\n" + format_report(report[key])

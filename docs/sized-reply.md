@@ -46,14 +46,14 @@ Joining both logs with `correlate` adds `return_evidence` to each probe:
 | `sized_reply_returned` | Both directions carried this size. |
 | `receiver_observed_sized_reply_missing` | The probe arrived and the receiver's local socket accepted a same-sized reply, but the sender recorded none before its deadline. This does not establish where or why the return failed. |
 | `receiver_reply_send_failed` | The probe arrived, but the receiver's socket rejected the attempted reply. Inspect the recorded reply size and errno; for example, a large reply may fail after the kernel learns a smaller route MTU. |
-| `receiver_reply_send_unverified` | Development after v0.9.0: the probe arrived, but the receiver did not record a local send outcome. A reply is not assumed to have been sent or rejected. |
+| `receiver_reply_send_unverified` | From v0.9.1: the probe arrived, but the receiver did not record a local send outcome. A reply is not assumed to have been sent or rejected. |
 | `receiver_sent_small_reply` | The receiver did not send a sized reply. |
 | `no_receiver_observation` | The receiver has no record of the probe. Inconclusive without verified capture coverage. |
 | `small_ack_only` | As in the probe result. |
 
 The correlation summary counts `sized_reply_missing_after_arrival` and
 `receiver_reply_send_failed`. `show` and the HTML view add a return column.
-Development after v0.9.0 also counts `receiver_reply_send_unverified`, including
+From v0.9.1, the summary also counts `receiver_reply_send_unverified`, including
 across all runs in a joined diagnosis. An interrupted capture can preserve an
 arrival before the local send outcome has been recorded. Missing or unknown
 send status stays unverified; it is not counted as a sent or failed reply.

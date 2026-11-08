@@ -165,7 +165,7 @@ def correlate_diagnosis(diagnosis, receiver_report):
         "unassigned_receiver_observations": len(observations) - len(matched_rows),
         "capture_exit_reason": receiver_report.get("exit_reason"),
     }
-    for key in ("sized_reply_missing_after_arrival", "receiver_reply_send_failed"):
+    for key in ("sized_reply_missing_after_arrival", "receiver_reply_send_failed", "receiver_reply_send_unverified"):
         if any(key in item["summary"] for item in correlations.values()):
             evidence_summary[key] = sum(item["summary"].get(key, 0) for item in correlations.values())
     result["receiver_evidence"] = {

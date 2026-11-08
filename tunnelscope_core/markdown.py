@@ -70,6 +70,9 @@ def render_report_markdown(report):
     elif "receiver_observed" in summary:
         facts.append(("Receiver observed / sender attempts",
                       f"{summary.get('receiver_observed', '?')} / {summary.get('sent_probes', '?')}"))
+    send_summary = receiver.get("summary", {}) if isinstance(receiver, dict) else summary
+    if isinstance(send_summary, dict) and send_summary.get("receiver_reply_send_unverified"):
+        facts.append(("Receiver reply sends without recorded outcome", send_summary["receiver_reply_send_unverified"]))
     for label, value in facts:
         lines.append(f"- {label}: {_text(value)}")
     if facts:

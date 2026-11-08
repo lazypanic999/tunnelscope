@@ -121,6 +121,11 @@ def correlate_diagnosis(diagnosis, receiver_report):
     if any(not isinstance(probe, dict) or probe.get("kind") != "probe" or not isinstance(probe.get("results"), list)
            for probe in probes.values()):
         raise ValueError("diagnosis needs three probe runs")
+    # Probe IDs become lookup keys before correlate_reports performs its full
+    # row validation. Reject malformed JSON values here instead of hashing them.
+    if any(not isinstance(row, dict) or not isinstance(row.get("probe_id"), str)
+           for probe in probes.values() for row in probe["results"]):
+        raise ValueError("diagnosis probe runs need valid probe IDs")
     run_ids = [probe.get("run_id") for probe in probes.values()]
     if any(not isinstance(value, str) or len(value) != 16 for value in run_ids) or len(set(run_ids)) != 3:
         raise ValueError("diagnosis needs three distinct run IDs")
@@ -142,9 +147,8 @@ def correlate_diagnosis(diagnosis, receiver_report):
             raise ValueError("invalid hexadecimal receiver identifier") from error
     if len({row["probe_id"] for row in observations}) != len(observations):
         raise ValueError("duplicate probe ID in receiver report")
-    sent_run_by_probe = {row.get("probe_id"): probe["run_id"]
-                         for probe in probes.values() for row in probe["results"]
-                         if isinstance(row, dict)}
+    sent_run_by_probe = {row["probe_id"]: probe["run_id"]
+                         for probe in probes.values() for row in probe["results"]}
     if any(row["probe_id"] in sent_run_by_probe and
            row["run_id"] != sent_run_by_probe[row["probe_id"]] for row in observations):
         raise ValueError("matching probe ID has a different run ID")

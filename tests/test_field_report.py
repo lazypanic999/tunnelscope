@@ -16,6 +16,8 @@ import threading
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tunnelscope_core._version import VERSION
 CLI = [sys.executable, str(ROOT / "tunnelscope.py")]
 ENV = {**os.environ, "PYTHONIOENCODING": "utf-8"}
 
@@ -65,6 +67,8 @@ class FieldReportWorkflowTests(unittest.TestCase):
                          "--output", "correlation.json", "--html", "correlation.html")
             names = (sender_name, "receiver.json", "correlation.json")
             originals = {name: (root / name).read_bytes() for name in names}
+            for data in originals.values():
+                self.assertEqual(json.loads(data)["tunnelscope_version"], VERSION)
             shared = root / "shared"
             shared.mkdir()
             self.run_cli(root, "sanitize", *names, "--output-dir", "shared", "--html")

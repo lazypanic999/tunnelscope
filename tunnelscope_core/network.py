@@ -14,9 +14,9 @@ import time
 from pathlib import Path
 
 from .icmp import drain_error_queue, enable_error_queue, require_icmp_support
+from ._version import VERSION
 
 MAGIC = b"TS01"
-VERSION = "0.9.0.dev0"
 HEADER = struct.Struct("!4s16sI")
 ACK = b"TA01"
 # v0.7: a probe asks for a same-sized reply with this marker after its run ID.
@@ -176,6 +176,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                 report = {
                     "schema_version": 1,
                     "kind": "receiver_observations",
+                    "tunnelscope_version": VERSION,
                     "receiver": {f"bind_{address_key}": sock.getsockname()[0],
                                  "port": sock.getsockname()[1],
                                  **({"sized_reply": True, "reply_fragmentation": reply_fragmentation}
@@ -356,6 +357,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
     return {
         "schema_version": 1,
         "kind": "probe",
+        "tunnelscope_version": VERSION,
         "run_id": run_id.hex(),
         "started_at_utc": started_at_utc,
         "finished_at_utc": utc_now(),

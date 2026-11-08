@@ -1,6 +1,38 @@
 """Evidence summaries, correlation and terminal formatting."""
 
 from math import sqrt
+from ._version import VERSION, declared_version
+
+
+def version_details(report):
+    """Readable producer claims; legacy inputs remain explicitly unknown."""
+    if not isinstance(report, dict):
+        return []
+    fields = []
+    producer = declared_version(report)
+    if producer:
+        fields.append(("Report producer version", producer))
+    roles = {
+        "probe_receiver_correlation": (("Sender input version", "probe"), ("Receiver input version", "receiver")),
+        "bidirectional_comparison": (("A-to-B input version", "a_to_b"), ("B-to-A input version", "b_to_a")),
+        "fragmentation_comparison": (("DF input version", "df"), ("Permitted input version", "fragmentation_permitted")),
+        "diagnosis": (("Comparison input version", "fragmentation_comparison"), ("Search input version", "size_search")),
+    }
+    inputs = report.get("input_versions")
+    if isinstance(inputs, dict):
+        for label, key in roles.get(report.get("kind"), ()):
+            value = inputs.get(key)
+            fields.append((label, value if isinstance(value, str) and value else "unknown (not recorded)"))
+    evidence = report.get("receiver_evidence")
+    if isinstance(evidence, dict) and declared_version(evidence):
+        if not producer:
+            fields.append(("Diagnosis producer version", "unknown (not recorded)"))
+        fields.append(("Receiver join producer version", declared_version(evidence)))
+        inputs = evidence.get("input_versions")
+        receiver = inputs.get("receiver") if isinstance(inputs, dict) else None
+        fields.append(("Joined receiver input version", receiver if isinstance(receiver, str) and receiver
+                       else "unknown (not recorded)"))
+    return fields
 
 
 def no_ack_measurement(counts):
@@ -217,6 +249,8 @@ def correlate_reports(probe_report, receiver_report):
     return {
         "schema_version": 1,
         "kind": "probe_receiver_correlation",
+        "tunnelscope_version": VERSION,
+        "input_versions": {"probe": declared_version(probe_report), "receiver": declared_version(receiver_report)},
         "pairing": {
             "run_id_check": run_id_check,
             "endpoint_checks": endpoint_checks,
@@ -275,6 +309,8 @@ def combine_reports(a_to_b, b_to_a):
     return {
         "schema_version": 1,
         "kind": "bidirectional_comparison",
+        "tunnelscope_version": VERSION,
+        "input_versions": {"a_to_b": declared_version(a_to_b), "b_to_a": declared_version(b_to_a)},
         "endpoint_check": endpoint_check,
         "interpretation": "Each direction is a separate delivery experiment. A timeout remains inconclusive; differing outcomes do not by themselves identify the cause.",
         "comparison": {"by_payload_size": assessments},

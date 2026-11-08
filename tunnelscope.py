@@ -14,6 +14,7 @@ from tunnelscope_core.network import (
 from tunnelscope_core.reports import (
     combine_reports, correlate_reports, explain_evidence, format_report,
     summarize_results, text_table,
+    version_details,
 )
 from tunnelscope_core.diagnose import correlate_diagnosis, diagnose
 from tunnelscope_core.sanitize import sanitize_reports
@@ -258,6 +259,8 @@ def main():
                 if isinstance(shown_report, dict) and isinstance(shown_report.get("sanitization"), dict):
                     timestamp_state = shown_report["sanitization"].get("timestamps", "unspecified")
                     print(f"Sanitized report: sanitization metadata present; timestamps: {timestamp_state}.")
+                for label, value in version_details(shown_report):
+                    print(f"{label}: {value}")
                 print(format_report(shown_report))
         elif args.command == "html":
             require_distinct_output(args.output, args.report)

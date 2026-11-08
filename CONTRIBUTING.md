@@ -25,6 +25,9 @@ schema-version-1 reports readable when adding fields.
 `markdown.py` renders the bounded issue summary. `sanitize.py` handles batch
 identifier replacement, and `timestamps.py` parses aware timestamps across
 supported Python versions.
+`_version.py` holds the runtime version; keep it equal to `[project].version`
+in `pyproject.toml` when preparing a release. Report producer claims and
+legacy compatibility are described in [docs/report-versions.md](docs/report-versions.md).
 
 1. Fork the repository and create a branch.
 2. Keep measurements separate from conclusions. A timeout alone must not be

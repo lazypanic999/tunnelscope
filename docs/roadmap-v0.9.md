@@ -44,6 +44,8 @@ separate local send failures, under [#44](https://github.com/lazypanic999/tunnel
   [#28](https://github.com/lazypanic999/tunnelscope/issues/28) and the
   [Windows host/WSL2 guest validation](validation/windows-wsl2-receiver.md).
   This is two kernels on one physical machine, using non-loopback IPv4.
+  A separate [IPv6 link-local follow-up](validation/windows-wsl2-receiver-ipv6.md)
+  passed the same experiments; routed IPv6 and physical hosts remain separate.
 - A field-guide dry run with physically separate machines and network file
   transfer still needs separate evidence. The host/guest run exercised
   collection, joining, sanitization and Markdown using a shared directory.

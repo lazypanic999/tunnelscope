@@ -5,6 +5,7 @@ from io import StringIO
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -60,6 +61,31 @@ class ReportInputTests(unittest.TestCase):
                     message = self.invoke("show", source, error=True)
                     self.assertIn(str(source), message)
                     self.assertTrue(message.startswith("Error:"))
+
+    def test_invalid_report_kind_fails_cleanly_in_offline_views(self):
+        for kind in ([], {}):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = root / "bad-kind.json"
+                source.write_text(json.dumps({
+                    "schema_version": 1, "kind": kind, "input_versions": {},
+                    "results": [], "summary": {"by_payload_size": []},
+                }), encoding="utf-8")
+                original = source.read_bytes()
+                for arguments in (("show", source),
+                                  ("show", source, "--format", "markdown"),
+                                  ("html", source, "--output", root / "report.html")):
+                    with self.subTest(arguments=arguments):
+                        result = subprocess.run(
+                            [sys.executable, str(ROOT / "tunnelscope.py"), *map(str, arguments)],
+                            capture_output=True, text=True, timeout=10,
+                        )
+                        self.assertEqual(result.returncode, 1, result.stderr)
+                        self.assertTrue(result.stderr.startswith("Error:"), result.stderr)
+                        self.assertNotIn("Traceback", result.stderr)
+                        self.assertEqual(result.stdout, "")
+                        self.assertEqual(source.read_bytes(), original)
+                        self.assertEqual(sorted(path.name for path in root.iterdir()), [source.name])
 
     def test_invalid_diagnosis_containers_raise_value_error(self):
         report = json.loads((ROOT / "examples/diagnosis-v06.json").read_text(encoding="utf-8"))

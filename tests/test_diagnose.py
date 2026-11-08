@@ -5,6 +5,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -91,6 +92,32 @@ class DiagnoseTests(unittest.TestCase):
                 tunnelscope.main()
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["kind"], "diagnosis")
             self.assertIn("Joined receiver evidence", html.read_text(encoding="utf-8"))
+
+    def test_malformed_probe_ids_fail_before_diagnosis_lookup(self):
+        for value in ([], {}, None, 7):
+            with self.subTest(probe_id=value), tempfile.TemporaryDirectory() as directory:
+                diagnosis, receiver = self.correlation_fixture()
+                diagnosis["runs"]["size_search"]["results"][0]["probe_id"] = value
+                with self.assertRaisesRegex(ValueError, "probe IDs"):
+                    correlate_diagnosis(diagnosis, receiver)
+                root = Path(directory)
+                first, second = root / "diagnosis.json", root / "receiver.json"
+                output, html = root / "joined.json", root / "joined.html"
+                first.write_text(json.dumps(diagnosis), encoding="utf-8")
+                second.write_text(json.dumps(receiver), encoding="utf-8")
+                originals = first.read_bytes(), second.read_bytes()
+                result = subprocess.run(
+                    [sys.executable, str(Path(tunnelscope.__file__)), "correlate", str(first),
+                     str(second), "--output", str(output), "--html", str(html)],
+                    capture_output=True, text=True, timeout=10,
+                )
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertTrue(result.stderr.startswith("Error:"), result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual((first.read_bytes(), second.read_bytes()), originals)
+                self.assertFalse(output.exists())
+                self.assertFalse(html.exists())
 
     def test_budget_rejected_before_network_runs(self):
         with patch("tunnelscope_core.diagnose.compare_fragmentation") as compare, patch("tunnelscope_core.diagnose.require_df_support"), patch("tunnelscope_core.diagnose.require_icmp_support"):

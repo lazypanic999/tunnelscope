@@ -46,3 +46,6 @@ report sharing workflow through real CLI processes.
 declared producer/input versions, controlled OpenVPN feedback and return-path
 labs, grouped lab views, BOM-aware JSON input and installed-package/CI
 artifact provenance checks.
+
+[v0.9.1](releases/v0.9.1.md) keeps missing receiver reply-send outcomes
+unverified and handles malformed report kinds without a traceback.

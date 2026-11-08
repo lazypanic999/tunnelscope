@@ -129,7 +129,7 @@ def main():
                 "Review copies and attach full sanitized JSON."],
                 "The exporter does not sanitize its input. Legacy versions remain unknown; metadata is not authentication."),
             frame("Try the release or choose a small starter task", 6,
-                  "$ python -m pip install tunnelscope==0.9.0", [
+                  "$ python -m pip install --upgrade tunnelscope", [
                 "github.com/lazypanic999/tunnelscope", "",
                 "Replay this checked-in evidence without a live receiver.",
                 "Fresh measurements need a cooperating, controlled endpoint.",

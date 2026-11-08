@@ -1,7 +1,7 @@
 # Markdown report export
 
 Available in v0.9.0 and newer. Install with
-`python -m pip install --upgrade tunnelscope==0.9.0`. The existing text and
+`python -m pip install --upgrade tunnelscope==0.9.1`. The existing text and
 HTML views remain available.
 
 After collecting a sender report and receiver capture, correlate and sanitize

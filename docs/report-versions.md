@@ -13,8 +13,8 @@ capture can produce:
 {
   "schema_version": 1,
   "kind": "probe_receiver_correlation",
-  "tunnelscope_version": "0.9.0",
-  "input_versions": {"probe": "0.8.2", "receiver": null}
+  "tunnelscope_version": "0.9.1",
+  "input_versions": {"probe": "0.9.0", "receiver": null}
 }
 ```
 

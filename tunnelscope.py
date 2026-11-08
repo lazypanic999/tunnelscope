@@ -178,6 +178,8 @@ def main():
     correlated.add_argument("--html", type=Path, help="also write a local HTML view")
     shown = commands.add_parser("show", help="print a concise summary of a JSON report")
     shown.add_argument("report", type=Path)
+    shown.add_argument("--format", choices=("text", "markdown"), default="text",
+                       help="text table (default) or a bounded Markdown summary for issues")
     sanitized = commands.add_parser("sanitize", help="write copies of reports without addresses, interfaces or absolute times")
     sanitized.add_argument("reports", type=Path, nargs="+",
                            help="JSON reports sanitized together with one consistent mapping")
@@ -238,9 +240,14 @@ def main():
             write_sanitized(args.reports, args.output_dir, args.html, args.keep_timestamps)
         elif args.command == "show":
             shown_report = json.loads(args.report.read_text(encoding="utf-8"))
-            if isinstance(shown_report, dict) and isinstance(shown_report.get("sanitization"), dict):
-                print("Sanitized report: addresses, interfaces, hostnames and absolute times were replaced.")
-            print(format_report(shown_report))
+            if args.format == "markdown":
+                from tunnelscope_core.markdown import render_report_markdown
+                print(render_report_markdown(shown_report), end="")
+            else:
+                if isinstance(shown_report, dict) and isinstance(shown_report.get("sanitization"), dict):
+                    timestamp_state = shown_report["sanitization"].get("timestamps", "unspecified")
+                    print(f"Sanitized report: sanitization metadata present; timestamps: {timestamp_state}.")
+                print(format_report(shown_report))
         elif args.command == "html":
             require_distinct_output(args.output, args.report)
             from tunnelscope_view import render_report_html

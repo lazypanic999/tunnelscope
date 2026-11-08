@@ -222,6 +222,12 @@ class SanitizeTests(unittest.TestCase):
         clean, = sanitize_reports([self.probe], keep_timestamps=True)
         self.assertEqual(clean["started_at_utc"], self.probe["started_at_utc"])
         self.assertEqual(clean["sanitization"]["timestamps"], "kept")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "kept.json"
+            path.write_text(json.dumps(clean), encoding="utf-8")
+            shown = self.run_cli("show", str(path))
+            self.assertIn("timestamps: kept", shown)
+            self.assertNotIn("absolute times were replaced", shown)
         with self.assertRaisesRegex(ValueError, "already sanitized"):
             sanitize_reports([clean])
         with self.assertRaisesRegex(ValueError, "schema_version 1"):

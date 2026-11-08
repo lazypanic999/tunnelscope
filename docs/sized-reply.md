@@ -78,8 +78,10 @@ A sized-reply run that received only same-sized replies no longer lists
   replies) and by a send test in which `IP_DONTFRAGMENT` turned an oversized
   2000-byte datagram into `WSAEMSGSIZE`. A native Windows receiver also passed
   a [controlled non-loopback run from its WSL2 Linux guest](validation/windows-wsl2-receiver.md):
-  two kernels on one physical host, IPv4, 64–1400-byte payloads. Physically
-  separate Windows receivers and IPv6 cross-host paths need separate evidence.
+  two kernels on one physical host, IPv4, 64–1400-byte payloads. A separate
+  [IPv6 link-local record](validation/windows-wsl2-receiver-ipv6.md) passed the
+  same experiments. Physically separate receivers and routed IPv6 paths need
+  separate evidence.
   Windows Firewall or another host network policy may require a scoped inbound
   UDP rule for a different test path; the recorded virtual path changed no rules.
 - `search`, `compare-fragmentation` and `diagnose` also accept

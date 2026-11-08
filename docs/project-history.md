@@ -52,3 +52,7 @@ unverified and handles malformed report kinds without a traceback.
 The subsequent [native Windows/WSL2 receiver record](validation/windows-wsl2-receiver.md)
 validates v0.9.1 over non-loopback IPv4 between two kernels on one physical
 host, including the full sender/correlation/sanitization workflow.
+
+An [IPv6 link-local Windows/WSL2 follow-up](validation/windows-wsl2-receiver-ipv6.md)
+also retained 3/3 small ACKs, 6/6 sized replies and 8/8 diagnosis replies with
+Windows `IPV6_DONTFRAG`, local interface zones and no test-created rules.

@@ -6,6 +6,8 @@ Status: **released**. All four items landed on `main` on
 [v0.8.2 report fixes and IPv6 feedback validation](releases/v0.8.2.md).
 The [Windows host/WSL2 guest follow-up](validation/windows-wsl2-receiver.md)
 now records collection and sharing over non-loopback IPv4 with two kernels.
+An [IPv6 link-local follow-up](validation/windows-wsl2-receiver-ipv6.md) also
+retains all 17 replies and receiver observations.
 A field-guide dry run on physically separate machines, including network
 file transfer, remains follow-up work. The host/guest evidence is separate
 from the original loopback checks. This follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
@@ -83,7 +85,7 @@ network file transfer remain separate follow-ups.
   reconsidered now, to allow a return-direction size search? v0.7 chose
   mirrored sizes only.
 - Windows receiver support shipped in v0.8.0; the Linux-VM case in #28 now
-  has a host/guest validation record. Physical host and IPv6 cross-host paths
+  has a host/guest validation record. Physical host and routed IPv6 paths
   remain additional validation opportunities.
 - Should `ubuntu-latest` be pinned while GitHub moves it to Ubuntu 26, or
   should the labs be checked on the new image as soon as it is available?

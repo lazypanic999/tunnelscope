@@ -40,7 +40,7 @@ class MarkdownTests(unittest.TestCase):
         self.assertIn("receiver_reply_send_failed", markdown)
         self.assertIn("Observations (6 of 6 rows)", markdown)
         probe_id = self.report["results"][0]["probe_id"]
-        self.assertIn(probe_id[:8] + "…", markdown)
+        self.assertIn(probe_id[:8] + "...", markdown)
         self.assertNotIn(probe_id, markdown)
 
     def test_untrusted_fields_cannot_add_rows_links_or_html(self):
@@ -57,6 +57,45 @@ class MarkdownTests(unittest.TestCase):
         self.assertEqual(len(table), 3)
         self.assertEqual(len({line.count("|") for line in table}), 1)
         self.assertIn(value.replace("\n", " [newline] "), unescape(markdown))
+
+    def test_plain_source_stays_readable(self):
+        markdown = render_report_markdown(self.report)
+        row = self.report["results"][0]
+        for value in (row["direction"], "receiver_observed_sized_reply_missing",
+                      "Send attempted (UTC)", row["probe_id"][:8] + "..."):
+            self.assertIn(value, markdown)
+        self.assertIn("2026-11-05T22:51:31.856867+00:00", markdown)
+        self.assertIn("| - |", markdown)  # missing values
+        self.assertNotIn("&#46;", markdown)
+        self.assertNotIn("&#95;", markdown)
+
+    def test_mentions_references_autolinks_and_inline_markup_are_neutralized(self):
+        self.report["results"] = self.report["results"][:1]
+        cases = {
+            "@octocat ping": "@octocat",
+            "see #12 here": "#12",
+            "and GH-7 or gh-8": "GH-7",
+            "ftp://host and https://example.invalid": "://",
+            "visit www.example.invalid": "www.example",
+            "user@example.invalid": "@example",
+            "_emphasis_ and *bold* and ~~strike~~": "_emphasis_",
+            "$x^2$ math": "$x^2$",
+            "emoji :smile: :+1: :100:": ":smile:",
+            "2001:db8:abc:def::1": ":abc:",
+            r"a\|b`code`": "`code`",
+        }
+        for value, forbidden in cases.items():
+            with self.subTest(value=value):
+                self.report["results"][0]["direction"] = value
+                markdown = render_report_markdown(self.report)
+                self.assertNotIn(forbidden, markdown)
+                self.assertNotRegex(markdown, r"(?<!&#8203;)\$")  # every dollar sign is broken
+                shown = unescape(markdown).replace("​", "")
+                self.assertIn(value, shown)
+                markdown.encode("ascii")
+        # Intraword underscores and plain timestamps are left alone.
+        self.report["results"][0]["direction"] = "snake_case_name at 22:51:31"
+        self.assertIn("snake_case_name at 22:51:31", render_report_markdown(self.report))
 
     def test_sanitization_state_and_kept_timestamps_are_explicit(self):
         self.assertIn("No sanitization record", render_report_markdown(self.report))

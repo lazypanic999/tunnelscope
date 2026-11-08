@@ -1,7 +1,7 @@
 # Markdown report export
 
-Available in v0.9.0 and newer. Install with
-`python -m pip install --upgrade tunnelscope==0.9.1`. The existing text and
+Available in v0.9.0 and newer. Install or upgrade with
+`python -m pip install --upgrade tunnelscope`. The existing text and
 HTML views remain available.
 
 After collecting a sender report and receiver capture, correlate and sanitize
@@ -41,15 +41,28 @@ Clocks on different hosts are not compared.
 
 The summary contains at most 50 observation rows and 24,000 ASCII characters.
 Cells are limited to 160 original characters, probe IDs display their first
-eight characters, and multiline values display `[newline]`. A notice states
+eight characters followed by `...`, missing values display `-`, and multiline
+values display `[newline]`. A notice states
 when rows were omitted. Full values and all observations remain in the JSON;
 the exporter never changes it.
 
-Report values use numeric character references for punctuation and non-ASCII
-characters. GitHub displays the original characters as text, without letting
-an address, hostname or other field introduce a link, image, HTML tag, table
-column or new Markdown section. The plain source therefore contains entities
-such as `&#124;` for a literal pipe. This follows
-[GitHub Flavored Markdown's character-reference rules](https://github.github.com/gfm/#entity-and-numeric-character-references).
-The export is ASCII so redirected output also works with older Windows
+Report values stay readable in the plain source: addresses, timestamps,
+statuses and most punctuation appear as written. Only characters that could
+change how GitHub renders the summary are altered:
+
+- `|`, `` ` ``, `*`, `[`, `]`, `<`, `&`, `\` and `~`, non-ASCII characters,
+  underscores at word boundaries, `://`, `www.` and colons that would form an
+  emoji shortcode such as `:abc:` become numeric character references (for
+  example `&#124;` for a pipe). See
+  [GitHub Flavored Markdown's character-reference rules](https://github.github.com/gfm/#entity-and-numeric-character-references).
+- GitHub links `@mentions`, `#123` and `GH-123` references and renders `$...$`
+  math even after character references are decoded, so a zero-width space
+  (`&#8203;`) follows `@`, `#` and `GH-` before a name or number and precedes
+  every `$`. The text still reads the same on GitHub, but a copied value can
+  contain that invisible character; use the JSON for exact values.
+
+A report field therefore cannot add a link, image, HTML tag, mention, issue
+reference, emoji, math, table column or new section. This was checked by
+rendering hostile values through GitHub's Markdown API in the repository
+context. The export is ASCII so redirected output also works with older Windows
 console encodings. It adds no runtime dependencies.

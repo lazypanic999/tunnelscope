@@ -32,8 +32,12 @@ def read_report(path):
 
 
 def require_distinct_output(output, *inputs):
-    if output is not None and any(output.resolve() == source.resolve() for source in inputs):
-        raise ValueError("--output must differ from the input report path")
+    if output is None:
+        return
+    for source in inputs:
+        if (output.resolve() == source.resolve()
+                or (output.exists() and source.exists() and output.samefile(source))):
+            raise ValueError("--output must differ from the input report path and file")
 
 
 def require_output_target(output):

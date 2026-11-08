@@ -3,6 +3,7 @@
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -51,6 +52,34 @@ class OutputPreflightTests(unittest.TestCase):
                 tunnelscope.main()
             run.assert_called_once()
             self.assertEqual(json.loads(target.read_text(encoding="utf-8")), report)
+
+    def test_hard_link_alias_cannot_overwrite_any_offline_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sender, receiver = root / "sender.json", root / "receiver.json"
+            sender.write_text('{"schema_version":1,"kind":"probe","results":[]}', encoding="utf-8")
+            receiver.write_text('{"schema_version":1,"kind":"receiver_observations","observations":[]}', encoding="utf-8")
+            originals = (sender.read_bytes(), receiver.read_bytes())
+            commands = (
+                (["html", str(sender)], sender, "--output"),
+                (["combine", str(sender), str(receiver)], receiver, "--output"),
+                (["correlate", str(sender), str(receiver)], sender, "--output"),
+                (["correlate", str(sender), str(receiver)], receiver, "--html"),
+            )
+            for index, (arguments, source, option) in enumerate(commands):
+                alias = root / f"alias-{index}{'.html' if option == '--html' or arguments[0] == 'html' else '.json'}"
+                try:
+                    os.link(source, alias)
+                except OSError as error:
+                    self.skipTest(f"test filesystem does not support hard links: {error}")
+                with self.subTest(command=arguments[0], option=option):
+                    errors = StringIO()
+                    with patch.object(sys, "argv", ["tunnelscope", *arguments, option, str(alias)]), \
+                            redirect_stderr(errors), redirect_stdout(StringIO()), self.assertRaises(SystemExit) as stopped:
+                        tunnelscope.main()
+                    self.assertEqual(stopped.exception.code, 1)
+                    self.assertIn("must differ", errors.getvalue())
+                    self.assertEqual((sender.read_bytes(), receiver.read_bytes()), originals)
 
 
 if __name__ == "__main__":

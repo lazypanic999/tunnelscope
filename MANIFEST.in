@@ -2,8 +2,7 @@ include tunnelscope-logo-blue.png
 recursive-include tunnelscope_assets *.png
 include LICENSE
 recursive-include docs *.md *.png *.jpg *.gif
-include scripts/build_v06_demo.py
-include scripts/build_v07_images.py
+recursive-include scripts *.py
 recursive-include examples *.json
 recursive-include labs *.py
 recursive-include labs Dockerfile

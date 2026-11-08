@@ -5,12 +5,14 @@ on:
   push:
     paths:
       - 'labs/wireguard*.py'
+      - 'scripts/write_lab_manifest.py'
       - 'tunnelscope.py'
       - 'tunnelscope_core/**'
       - '.github/workflows/wireguard-labs.yml'
   pull_request:
     paths:
       - 'labs/wireguard*.py'
+      - 'scripts/write_lab_manifest.py'
       - 'tunnelscope.py'
       - 'tunnelscope_core/**'
       - '.github/workflows/wireguard-labs.yml'
@@ -32,9 +34,16 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends wireguard-tools iproute2 iptables iputils-ping
       - name: Validate local tunnel boundary
-        run: sudo python3 labs/wireguard_boundary.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/local"
+        run: |
+          mkdir -p "${{ runner.temp }}/tunnelscope-wireguard"
+          sudo python3 labs/wireguard_boundary.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/local"
       - name: Validate routed feedback in both directions
         run: sudo python3 labs/wireguard_routed.py --output-dir "${{ runner.temp }}/tunnelscope-wireguard/routed"
+      - name: Record lab artifact provenance
+        if: always()
+        env:
+          TUNNELSCOPE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/write_lab_manifest.py --directory "${{ runner.temp }}/tunnelscope-wireguard"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

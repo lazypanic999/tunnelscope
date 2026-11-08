@@ -26,10 +26,16 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - name: Validate isolated Linux MTU labs
         if: runner.os == 'Linux'
-        run: >-
-          sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1
-          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-labs"
+        run: |
+          mkdir -p "${{ runner.temp }}/tunnelscope-labs"
+          sudo env TUNNELSCOPE_RUN_NETNS_TESTS=1 \
+          TUNNELSCOPE_LAB_OUTPUT_DIR="${{ runner.temp }}/tunnelscope-labs" \
           "$(command -v python)" -m unittest discover -s tests -v
+      - name: Record lab artifact provenance
+        if: always() && runner.os == 'Linux'
+        env:
+          TUNNELSCOPE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/write_lab_manifest.py --directory "${{ runner.temp }}/tunnelscope-labs"
       - name: Keep lab output
         if: always() && runner.os == 'Linux'
         uses: actions/upload-artifact@v7

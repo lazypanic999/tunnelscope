@@ -50,6 +50,7 @@ python -I scripts/check_installed.py
 The CI matrix runs this offline workflow on both operating systems. It checks
 version metadata, correlation, sanitization, text, Markdown and the packaged
 HTML logo without relying on source files being importable from the checkout.
+Retained CI lab reports also include a [provenance and hash manifest](docs/validation/ci-artifacts.md).
 
 Changes to `main` go through pull requests and the required `Delivery checks`
 result. That check depends on all delivery-test matrix jobs, so every supported

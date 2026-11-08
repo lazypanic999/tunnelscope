@@ -73,3 +73,7 @@ diagnosis workflow. Contributor PR #66 closes the accidentally rejoined
 correlation case with direct and subprocess output-protection regressions.
 Contributor PR #67 also retains nonzero local receiver IPv6 scope metadata;
 the recorded v0.9.1 captures are preserved without retroactive fields.
+
+[v0.9.4](releases/v0.9.4.md) keeps Markdown summaries readable and breaks
+GitHub mentions, issue references and math that encoded report values could
+still produce after pasting.

@@ -4,6 +4,10 @@ Release scope: [v0.9.0](releases/v0.9.0.md), implemented after
 [v0.8.2](releases/v0.8.2.md). The independent endpoint checks below remain
 follow-ups; controlled lab evidence does not close them.
 
+[v0.9.5](releases/v0.9.5.md) hardens offline correlation inputs and
+sanitization without changing measurement behavior. Independent VPN
+operator reports remain the next evidence priority.
+
 ## Markdown evidence summaries
 
 [#32](https://github.com/lazypanic999/tunnelscope/issues/32) adds

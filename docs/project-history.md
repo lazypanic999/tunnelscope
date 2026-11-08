@@ -66,3 +66,10 @@ the existing MTU 1500 and network policy were left unchanged.
 cross-run lookup, includes the v0.9 demo builder in source archives, and
 adds Linux/Windows Python 3.13 CI coverage through contributor PR #61.
 Native Windows validation records retain their original v0.9.1 producer.
+
+[v0.9.3](releases/v0.9.3.md) rejects an explicitly non-probe sender input
+before correlation, preserving missing-kind legacy probes and the separate
+diagnosis workflow. Contributor PR #66 closes the accidentally rejoined
+correlation case with direct and subprocess output-protection regressions.
+Contributor PR #67 also retains nonzero local receiver IPv6 scope metadata;
+the recorded v0.9.1 captures are preserved without retroactive fields.

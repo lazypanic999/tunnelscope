@@ -6,11 +6,13 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.9.2 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.9.2/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.9.2) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.9.3 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.9.3/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.9.3) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 v0.9 adds [Markdown evidence export](https://github.com/lazypanic999/tunnelscope/blob/main/docs/markdown-reports.md).
 Watch the [30-second recorded evidence replay](https://github.com/lazypanic999/tunnelscope/blob/main/docs/demo-v09.md)
 for the OpenVPN return-path example and report-sharing steps.
+
+v0.9.3 rejects [non-probe sender inputs](https://github.com/lazypanic999/tunnelscope/blob/main/docs/releases/v0.9.3.md) before writing correlation outputs, and retains nonzero local IPv6 receiver scope IDs.
 
 v0.9.2 adds [diagnosis input checks and Python 3.13 CI coverage](https://github.com/lazypanic999/tunnelscope/blob/main/docs/releases/v0.9.2.md).
 
@@ -45,7 +47,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.9.2
+python -m pip install tunnelscope==0.9.3
 ```
 
 In terminal 1, start the loopback receiver:

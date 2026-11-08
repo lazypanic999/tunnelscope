@@ -1,6 +1,6 @@
 """Runtime version and declared report provenance, without network imports."""
 
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 
 
 def declared_version(report):

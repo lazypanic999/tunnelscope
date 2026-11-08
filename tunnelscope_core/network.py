@@ -173,14 +173,18 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
             raise
         finally:
             if output is not None:
+                local = sock.getsockname()
+                receiver = {f"bind_{address_key}": local[0], "port": local[1]}
+                if sock.family == socket.AF_INET6 and local[3]:
+                    receiver["scope_id"] = local[3]
+                if sized_reply:
+                    receiver["sized_reply"] = True
+                    receiver["reply_fragmentation"] = reply_fragmentation
                 report = {
                     "schema_version": 1,
                     "kind": "receiver_observations",
                     "tunnelscope_version": VERSION,
-                    "receiver": {f"bind_{address_key}": sock.getsockname()[0],
-                                 "port": sock.getsockname()[1],
-                                 **({"sized_reply": True, "reply_fragmentation": reply_fragmentation}
-                                    if sized_reply else {})},
+                    "receiver": receiver,
                     "started_at_utc": started_at_utc,
                     "finished_at_utc": utc_now(),
                     "exit_reason": exit_reason,

@@ -2,8 +2,8 @@
 
 Every TunnelScope validation so far comes from controlled labs and VMs. Reports
 from real VPN, overlay and routed paths are the evidence the project needs
-most (see [#1](https://github.com/lazypanic999/tunnelscope/issues/1) and
-[#2](https://github.com/lazypanic999/tunnelscope/issues/2)). This guide shows
+most (see [VPN field evidence #2](https://github.com/lazypanic999/tunnelscope/issues/2)
+and [Windows cross-host coverage #28](https://github.com/lazypanic999/tunnelscope/issues/28)). This guide shows
 how to collect one report, sanitize it and share it with the
 [field report issue template](https://github.com/lazypanic999/tunnelscope/issues/new?template=field_report.md).
 
@@ -30,7 +30,11 @@ tunnelscope receive --bind B_IP --sized-reply --max-packets 200 --idle-timeout 1
 ```
 
 It exits after 200 probes or 120 seconds without traffic and then writes
-`receiver.json`.
+`receiver.json`. After the sender finishes, you can press Ctrl+C once in the
+receiver terminal to save the capture immediately (`exit_reason: interrupted`);
+the command exits with code 130. Wait for that terminal to return to its prompt
+before copying the file. Do not close or kill the terminal before the capture
+has been saved.
 
 ## 2. Run the sender (endpoint A)
 
@@ -48,16 +52,31 @@ From a Windows sender, use a fixed list of sizes instead:
 tunnelscope probe B_IP --sizes 64,1200,1300,1400,1450 --count 3 --sized-reply --output probe.json
 ```
 
+This writes `probe.json`; `diagnose` and its DF comparison remain Linux-only.
+
 ## 3. Join and sanitize
 
 Copy `receiver.json` to the sender (or both files to any machine with
-TunnelScope), then:
+TunnelScope). For the Linux `diagnose` workflow:
 
 ```sh
 tunnelscope correlate diagnosis.json receiver.json --output correlation.json --html correlation.html
 mkdir shared
 tunnelscope sanitize diagnosis.json receiver.json correlation.json --output-dir shared --html
 ```
+
+For the Windows `probe` workflow, use its sender file instead. These commands
+also work in PowerShell:
+
+```sh
+tunnelscope correlate probe.json receiver.json --output correlation.json --html correlation.html
+mkdir shared
+tunnelscope sanitize probe.json receiver.json correlation.json --output-dir shared --html
+```
+
+Run each experiment in a new directory, or choose fresh filenames and a fresh
+`shared` directory. In particular, `diagnose` and `sanitize` refuse existing
+outputs. Do not run both command blocks against the same files.
 
 Sanitize the files **together** so the same address gets the same placeholder
 in every copy. Open the copies in `shared/` and read them before attaching:
@@ -86,4 +105,10 @@ attach the files from `shared/` and describe the path as far as you know it.
    rather than a controlled lab.
 
 A report that shows nothing unusual is still useful: it records that a path
-type carried the tested sizes in both directions.
+type carried the tested sizes. With same-sized replies acknowledged, each
+successful attempt carried that size in both directions; a small ACK only
+confirms the forward payload and the small reply.
+
+The CLI collection → correlation → sanitization → display workflow is checked
+on loopback in CI on Linux and Windows. That checks the commands and saved
+files; it does not replace the two-machine dry run or independent field evidence.

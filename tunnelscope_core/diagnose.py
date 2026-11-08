@@ -5,7 +5,7 @@ from ._version import VERSION, declared_version
 
 from .icmp import require_icmp_support
 from .network import SIZED_REPLY_MIN_BYTES, compare_fragmentation, probe, require_df_support
-from .reports import correlate_reports
+from .reports import correlate_reports, is_hex_id
 
 
 def build_diagnosis(comparison, search):
@@ -129,22 +129,16 @@ def correlate_diagnosis(diagnosis, receiver_report):
     run_ids = [probe.get("run_id") for probe in probes.values()]
     if any(not isinstance(value, str) or len(value) != 16 for value in run_ids) or len(set(run_ids)) != 3:
         raise ValueError("diagnosis needs three distinct run IDs")
-    try:
-        for value in run_ids:
-            bytes.fromhex(value)
-    except ValueError as error:
-        raise ValueError("diagnosis needs hexadecimal run IDs") from error
+    if not all(is_hex_id(value, 16) for value in run_ids):
+        raise ValueError("diagnosis needs hexadecimal run IDs")
     observations = receiver_report["observations"]
     for row in observations:
         if not isinstance(row, dict) or not isinstance(row.get("run_id"), str):
             raise ValueError("receiver observations need run IDs for diagnosis")
         if len(row["run_id"]) != 16 or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
             raise ValueError("invalid receiver observation")
-        try:
-            bytes.fromhex(row["run_id"])
-            bytes.fromhex(row["probe_id"])
-        except ValueError as error:
-            raise ValueError("invalid hexadecimal receiver identifier") from error
+        if not is_hex_id(row["run_id"], 16) or not is_hex_id(row["probe_id"], 32):
+            raise ValueError("invalid hexadecimal receiver identifier")
     if len({row["probe_id"] for row in observations}) != len(observations):
         raise ValueError("duplicate probe ID in receiver report")
     sent_run_by_probe = {row["probe_id"]: probe["run_id"]

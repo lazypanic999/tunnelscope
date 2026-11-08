@@ -1,7 +1,18 @@
 """Evidence summaries, correlation and terminal formatting."""
 
 from math import sqrt
+import re
 from ._version import VERSION, declared_version
+
+# bytes.fromhex() alone is too lenient for probe and run IDs: it skips ASCII
+# whitespace, so a 32-character value with newlines would pass as a probe ID
+# while holding fewer than 16 bytes. Either hex letter case stays accepted.
+_HEX_ID = {16: re.compile(r"[0-9a-fA-F]{16}"), 32: re.compile(r"[0-9a-fA-F]{32}")}
+
+
+def is_hex_id(value, length):
+    """Return whether value is a hexadecimal identifier of exactly length digits."""
+    return isinstance(value, str) and _HEX_ID[length].fullmatch(value) is not None
 
 
 def version_details(report):
@@ -145,29 +156,17 @@ def correlate_reports(probe_report, receiver_report):
     for row in sent + received:
         if not isinstance(row, dict) or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
             raise ValueError("reports need valid probe IDs and payload sizes")
-        try:
-            bytes.fromhex(row["probe_id"])
-        except ValueError as error:
-            raise ValueError("reports need hexadecimal probe IDs") from error
+        if not is_hex_id(row["probe_id"], 32):
+            raise ValueError("reports need hexadecimal probe IDs")
     for row in received:
         value = row.get("run_id")
-        if value is not None:
-            if not isinstance(value, str) or len(value) != 16:
-                raise ValueError("invalid receiver run ID")
-            try:
-                bytes.fromhex(value)
-            except ValueError as error:
-                raise ValueError("invalid receiver run ID") from error
+        if value is not None and not is_hex_id(value, 16):
+            raise ValueError("invalid receiver run ID")
     if len({row["probe_id"] for row in sent}) != len(sent) or len({row["probe_id"] for row in received}) != len(received):
         raise ValueError("duplicate probe ID in report")
     run_id = probe_report.get("run_id")
-    if run_id is not None:
-        if not isinstance(run_id, str) or len(run_id) != 16:
-            raise ValueError("invalid probe run ID")
-        try:
-            bytes.fromhex(run_id)
-        except ValueError as error:
-            raise ValueError("invalid probe run ID") from error
+    if run_id is not None and not is_hex_id(run_id, 16):
+        raise ValueError("invalid probe run ID")
     receiver_run_ids = {row.get("run_id") for row in received}
     if run_id is None or (received and None in receiver_run_ids):
         run_id_check = "unavailable_legacy_report"

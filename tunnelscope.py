@@ -80,9 +80,12 @@ def write_sanitized(inputs, output_dir, with_html, keep_timestamps):
         from tunnelscope_view import render_report_html
         rendered = [render_report_html(report) for report in sanitized]
     for index, (report, outputs) in enumerate(zip(sanitized, targets)):
-        outputs[0].write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        # Keep the no-overwrite guarantee even if a file appears after preflight.
+        with outputs[0].open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(report, indent=2) + "\n")
         if with_html:
-            outputs[1].write_text(rendered[index], encoding="utf-8")
+            with outputs[1].open("x", encoding="utf-8") as stream:
+                stream.write(rendered[index])
         print("Wrote " + " and ".join(str(target) for target in outputs))
     summary = sanitized[0]["sanitization"]
     print(f"Replaced {summary['replaced_addresses']} addresses, {summary['replaced_interfaces']} interface names "

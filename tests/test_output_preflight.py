@@ -15,6 +15,35 @@ import tunnelscope
 
 
 class OutputPreflightTests(unittest.TestCase):
+    def test_sanitize_does_not_overwrite_files_created_after_preflight(self):
+        for with_html in (False, True):
+            with self.subTest(html=with_html), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = root / "probe.json"
+                original = '{"schema_version":1,"kind":"probe","results":[]}'
+                source.write_text(original, encoding="utf-8")
+                destination = root / "shared"
+                destination.mkdir()
+                raced = destination / ("probe.html" if with_html else "probe.json")
+                sanitize = tunnelscope.sanitize_reports
+
+                def create_competing_file(*args, **kwargs):
+                    result = sanitize(*args, **kwargs)
+                    raced.write_text("created by another process", encoding="utf-8")
+                    return result
+
+                arguments = ["tunnelscope", "sanitize", str(source), "--output-dir", str(destination)]
+                if with_html:
+                    arguments.append("--html")
+                with patch.object(sys, "argv", arguments), \
+                        patch.object(tunnelscope, "sanitize_reports", side_effect=create_competing_file), \
+                        redirect_stderr(StringIO()), redirect_stdout(StringIO()), \
+                        self.assertRaises(SystemExit) as stopped:
+                    tunnelscope.main()
+                self.assertEqual(stopped.exception.code, 1)
+                self.assertEqual(raced.read_text(encoding="utf-8"), "created by another process")
+                self.assertEqual(source.read_text(encoding="utf-8"), original)
+
     def test_bad_destinations_fail_before_network_operations(self):
         commands = (
             (["receive"], "receive"),

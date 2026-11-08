@@ -52,6 +52,9 @@ so the first interface is not necessarily `if-1`. An IPv6 scope ID gets a
 consistent interface label even when no separate `interface` field names it;
 different scope IDs keep different labels. Known names in free text are
 replaced in one pass so a generated label is not renamed again.
+Existing `if-N` and `host-N.example` labels in free text are reserved too.
+IPv4-mapped documentation addresses also reserve their underlying IPv4
+address, so replacements do not collide with that existing evidence.
 
 ## What the record says
 

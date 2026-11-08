@@ -1,16 +1,17 @@
 # v0.8 plan: field evidence and wider return-path coverage
 
-Status: **implemented; release pending**. All four items landed on `main` on
-2026-11-06 and are prepared as [v0.8.0](releases/v0.8.0.md). Two checks remain
+Status: **released**. All four items landed on `main` on
+2026-11-06 and shipped in [v0.8.0](releases/v0.8.0.md), followed by the
+[v0.8.1 report-table update](releases/v0.8.1.md). Two checks remain
 open: a maintainer dry run of the field report guide on two machines and a
 cross-host run with a Windows receiver. It follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
 measurements stay separate from conclusions, a timeout alone is never an MTU
 diagnosis, and an observed payload interval is not an end-to-end path MTU.
 
-v0.7 made return-path evidence and shareable reports possible. Every
-validation so far is still a controlled lab, and same-sized replies have been
-exercised only on IPv4 and only with a Linux receiver. v0.8 proposes to make
-outside contributions easy to collect and to close those two coverage gaps.
+v0.7 made return-path evidence and shareable reports possible. v0.8 added
+controlled IPv6 return-path validation and Windows receiver loopback tests.
+Independent field reports and Windows cross-host validation remain open;
+the controlled results do not establish behavior on arbitrary VPN or overlay paths.
 
 ## Proposed for v0.8.0
 

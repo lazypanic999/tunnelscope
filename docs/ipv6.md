@@ -35,3 +35,9 @@ The [isolated IPv6 boundary lab](../labs/ipv6_boundary.py) verifies a
 1280-byte veth link: 1228–1232-byte UDP payloads arrive, while 1233–1236-byte
 payloads are rejected locally in no-fragment mode. It creates and removes
 temporary network namespaces and requires root and `iproute2`.
+
+The [routed IPv6 feedback lab](validation/ipv6-routed-feedback.md) adds a
+1500-byte sender link and a router with 1280-byte egress. It compares visible
+and blocked Packet Too Big messages, retains receiver logs, and checks that
+a blocked-feedback search remains inconclusive. It also requires `ip6tables`
+and `sysctl`; all changes stay inside temporary namespaces.

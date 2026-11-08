@@ -48,7 +48,10 @@ are kernel/network claims, not an independent path measurement. A timeout
 still needs receiver or path evidence.
 
 The [validation record](validation/icmp-feedback.md) covers local errors,
-visible IPv4/IPv6 routed feedback and blocked IPv4 feedback. The API behavior
+visible IPv4/IPv6 routed feedback and blocked IPv4 feedback. The newer
+[routed IPv6 record](validation/ipv6-routed-feedback.md) also includes
+blocked IPv6 feedback, receiver evidence and an inconclusive size search.
+The API behavior
 follows the Linux [`IP_RECVERR` manual](https://man7.org/linux/man-pages/man2/IP_RECVERR.2const.html),
 Python's [`recvmsg` documentation](https://docs.python.org/3.12/library/socket.html#socket.socket.recvmsg),
 and [RFC 4443](https://www.rfc-editor.org/rfc/rfc4443.html) for IPv6 Packet

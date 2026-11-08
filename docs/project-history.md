@@ -61,3 +61,8 @@ The [oversized Windows reply record](validation/windows-oversized-replies.md)
 then joined actual `WSAEMSGSIZE` failures for 1600-byte same-sized replies
 over IPv4 and IPv6. Small ACKs returned for those same forward payloads;
 the existing MTU 1500 and network policy were left unchanged.
+
+[v0.9.2](releases/v0.9.2.md) rejects malformed diagnosis probe IDs before
+cross-run lookup, includes the v0.9 demo builder in source archives, and
+adds Linux/Windows Python 3.13 CI coverage through contributor PR #61.
+Native Windows validation records retain their original v0.9.1 producer.

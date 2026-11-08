@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tunnelscope_core.network import receive
+from tunnelscope_core.sanitize import sanitize_reports
 
 
 class ReceiverScopeIdTests(unittest.TestCase):
@@ -38,6 +39,9 @@ class ReceiverScopeIdTests(unittest.TestCase):
         receiver = self._run_with_mock_socket(
             socket.AF_INET6, ("fe80::1", 9471, 0, 7), "bind_ipv6", "fe80::1")
         self.assertEqual(receiver["scope_id"], 7)
+        clean = sanitize_reports([{"schema_version": 1, "kind": "receiver_observations",
+                                   "receiver": receiver, "observations": []}])[0]
+        self.assertEqual(clean["receiver"]["scope_id"], 7)
 
     def test_ipv6_zero_scope_id_is_omitted(self):
         receiver = self._run_with_mock_socket(

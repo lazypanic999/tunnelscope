@@ -304,44 +304,101 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                                           ack_received_at_utc=utc_now())
                             if sized_reply:
                                 result.update(reply_bytes=len(reply), return_status=(
-                                    "sized_reply_received" if reply == sized_ack else "ack_received"))
+                                    "sized_reply_received" if reply == sized_ack else "small_ack_only"))
                             break
-                    if observe_icmp:
-                        result.update(drain_error_queue(sock))
                 except socket.timeout:
-                    result.update(status="timeout", return_status="no_reply")
-                    if observe_icmp:
-                        result.update(drain_error_queue(sock))
+                    result["status"] = "timeout"
+                    if sized_reply:
+                        result["return_status"] = "no_reply"
                 except OSError as error:
                     result.update(socket_failure(error, sock, dont_fragment))
-                    result["return_status"] = "send_error"
+                if observe_icmp:
+                    result["icmp_observation"] = drain_error_queue(
+                        sock, HEADER.pack(MAGIC, token, size)
+                    )
+                    if result.get("status") == "packet_too_large":
+                        events = result["icmp_observation"]["events"]
+                        result["size_error_origin"] = (
+                            "network_icmp_feedback" if any(
+                                event.get("message") in ("fragmentation_needed", "packet_too_big")
+                                and event.get("quoted_probe_match") is not False for event in events
+                            ) else "local" if any(event.get("origin") == "local" for event in events)
+                            else "unknown"
+                        )
             results.append(result)
-        if search_bounds is not None:
-            search_summary = assess_search(sizes, results, max_sizes)
-            if search_summary["next_size"] is None:
-                break
-            sizes.append(search_summary["next_size"])
+            time.sleep(0.05)
         size_index += 1
+        if search_bounds is not None:
+            next_size, search_summary = assess_search(
+                minimum, maximum, summarize_results(sizes[:size_index], results), max_sizes
+            )
+            if next_size is not None:
+                sizes.append(next_size)
+    by_payload_size = summarize_results(sizes, results)
+    summary = {"by_payload_size": by_payload_size}
+    # The return direction counts as tested only if the receiver demonstrably sent
+    # same-sized replies and never fell back to the small acknowledgement.
+    reverse_tested = (any(row.get("return_status") == "sized_reply_received" for row in results)
+                      and not any(row.get("return_status") == "small_ack_only" for row in results))
+    if observe_icmp:
+        observations = [row["icmp_observation"] for row in results]
+        events = [event for observation in observations for event in observation["events"]]
+        size_feedback = [event for event in events
+                         if event.get("message") in ("fragmentation_needed", "packet_too_big")
+                         and event.get("quoted_probe_match") is not False]
+        summary["icmp_feedback"] = {
+            "observation_state": ("complete" if all(row["state"] == "completed" for row in observations)
+                                  else "partial"),
+            "size_feedback_events": len(size_feedback),
+            "token_matched_size_feedback_events": sum(event.get("quoted_probe_match") is True
+                                                      for event in size_feedback),
+            "local_error_events": sum(event.get("origin") == "local" for event in events),
+            "other_or_unparsed_events": len(events) - len(size_feedback)
+                                        - sum(event.get("origin") == "local" for event in events),
+        }
+    if search_summary is not None:
+        summary["search"] = search_summary
     return {
-        "schema_version": 1, "kind": "probe", "tunnelscope_version": VERSION,
-        "run_id": run_id.hex(), "started_at_utc": started_at_utc, "finished_at_utc": utc_now(),
-        "target": {address_key: destination[0], "port": destination[1]},
-        "source": source or {},
+        "schema_version": 1,
+        "kind": "probe",
+        "tunnelscope_version": VERSION,
+        "run_id": run_id.hex(),
+        "started_at_utc": started_at_utc,
+        "finished_at_utc": utc_now(),
+        "source": source,
+        "target": {"host": host, address_key: destination[0], "port": port},
         "settings": {"payload_sizes": sizes, "count": count, "timeout_seconds": timeout,
-                     "dont_fragment": dont_fragment, "sized_reply": sized_reply},
-        "fragmentation_mode": ("df" if dont_fragment else "permitted" if allow_fragmentation else "default"),
+                     "dont_fragment": dont_fragment, "observe_icmp": observe_icmp,
+                     **({"sized_reply": True} if sized_reply else {})},
+        "fragmentation_mode": "df" if dont_fragment else "permitted" if allow_fragmentation else "os_default",
+        "fragmentation": (("disabled: Linux IPV6_DONTFRAG" if address_family == socket.AF_INET6 else "disabled: Linux IP_PMTUDISC_DO") if dont_fragment else
+                          ("permitted: Linux IPV6_DONTFRAG=0" if address_family == socket.AF_INET6 else "permitted: Linux IP_PMTUDISC_DONT") if allow_fragmentation else
+                          "OS default; fragmentation behavior is not controlled"),
+        "interpretation": ("Acknowledgement confirms delivery and a same-sized reply when return_status is "
+                           "sized_reply_received; small_ack_only means the receiver sent only a small reply. "
+                           if sized_reply else "Acknowledgement confirms delivery and a small reply. ") + "Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+        "summary": summary,
+        "evidence": explain_evidence(by_payload_size, dont_fragment, reverse_tested),
         "results": results,
-        "summary": summarize_results(sizes, results),
-        "search": search_summary,
-        "interpretation": explain_evidence(results),
     }
 
 
 def compare_fragmentation(host, port, sizes, count, timeout, family="auto",
                           observe_icmp=False, sized_reply=False):
-    df = probe(host, port, sizes, count, timeout, dont_fragment=True, family=family,
+    """Measure each configured size with DF and source fragmentation permitted."""
+    require_df_support(True)
+    sizes = list(sizes)
+    if not 1 <= len(sizes) <= 16 or any(not 32 <= size <= 8192 for size in sizes):
+        raise ValueError("comparison needs 1..16 payload sizes of 32..8192 bytes")
+    if len(set(sizes)) != len(sizes):
+        raise ValueError("comparison needs distinct payload sizes")
+    if not 1 <= count <= 10 or not 1 <= timeout <= 5:
+        raise ValueError("comparison count or timeout is outside CLI bounds")
+    if 2 * len(sizes) * count > 100 or 2 * len(sizes) * count * timeout > 120:
+        raise ValueError("comparison budget exceeds 100 probes or 120 seconds of timeout allowance")
+    df = probe(host, port, sizes, count, timeout, True, family,
                observe_icmp=observe_icmp, sized_reply=sized_reply)
-    permitted = probe(host, port, sizes, count, timeout, allow_fragmentation=True, family=family,
-                      observe_icmp=observe_icmp, sized_reply=sized_reply)
+    permitted = probe(host, port, sizes, count, timeout, False, family,
+                      allow_fragmentation=True, observe_icmp=observe_icmp, sized_reply=sized_reply)
     from .fragmentation import compare_fragmentation_reports
     return compare_fragmentation_reports(df, permitted)

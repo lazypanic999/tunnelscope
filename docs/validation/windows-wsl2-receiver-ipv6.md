@@ -17,7 +17,10 @@ Documentation addresses replace the original link-local addresses, so the
 sanitized `2001:db8::` addresses are placeholders, not evidence of a global
 IPv6 route. Interface labels and absolute measurement timestamps were also
 replaced. Probe/run IDs, local scope IDs and observed outcomes were retained.
-The receiver report now also records a nonzero IPv6 scope ID under `receiver.scope_id` (local interface metadata, not a cross-host pairing key; retained by sanitization the same way the sender scope ID is).
+Newer receiver code also retains a nonzero IPv6 socket scope under
+`receiver.scope_id`. This is local interface metadata, not a cross-host
+pairing key, and sanitization retains it like the sender scope ID. The
+v0.9.1 receiver captures below predate this addition.
 
 ## Environment and observations
 

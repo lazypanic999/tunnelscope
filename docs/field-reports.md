@@ -13,7 +13,10 @@ restrict its port to the sender. See [security boundaries](security-boundaries.m
 
 ## What you need
 
-- TunnelScope v0.7.0 or newer on both endpoints (`python -m pip install --upgrade tunnelscope`).
+- Use the latest published TunnelScope release on both endpoints and the
+  sharing machine (`python -m pip install --upgrade tunnelscope`). The optional
+  Markdown summary below requires v0.9.0 or newer. Same-sized replies on Linux
+  are supported since v0.7.0.
 - A Linux (including WSL2) or Windows receiver for `--sized-reply`; Windows
   receivers need v0.8.0 or newer, and Windows Firewall must allow inbound
   UDP 9471 for the test. The sender for
@@ -83,6 +86,18 @@ in every copy. Open the copies in `shared/` and read them before attaching:
 `sanitize` replaces addresses, interface names, hostnames and absolute times it
 can recognize, but not names you may have typed elsewhere. See
 [sanitize reports](sanitize.md).
+
+Optionally, export the reviewed sanitized correlation as an issue summary:
+
+```sh
+tunnelscope show shared/correlation.json --format markdown > evidence.md
+```
+
+Choose a fresh `evidence.md` filename: shell redirection opens the file before
+TunnelScope runs and can overwrite an existing file. Review the summary before
+sharing it. The Markdown exporter **does not sanitize its input**; its row and
+character limits do not replace the full evidence. Attach the full sanitized
+JSON alongside the summary. See [Markdown report export](markdown-reports.md).
 
 To test the other direction, swap the roles of A and B and repeat with new
 file names.

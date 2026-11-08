@@ -27,6 +27,16 @@ sizes; it is not an exact path-MTU measurement. See the [size sweep guide](https
 
 ## Probe and report details
 
+Development `main` also displays grouped lab JSON with the default text view:
+
+```sh
+python tunnelscope.py show examples/ipv6-routed-feedback.json
+python tunnelscope.py show examples/openvpn-routed-v09.json
+```
+
+Named cases and multiple directions use the same observation-table data as
+HTML and Markdown. The JSON retains the complete underlying runs.
+
 Before sharing any report, see [sanitize reports](sanitize.md). To test
 same-sized traffic in the return direction, see [sized replies](sized-reply.md).
 

@@ -137,7 +137,9 @@ shows how to collect and share a sanitized report.
 - [Receiver observations](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md), [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md), [Kubernetes lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md) and [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md).
 - [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.9 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.9.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
-Contributions welcome. CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
+Contributions welcome. Pick an [open starter task](https://github.com/lazypanic999/tunnelscope/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
+or help with a [field report](https://github.com/lazypanic999/tunnelscope/blob/main/docs/field-reports.md).
+CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with
 `python -m unittest discover -s tests -v`. Privileged Linux labs require explicit
 opt-in as described in the usage reference.

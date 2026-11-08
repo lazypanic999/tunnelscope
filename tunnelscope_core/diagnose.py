@@ -5,7 +5,7 @@ from ._version import VERSION, declared_version
 
 from .icmp import require_icmp_support
 from .network import SIZED_REPLY_MIN_BYTES, compare_fragmentation, probe, require_df_support
-from .reports import correlate_reports, is_hex_id
+from .reports import correlate_reports, is_hex_id, is_payload_size
 
 
 def build_diagnosis(comparison, search):
@@ -135,12 +135,17 @@ def correlate_diagnosis(diagnosis, receiver_report):
     for row in observations:
         if not isinstance(row, dict) or not isinstance(row.get("run_id"), str):
             raise ValueError("receiver observations need run IDs for diagnosis")
-        if len(row["run_id"]) != 16 or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
+        if len(row["run_id"]) != 16 or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not is_payload_size(row.get("payload_bytes")):
             raise ValueError("invalid receiver observation")
         if not is_hex_id(row["run_id"], 16) or not is_hex_id(row["probe_id"], 32):
             raise ValueError("invalid hexadecimal receiver identifier")
     if len({row["probe_id"] for row in observations}) != len(observations):
         raise ValueError("duplicate probe ID in receiver report")
+    # A probe ID is a lookup key into sent_run_by_probe, so the same ID in two
+    # runs would silently collapse. Reject it regardless of receiver coverage.
+    sent_probe_ids = [row["probe_id"] for probe in probes.values() for row in probe["results"]]
+    if len(set(sent_probe_ids)) != len(sent_probe_ids):
+        raise ValueError("duplicate probe ID across diagnosis runs")
     sent_run_by_probe = {row["probe_id"]: probe["run_id"]
                          for probe in probes.values() for row in probe["results"]}
     if any(row["probe_id"] in sent_run_by_probe and

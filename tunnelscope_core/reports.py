@@ -15,6 +15,15 @@ def is_hex_id(value, length):
     return isinstance(value, str) and _HEX_ID[length].fullmatch(value) is not None
 
 
+def is_payload_size(value):
+    """Return whether value is a payload size integer, rejecting bool.
+
+    isinstance(True, int) is True, so a JSON boolean would otherwise pass the
+    integer checks and later be compared or summed as 0/1.
+    """
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def version_details(report):
     """Readable producer claims; legacy inputs remain explicitly unknown."""
     if not isinstance(report, dict):
@@ -154,7 +163,7 @@ def correlate_reports(probe_report, receiver_report):
     sent = probe_report["results"]
     received = receiver_report["observations"]
     for row in sent + received:
-        if not isinstance(row, dict) or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not isinstance(row.get("payload_bytes"), int):
+        if not isinstance(row, dict) or not isinstance(row.get("probe_id"), str) or len(row["probe_id"]) != 32 or not is_payload_size(row.get("payload_bytes")):
             raise ValueError("reports need valid probe IDs and payload sizes")
         if not is_hex_id(row["probe_id"], 32):
             raise ValueError("reports need hexadecimal probe IDs")
@@ -284,7 +293,7 @@ def combine_reports(a_to_b, b_to_a):
             raise ValueError(f"{label}: missing per-size summary")
         if any(
             not isinstance(row, dict)
-            or not isinstance(row.get("payload_bytes"), int)
+            or not is_payload_size(row.get("payload_bytes"))
             or not isinstance(row.get("assessment"), str)
             for row in summary["by_payload_size"]
         ):

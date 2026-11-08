@@ -82,6 +82,10 @@ A sized-reply run that received only same-sized replies no longer lists
   [IPv6 link-local record](validation/windows-wsl2-receiver-ipv6.md) passed the
   same experiments. Physically separate receivers and routed IPv6 paths need
   separate evidence.
+  An [oversized reply follow-up](validation/windows-oversized-replies.md)
+  also records real Windows `WSAEMSGSIZE` (10040) for 1600-byte replies over
+  both families: the probes arrived and small ACKs returned, while the
+  same-sized sends failed locally. No MTU or firewall settings were changed.
   Windows Firewall or another host network policy may require a scoped inbound
   UDP rule for a different test path; the recorded virtual path changed no rules.
 - `search`, `compare-fragmentation` and `diagnose` also accept

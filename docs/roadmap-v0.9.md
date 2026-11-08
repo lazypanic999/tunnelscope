@@ -46,6 +46,8 @@ separate local send failures, under [#44](https://github.com/lazypanic999/tunnel
   This is two kernels on one physical machine, using non-loopback IPv4.
   A separate [IPv6 link-local follow-up](validation/windows-wsl2-receiver-ipv6.md)
   passed the same experiments; routed IPv6 and physical hosts remain separate.
+  The [oversized Windows reply record](validation/windows-oversized-replies.md)
+  additionally joins actual local `WSAEMSGSIZE` failures in both families.
 - A field-guide dry run with physically separate machines and network file
   transfer still needs separate evidence. The host/guest run exercised
   collection, joining, sanitization and Markdown using a shared directory.

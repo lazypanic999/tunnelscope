@@ -49,3 +49,6 @@ artifact provenance checks.
 
 [v0.9.1](releases/v0.9.1.md) keeps missing receiver reply-send outcomes
 unverified and handles malformed report kinds without a traceback.
+The subsequent [native Windows/WSL2 receiver record](validation/windows-wsl2-receiver.md)
+validates v0.9.1 over non-loopback IPv4 between two kernels on one physical
+host, including the full sender/correlation/sanitization workflow.

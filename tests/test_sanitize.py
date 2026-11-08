@@ -236,10 +236,21 @@ class SanitizeTests(unittest.TestCase):
     def test_every_example_report_sanitizes_and_renders(self):
         examples = sorted((Path(__file__).resolve().parents[1] / "examples").glob("*.json"))
         self.assertTrue(examples)
-        reports = [json.loads(path.read_text(encoding="utf-8")) for path in examples]
-        for path, clean in zip(examples, sanitize_reports(reports)):
+        loaded = [(path, json.loads(path.read_text(encoding="utf-8"))) for path in examples]
+        raw = [(path, report) for path, report in loaded if not report.get("sanitization")]
+        cleaned = list(zip((path for path, _ in raw),
+                           sanitize_reports([report for _, report in raw])))
+        for path, clean in cleaned:
             with self.subTest(example=path.name):
                 self.assertNotIn("2026-", json.dumps(clean))
+        for path, report in loaded:
+            if report.get("sanitization"):
+                with self.subTest(example=path.name), self.assertRaisesRegex(
+                        ValueError, "already sanitized"):
+                    sanitize_reports([report])
+                cleaned.append((path, report))
+        for path, clean in cleaned:
+            with self.subTest(example=path.name):
                 self.assertIn("Sanitized report", render_report_html(clean))
                 if clean.get("schema_version") == 1:
                     format_report(clean)

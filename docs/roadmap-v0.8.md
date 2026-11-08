@@ -3,17 +3,18 @@
 Status: **released**. All four items landed on `main` on
 2026-11-06 and shipped in [v0.8.0](releases/v0.8.0.md), followed by the
 [v0.8.1 report-table update](releases/v0.8.1.md) and
-[v0.8.2 report fixes and IPv6 feedback validation](releases/v0.8.2.md). Two checks remain
-open: a maintainer dry run of the field report guide on two machines and a
-cross-host run with a Windows receiver ([#28](https://github.com/lazypanic999/tunnelscope/issues/28)).
-These remain follow-up validation work, not claims made by the released
-loopback checks. It follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
+[v0.8.2 report fixes and IPv6 feedback validation](releases/v0.8.2.md).
+The [Windows host/WSL2 guest follow-up](validation/windows-wsl2-receiver.md)
+now records collection and sharing over non-loopback IPv4 with two kernels.
+A field-guide dry run on physically separate machines, including network
+file transfer, remains follow-up work. The host/guest evidence is separate
+from the original loopback checks. This follows [v0.7](roadmap-v0.7.md) and keeps the same rules:
 measurements stay separate from conclusions, a timeout alone is never an MTU
 diagnosis, and an observed payload interval is not an end-to-end path MTU.
 
 v0.7 made return-path evidence and shareable reports possible. v0.8 added
 controlled IPv6 return-path validation and Windows receiver loopback tests.
-Independent field reports and Windows cross-host validation remain open;
+Independent operator field reports and physical multi-host validation remain open;
 the controlled results do not establish behavior on arbitrary VPN or overlay paths.
 
 ## Proposed for v0.8.0
@@ -49,8 +50,10 @@ the controlled results do not establish behavior on arbitrary VPN or overlay pat
   keep refusing on platforms where it cannot be set.
 - Validation: loopback tests in the Windows CI job, plus one manual
   Windows-receiver run against a Linux sender documented as a record.
-  The loopback tests and a local send test are done; the cross-host run is
-  still open because it needs a firewall rule on the Windows receiver.
+  The loopback and local send tests are done. The later
+  [Windows/WSL2 record](validation/windows-wsl2-receiver.md) checks a Linux VM
+  reaching the native host receiver without creating a firewall rule.
+  Physically separate Windows machines and different policies need separate evidence.
 
 ### 4. Keep lab output from CI: implemented
 
@@ -70,15 +73,18 @@ the controlled results do not establish behavior on arbitrary VPN or overlay pat
 Field reports themselves are not a release gate: they depend on operators
 outside the project. The two-machine guide dry run and Windows cross-host
 run were deferred explicitly in the [v0.8.0 release notes](releases/v0.8.0.md#not-yet-validated);
-CI loopback checks verify the command workflow but do not complete those gates.
+CI loopback checks verify the command workflow. The later host/guest record
+adds non-loopback, two-kernel collection/sharing, while physical host links and
+network file transfer remain separate follow-ups.
 
 ## Open questions
 
 - Should a separately requested reply size (capped at the probe size) be
   reconsidered now, to allow a return-direction size search? v0.7 chose
   mirrored sizes only.
-- Windows receiver support shipped in v0.8.0; cross-host evidence is the
-  remaining validation question, tracked in #28.
+- Windows receiver support shipped in v0.8.0; the Linux-VM case in #28 now
+  has a host/guest validation record. Physical host and IPv6 cross-host paths
+  remain additional validation opportunities.
 - Should `ubuntu-latest` be pinned while GitHub moves it to Ubuntu 26, or
   should the labs be checked on the new image as soon as it is available?
 

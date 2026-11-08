@@ -76,9 +76,12 @@ A sized-reply run that received only same-sized replies no longer lists
   do not support `receive --sized-reply`; the sender works anywhere.
 - Windows receiver support is checked on loopback (64-, 1400- and 8192-byte
   replies) and by a send test in which `IP_DONTFRAGMENT` turned an oversized
-  2000-byte datagram into `WSAEMSGSIZE`. A cross-host run with a Windows
-  receiver has not been recorded yet; Windows Firewall blocks inbound UDP
-  9471 unless a rule allows it for the test.
+  2000-byte datagram into `WSAEMSGSIZE`. A native Windows receiver also passed
+  a [controlled non-loopback run from its WSL2 Linux guest](validation/windows-wsl2-receiver.md):
+  two kernels on one physical host, IPv4, 64–1400-byte payloads. Physically
+  separate Windows receivers and IPv6 cross-host paths need separate evidence.
+  Windows Firewall or another host network policy may require a scoped inbound
+  UDP rule for a different test path; the recorded virtual path changed no rules.
 - `search`, `compare-fragmentation` and `diagnose` also accept
   `--sized-reply`. There an acknowledged attempt means the size crossed both
   directions, so a search interval reflects the smaller of the two. A

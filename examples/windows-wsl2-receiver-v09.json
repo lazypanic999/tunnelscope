@@ -1,0 +1,2705 @@
+{
+  "lab": "windows-receiver-from-wsl2",
+  "tunnelscope_version": "0.9.1",
+  "recorded_on": "2026-11-08",
+  "scope": "Native Windows host and its WSL2 Linux guest: two kernels, one physical host, existing private virtual network, IPv4 only.",
+  "versions": {
+    "windows": {
+      "system": "Windows",
+      "release": "10",
+      "version": "10.0.26300",
+      "python": "3.10.11"
+    },
+    "linux": {
+      "system": "Linux",
+      "release": "6.6.87.2-microsoft-standard-WSL2",
+      "python": "3.12.3"
+    }
+  },
+  "source_commit": "0e456a2ab60240d64cf3160b47b34e913f4dfb92",
+  "windows_package": "Official PyPI v0.9.1 wheel, SHA-256 verified",
+  "configured_link_mtu_bytes": {
+    "sender": 1500,
+    "receiver": 1500
+  },
+  "network_policy": "Receivers bound to the explicit host-side WSL virtual interface, on ephemeral ports. No test-created firewall rules, route or interface changes.",
+  "sanitization": {
+    "tool": "tunnelscope sanitize 0.9.1",
+    "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+    "replaced_addresses": 2,
+    "interfaces": "replaced with if-N labels; loopback kept",
+    "replaced_interfaces": 1,
+    "hostnames": "host fields that are not addresses replaced with host-N.example",
+    "replaced_hostnames": 0,
+    "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+    "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+  },
+  "cases": {
+    "small_ack": {
+      "probe": {
+        "schema_version": 1,
+        "kind": "probe",
+        "tunnelscope_version": "0.9.1",
+        "run_id": "d5233a6aa1ceb1f5",
+        "started_at_utc": "2000-01-01T00:00:00.428768+00:00",
+        "finished_at_utc": "2000-01-01T00:00:00.590337+00:00",
+        "source": {
+          "ipv4": "192.0.2.1",
+          "kernel_route_mtu_bytes": 1500,
+          "interface": "if-1",
+          "interface_mtu_bytes": 1500
+        },
+        "target": {
+          "host": "192.0.2.2",
+          "ipv4": "192.0.2.2",
+          "port": 50628
+        },
+        "settings": {
+          "payload_sizes": [
+            64,
+            1200,
+            1400
+          ],
+          "count": 1,
+          "timeout_seconds": 1,
+          "dont_fragment": true,
+          "observe_icmp": false
+        },
+        "fragmentation_mode": "df",
+        "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+        "interpretation": "Acknowledgement confirms delivery and a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+        "summary": {
+          "by_payload_size": [
+            {
+              "payload_bytes": 64,
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              },
+              "assessment": "delivery_observed"
+            },
+            {
+              "payload_bytes": 1200,
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              },
+              "assessment": "delivery_observed"
+            },
+            {
+              "payload_bytes": 1400,
+              "status_counts": {
+                "acknowledged": 1,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 1,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.7935
+                ]
+              },
+              "assessment": "delivery_observed"
+            }
+          ]
+        },
+        "evidence": {
+          "observations": [
+            {
+              "payload_bytes": 64,
+              "status": "acknowledged",
+              "attempts": 1
+            },
+            {
+              "payload_bytes": 1200,
+              "status": "acknowledged",
+              "attempts": 1
+            },
+            {
+              "payload_bytes": 1400,
+              "status": "acknowledged",
+              "attempts": 1
+            }
+          ],
+          "hypotheses": [],
+          "missing_evidence": [
+            "same_sized_reverse_payload_test"
+          ]
+        },
+        "results": [
+          {
+            "payload_bytes": 64,
+            "attempt": 1,
+            "probe_id": "73e079c22ac31bd511454c4ce125c402",
+            "send_attempted_at_utc": "2000-01-01T00:00:00.432769+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 2.052,
+            "ack_received_at_utc": "2000-01-01T00:00:00.434830+00:00"
+          },
+          {
+            "payload_bytes": 1200,
+            "attempt": 1,
+            "probe_id": "8b4625b262d4caa696a66625cf1db859",
+            "send_attempted_at_utc": "2000-01-01T00:00:00.485698+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.933,
+            "ack_received_at_utc": "2000-01-01T00:00:00.487642+00:00"
+          },
+          {
+            "payload_bytes": 1400,
+            "attempt": 1,
+            "probe_id": "9a835cec148ef2eb95e7c2a58b14c875",
+            "send_attempted_at_utc": "2000-01-01T00:00:00.538243+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.622,
+            "ack_received_at_utc": "2000-01-01T00:00:00.539874+00:00"
+          }
+        ],
+        "sanitization": {
+          "tool": "tunnelscope sanitize 0.9.1",
+          "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+          "replaced_addresses": 2,
+          "interfaces": "replaced with if-N labels; loopback kept",
+          "replaced_interfaces": 1,
+          "hostnames": "host fields that are not addresses replaced with host-N.example",
+          "replaced_hostnames": 0,
+          "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+          "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+        }
+      },
+      "correlation": {
+        "schema_version": 1,
+        "kind": "probe_receiver_correlation",
+        "tunnelscope_version": "0.9.1",
+        "input_versions": {
+          "probe": "0.9.1",
+          "receiver": "0.9.1"
+        },
+        "pairing": {
+          "run_id_check": "matched_with_other_runs",
+          "endpoint_checks": {
+            "target_port_matches_receiver": true,
+            "target_ipv4_matches_receiver_bind": true,
+            "target_ipv6_matches_receiver_bind": null
+          },
+          "probe_window_utc": [
+            "2000-01-01T00:00:00.428768+00:00",
+            "2000-01-01T00:00:00.590337+00:00"
+          ],
+          "receiver_window_utc": [
+            "2000-01-01T00:00:00.000000+00:00",
+            "2000-01-01T00:00:01.260687+00:00"
+          ],
+          "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized"
+        },
+        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared.",
+        "summary": {
+          "sent_probes": 3,
+          "receiver_observed": 3,
+          "timed_out_but_receiver_observed": 0,
+          "unmatched_receiver_observations": 6
+        },
+        "results": [
+          {
+            "probe_id": "73e079c22ac31bd511454c4ce125c402",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 64,
+            "send_attempted_at_utc": "2000-01-01T00:00:00.432769+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:00.432280+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:00.434830+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed"
+          },
+          {
+            "probe_id": "8b4625b262d4caa696a66625cf1db859",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1200,
+            "send_attempted_at_utc": "2000-01-01T00:00:00.485698+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:00.484919+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:00.487642+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed"
+          },
+          {
+            "probe_id": "9a835cec148ef2eb95e7c2a58b14c875",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1400,
+            "send_attempted_at_utc": "2000-01-01T00:00:00.538243+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:00.537321+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:00.539874+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed"
+          }
+        ],
+        "sanitization": {
+          "tool": "tunnelscope sanitize 0.9.1",
+          "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+          "replaced_addresses": 2,
+          "interfaces": "replaced with if-N labels; loopback kept",
+          "replaced_interfaces": 1,
+          "hostnames": "host fields that are not addresses replaced with host-N.example",
+          "replaced_hostnames": 0,
+          "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+          "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+        }
+      }
+    },
+    "sized_reply": {
+      "probe": {
+        "schema_version": 1,
+        "kind": "probe",
+        "tunnelscope_version": "0.9.1",
+        "run_id": "be024fb5210be891",
+        "started_at_utc": "2000-01-01T00:00:00.996407+00:00",
+        "finished_at_utc": "2000-01-01T00:00:01.313435+00:00",
+        "source": {
+          "ipv4": "192.0.2.1",
+          "kernel_route_mtu_bytes": 1500,
+          "interface": "if-1",
+          "interface_mtu_bytes": 1500
+        },
+        "target": {
+          "host": "192.0.2.2",
+          "ipv4": "192.0.2.2",
+          "port": 50628
+        },
+        "settings": {
+          "payload_sizes": [
+            64,
+            1200,
+            1400
+          ],
+          "count": 2,
+          "timeout_seconds": 1,
+          "dont_fragment": true,
+          "observe_icmp": false,
+          "sized_reply": true
+        },
+        "fragmentation_mode": "df",
+        "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+        "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+        "summary": {
+          "by_payload_size": [
+            {
+              "payload_bytes": 64,
+              "status_counts": {
+                "acknowledged": 2,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 2,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.6576
+                ]
+              },
+              "assessment": "delivery_observed",
+              "return_status_counts": {
+                "sized_reply_received": 2,
+                "small_ack_only": 0,
+                "no_reply": 0
+              }
+            },
+            {
+              "payload_bytes": 1200,
+              "status_counts": {
+                "acknowledged": 2,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 2,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.6576
+                ]
+              },
+              "assessment": "delivery_observed",
+              "return_status_counts": {
+                "sized_reply_received": 2,
+                "small_ack_only": 0,
+                "no_reply": 0
+              }
+            },
+            {
+              "payload_bytes": 1400,
+              "status_counts": {
+                "acknowledged": 2,
+                "packet_too_large": 0,
+                "timeout": 0,
+                "socket_error": 0
+              },
+              "no_ack_measurement": {
+                "sent_attempts": 2,
+                "no_ack_count": 0,
+                "no_ack_rate": 0.0,
+                "no_ack_wilson_95": [
+                  0,
+                  0.6576
+                ]
+              },
+              "assessment": "delivery_observed",
+              "return_status_counts": {
+                "sized_reply_received": 2,
+                "small_ack_only": 0,
+                "no_reply": 0
+              }
+            }
+          ]
+        },
+        "evidence": {
+          "observations": [
+            {
+              "payload_bytes": 64,
+              "status": "acknowledged",
+              "attempts": 2
+            },
+            {
+              "payload_bytes": 1200,
+              "status": "acknowledged",
+              "attempts": 2
+            },
+            {
+              "payload_bytes": 1400,
+              "status": "acknowledged",
+              "attempts": 2
+            }
+          ],
+          "hypotheses": [],
+          "missing_evidence": []
+        },
+        "results": [
+          {
+            "payload_bytes": 64,
+            "attempt": 1,
+            "probe_id": "a9b6de42405121004a9b66c0f201ac70",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.000899+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.809,
+            "ack_received_at_utc": "2000-01-01T00:00:01.002716+00:00",
+            "reply_bytes": 64,
+            "return_status": "sized_reply_received"
+          },
+          {
+            "payload_bytes": 64,
+            "attempt": 2,
+            "probe_id": "7348f6fea9d5acfd20753ba095ead89d",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.053338+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.296,
+            "ack_received_at_utc": "2000-01-01T00:00:01.054641+00:00",
+            "reply_bytes": 64,
+            "return_status": "sized_reply_received"
+          },
+          {
+            "payload_bytes": 1200,
+            "attempt": 1,
+            "probe_id": "a23bcafe529e0cb60b6ddc3eeca6aa73",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.105392+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.76,
+            "ack_received_at_utc": "2000-01-01T00:00:01.107166+00:00",
+            "reply_bytes": 1200,
+            "return_status": "sized_reply_received"
+          },
+          {
+            "payload_bytes": 1200,
+            "attempt": 2,
+            "probe_id": "2dcc240d569a1b8a9691da0567554d92",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.157597+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 0.741,
+            "ack_received_at_utc": "2000-01-01T00:00:01.158344+00:00",
+            "reply_bytes": 1200,
+            "return_status": "sized_reply_received"
+          },
+          {
+            "payload_bytes": 1400,
+            "attempt": 1,
+            "probe_id": "683a6b54deac4af6a3c5a6ef2f5ada7d",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.208873+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 1.288,
+            "ack_received_at_utc": "2000-01-01T00:00:01.210172+00:00",
+            "reply_bytes": 1400,
+            "return_status": "sized_reply_received"
+          },
+          {
+            "payload_bytes": 1400,
+            "attempt": 2,
+            "probe_id": "536f8de17814572bd4f0fdb39889ab13",
+            "send_attempted_at_utc": "2000-01-01T00:00:01.260958+00:00",
+            "status": "acknowledged",
+            "rtt_ms": 2.113,
+            "ack_received_at_utc": "2000-01-01T00:00:01.263084+00:00",
+            "reply_bytes": 1400,
+            "return_status": "sized_reply_received"
+          }
+        ],
+        "sanitization": {
+          "tool": "tunnelscope sanitize 0.9.1",
+          "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+          "replaced_addresses": 2,
+          "interfaces": "replaced with if-N labels; loopback kept",
+          "replaced_interfaces": 1,
+          "hostnames": "host fields that are not addresses replaced with host-N.example",
+          "replaced_hostnames": 0,
+          "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+          "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+        }
+      },
+      "correlation": {
+        "schema_version": 1,
+        "kind": "probe_receiver_correlation",
+        "tunnelscope_version": "0.9.1",
+        "input_versions": {
+          "probe": "0.9.1",
+          "receiver": "0.9.1"
+        },
+        "pairing": {
+          "run_id_check": "matched_with_other_runs",
+          "endpoint_checks": {
+            "target_port_matches_receiver": true,
+            "target_ipv4_matches_receiver_bind": true,
+            "target_ipv6_matches_receiver_bind": null
+          },
+          "probe_window_utc": [
+            "2000-01-01T00:00:00.996407+00:00",
+            "2000-01-01T00:00:01.313435+00:00"
+          ],
+          "receiver_window_utc": [
+            "2000-01-01T00:00:00.000000+00:00",
+            "2000-01-01T00:00:01.260687+00:00"
+          ],
+          "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized"
+        },
+        "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared. With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver had a same-sized reply accepted by its local socket, but the sender recorded none before its deadline. This does not identify where or why the return failed. receiver_reply_send_failed means the receiver's own socket rejected the attempted reply. receiver_reply_send_unverified means the receiver did not record the local send outcome; it does not establish that a reply was sent.",
+        "summary": {
+          "sent_probes": 6,
+          "receiver_observed": 6,
+          "timed_out_but_receiver_observed": 0,
+          "unmatched_receiver_observations": 3,
+          "sized_reply_missing_after_arrival": 0,
+          "receiver_reply_send_failed": 0,
+          "receiver_reply_send_unverified": 0
+        },
+        "results": [
+          {
+            "probe_id": "a9b6de42405121004a9b66c0f201ac70",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 64,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.000899+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:00.999550+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.002716+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 64,
+            "return_evidence": "sized_reply_returned"
+          },
+          {
+            "probe_id": "7348f6fea9d5acfd20753ba095ead89d",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 64,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.053338+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:01.051812+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.054641+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 64,
+            "return_evidence": "sized_reply_returned"
+          },
+          {
+            "probe_id": "a23bcafe529e0cb60b6ddc3eeca6aa73",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1200,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.105392+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:01.104074+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.107166+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 1200,
+            "return_evidence": "sized_reply_returned"
+          },
+          {
+            "probe_id": "2dcc240d569a1b8a9691da0567554d92",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1200,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.157597+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:01.156046+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.158344+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 1200,
+            "return_evidence": "sized_reply_returned"
+          },
+          {
+            "probe_id": "683a6b54deac4af6a3c5a6ef2f5ada7d",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1400,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.208873+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:01.207877+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.210172+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 1400,
+            "return_evidence": "sized_reply_returned"
+          },
+          {
+            "probe_id": "536f8de17814572bd4f0fdb39889ab13",
+            "direction": "192.0.2.1 -> 192.0.2.2",
+            "payload_bytes": 1400,
+            "send_attempted_at_utc": "2000-01-01T00:00:01.260958+00:00",
+            "receiver_received_at_utc": "2000-01-01T00:00:01.259686+00:00",
+            "sender_ack_received_at_utc": "2000-01-01T00:00:01.263084+00:00",
+            "sender_status": "acknowledged",
+            "receiver_observed": true,
+            "ack_send_status": "sent",
+            "evidence_case": "acknowledged_and_receiver_observed",
+            "return_status": "sized_reply_received",
+            "receiver_reply_bytes": 1400,
+            "return_evidence": "sized_reply_returned"
+          }
+        ],
+        "sanitization": {
+          "tool": "tunnelscope sanitize 0.9.1",
+          "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+          "replaced_addresses": 2,
+          "interfaces": "replaced with if-N labels; loopback kept",
+          "replaced_interfaces": 1,
+          "hostnames": "host fields that are not addresses replaced with host-N.example",
+          "replaced_hostnames": 0,
+          "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+          "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+        }
+      }
+    }
+  },
+  "shared_receiver_capture": {
+    "schema_version": 1,
+    "kind": "receiver_observations",
+    "tunnelscope_version": "0.9.1",
+    "receiver": {
+      "bind_ipv4": "192.0.2.2",
+      "port": 50628,
+      "sized_reply": true,
+      "reply_fragmentation": "disabled: Windows IP_DONTFRAGMENT"
+    },
+    "started_at_utc": "2000-01-01T00:00:00.000000+00:00",
+    "finished_at_utc": "2000-01-01T00:00:01.260687+00:00",
+    "exit_reason": "max_packets",
+    "observations": [
+      {
+        "probe_id": "73e079c22ac31bd511454c4ce125c402",
+        "run_id": "d5233a6aa1ceb1f5",
+        "payload_bytes": 64,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:00.432280+00:00",
+        "reply_bytes": 24,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "8b4625b262d4caa696a66625cf1db859",
+        "run_id": "d5233a6aa1ceb1f5",
+        "payload_bytes": 1200,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:00.484919+00:00",
+        "reply_bytes": 24,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "9a835cec148ef2eb95e7c2a58b14c875",
+        "run_id": "d5233a6aa1ceb1f5",
+        "payload_bytes": 1400,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:00.537321+00:00",
+        "reply_bytes": 24,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "a9b6de42405121004a9b66c0f201ac70",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 64,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:00.999550+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 64,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "7348f6fea9d5acfd20753ba095ead89d",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 64,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:01.051812+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 64,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "a23bcafe529e0cb60b6ddc3eeca6aa73",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 1200,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:01.104074+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 1200,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "2dcc240d569a1b8a9691da0567554d92",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 1200,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:01.156046+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 1200,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "683a6b54deac4af6a3c5a6ef2f5ada7d",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 1400,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:01.207877+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 1400,
+        "ack_send_status": "sent"
+      },
+      {
+        "probe_id": "536f8de17814572bd4f0fdb39889ab13",
+        "run_id": "be024fb5210be891",
+        "payload_bytes": 1400,
+        "source_ipv4": "192.0.2.1",
+        "received_at_utc": "2000-01-01T00:00:01.259686+00:00",
+        "reply_kind": "sized",
+        "reply_bytes": 1400,
+        "ack_send_status": "sent"
+      }
+    ],
+    "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
+    "sanitization": {
+      "tool": "tunnelscope sanitize 0.9.1",
+      "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+      "replaced_addresses": 2,
+      "interfaces": "replaced with if-N labels; loopback kept",
+      "replaced_interfaces": 1,
+      "hostnames": "host fields that are not addresses replaced with host-N.example",
+      "replaced_hostnames": 0,
+      "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+      "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+    }
+  },
+  "diagnosis_case": {
+    "sender": {
+      "schema_version": 1,
+      "kind": "diagnosis",
+      "tunnelscope_version": "0.9.1",
+      "input_versions": {
+        "fragmentation_comparison": "0.9.1",
+        "size_search": "0.9.1"
+      },
+      "scope": "single_sender_direction",
+      "target": {
+        "host": "192.0.2.2",
+        "ipv4": "192.0.2.2",
+        "port": 50629
+      },
+      "started_at_utc": "2000-01-01T00:00:02.388596+00:00",
+      "finished_at_utc": "2000-01-01T00:00:02.863740+00:00",
+      "settings": {
+        "compared_payload_sizes": [
+          1200,
+          1300,
+          1400
+        ],
+        "requested_min_payload_bytes": 1200,
+        "requested_max_payload_bytes": 1400,
+        "count_per_size_per_run": 1,
+        "timeout_seconds": 1,
+        "max_search_sizes": 4,
+        "run_order": [
+          "df",
+          "fragmentation_permitted",
+          "size_search"
+        ],
+        "observe_icmp": true,
+        "sized_reply": true
+      },
+      "consistency": {
+        "comparison_source_check": "matched",
+        "search_target_check": "matched",
+        "search_source_check": "matched"
+      },
+      "summary": {
+        "attempts": 8,
+        "icmp_size_feedback_events": 0,
+        "search": {
+          "method": "bounded_binary_search",
+          "requested_min_payload_bytes": 1200,
+          "requested_max_payload_bytes": 1400,
+          "max_tested_sizes": 4,
+          "tested_payload_sizes": [
+            1200,
+            1400
+          ],
+          "largest_acknowledged_payload_bytes": 1400,
+          "smallest_packet_too_large_payload_bytes": null,
+          "ambiguous_payload_sizes": [],
+          "observed_interval_payload_bytes": null,
+          "assessment": "no_explicit_bracket"
+        },
+        "return": {
+          "sized_reply_received": 8,
+          "small_ack_only": 0,
+          "no_reply": 0
+        }
+      },
+      "interpretation": "One sender with same-sized replies: an acknowledged attempt carried its size in both directions, so the search interval reflects the smaller of the two directions. small_ack_only means the receiver did not send same-sized replies. Runs are sequential and may be affected by route or PMTU-cache changes. Missing ACKs and absent ICMP are inconclusive; observed ICMP is untrusted feedback. A reported interval is not an independently measured end-to-end path MTU.",
+      "runs": {
+        "fragmentation_comparison": {
+          "schema_version": 1,
+          "kind": "fragmentation_comparison",
+          "tunnelscope_version": "0.9.1",
+          "input_versions": {
+            "df": "0.9.1",
+            "fragmentation_permitted": "0.9.1"
+          },
+          "target": {
+            "host": "192.0.2.2",
+            "ipv4": "192.0.2.2",
+            "port": 50629
+          },
+          "source_check": "matched",
+          "settings": {
+            "payload_sizes": [
+              1200,
+              1300,
+              1400
+            ],
+            "count_per_mode": 1,
+            "timeout_seconds": 1,
+            "run_order": [
+              "df",
+              "fragmentation_permitted"
+            ],
+            "sized_reply": true
+          },
+          "interpretation": "Two sequential sender-side experiments. The second permits source fragmentation but does not prove fragments traversed the path. Different results suggest a useful follow-up, not a root cause. Timeouts are missing ACKs, not proven packet loss.",
+          "comparison": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1200,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              },
+              {
+                "payload_bytes": 1300,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              },
+              {
+                "payload_bytes": 1400,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              }
+            ]
+          },
+          "runs": {
+            "df": {
+              "schema_version": 1,
+              "kind": "probe",
+              "tunnelscope_version": "0.9.1",
+              "run_id": "7190a5662db2dab6",
+              "started_at_utc": "2000-01-01T00:00:02.388596+00:00",
+              "finished_at_utc": "2000-01-01T00:00:02.551192+00:00",
+              "source": {
+                "ipv4": "192.0.2.1",
+                "kernel_route_mtu_bytes": 1500,
+                "interface": "if-1",
+                "interface_mtu_bytes": 1500
+              },
+              "target": {
+                "host": "192.0.2.2",
+                "ipv4": "192.0.2.2",
+                "port": 50629
+              },
+              "settings": {
+                "payload_sizes": [
+                  1200,
+                  1300,
+                  1400
+                ],
+                "count": 1,
+                "timeout_seconds": 1,
+                "dont_fragment": true,
+                "observe_icmp": true,
+                "sized_reply": true
+              },
+              "fragmentation_mode": "df",
+              "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+              "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+              "summary": {
+                "by_payload_size": [
+                  {
+                    "payload_bytes": 1200,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  }
+                ],
+                "icmp_feedback": {
+                  "observation_state": "complete",
+                  "size_feedback_events": 0,
+                  "token_matched_size_feedback_events": 0,
+                  "local_error_events": 0,
+                  "other_or_unparsed_events": 0
+                }
+              },
+              "evidence": {
+                "observations": [
+                  {
+                    "payload_bytes": 1200,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  }
+                ],
+                "hypotheses": [],
+                "missing_evidence": []
+              },
+              "results": [
+                {
+                  "payload_bytes": 1200,
+                  "attempt": 1,
+                  "probe_id": "8eb122d74fbd078024a20332cd2c88cc",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.392540+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.446,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.393992+00:00",
+                  "reply_bytes": 1200,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1300,
+                  "attempt": 1,
+                  "probe_id": "06a9b3247000fc3ee04cbeeb15a5fe56",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.444897+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.197,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.447108+00:00",
+                  "reply_bytes": 1300,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1400,
+                  "attempt": 1,
+                  "probe_id": "6a8fe8f3aabbfa4c556c53125ee22371",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.498022+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.148,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.500179+00:00",
+                  "reply_bytes": 1400,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                }
+              ]
+            },
+            "fragmentation_permitted": {
+              "schema_version": 1,
+              "kind": "probe",
+              "tunnelscope_version": "0.9.1",
+              "run_id": "11bc9e4f92759d3f",
+              "started_at_utc": "2000-01-01T00:00:02.551273+00:00",
+              "finished_at_utc": "2000-01-01T00:00:02.710010+00:00",
+              "source": {
+                "ipv4": "192.0.2.1",
+                "kernel_route_mtu_bytes": 1500,
+                "interface": "if-1",
+                "interface_mtu_bytes": 1500
+              },
+              "target": {
+                "host": "192.0.2.2",
+                "ipv4": "192.0.2.2",
+                "port": 50629
+              },
+              "settings": {
+                "payload_sizes": [
+                  1200,
+                  1300,
+                  1400
+                ],
+                "count": 1,
+                "timeout_seconds": 1,
+                "dont_fragment": false,
+                "observe_icmp": true,
+                "sized_reply": true
+              },
+              "fragmentation_mode": "permitted",
+              "fragmentation": "permitted: Linux IP_PMTUDISC_DONT",
+              "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+              "summary": {
+                "by_payload_size": [
+                  {
+                    "payload_bytes": 1200,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  }
+                ],
+                "icmp_feedback": {
+                  "observation_state": "complete",
+                  "size_feedback_events": 0,
+                  "token_matched_size_feedback_events": 0,
+                  "local_error_events": 0,
+                  "other_or_unparsed_events": 0
+                }
+              },
+              "evidence": {
+                "observations": [
+                  {
+                    "payload_bytes": 1200,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  }
+                ],
+                "hypotheses": [],
+                "missing_evidence": [
+                  "controlled_fragmentation_behavior"
+                ]
+              },
+              "results": [
+                {
+                  "payload_bytes": 1200,
+                  "attempt": 1,
+                  "probe_id": "47906607c45fc483f9ae9a8e9c81c46c",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.551863+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.899,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.553773+00:00",
+                  "reply_bytes": 1200,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1300,
+                  "attempt": 1,
+                  "probe_id": "b66b67c52cdece44c3b725be94f500a2",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.604852+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.525,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.607387+00:00",
+                  "reply_bytes": 1300,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1400,
+                  "attempt": 1,
+                  "probe_id": "079f27edf4fbbee74046993a86b3c872",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.658007+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.174,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.659191+00:00",
+                  "reply_bytes": 1400,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "size_search": {
+          "schema_version": 1,
+          "kind": "probe",
+          "tunnelscope_version": "0.9.1",
+          "run_id": "8139e0a23ad11ddd",
+          "started_at_utc": "2000-01-01T00:00:02.758057+00:00",
+          "finished_at_utc": "2000-01-01T00:00:02.863740+00:00",
+          "source": {
+            "ipv4": "192.0.2.1",
+            "kernel_route_mtu_bytes": 1500,
+            "interface": "if-1",
+            "interface_mtu_bytes": 1500
+          },
+          "target": {
+            "host": "192.0.2.2",
+            "ipv4": "192.0.2.2",
+            "port": 50629
+          },
+          "settings": {
+            "payload_sizes": [
+              1200,
+              1400
+            ],
+            "count": 1,
+            "timeout_seconds": 1,
+            "dont_fragment": true,
+            "observe_icmp": true,
+            "sized_reply": true
+          },
+          "fragmentation_mode": "df",
+          "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+          "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+          "summary": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1200,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed",
+                "return_status_counts": {
+                  "sized_reply_received": 1,
+                  "small_ack_only": 0,
+                  "no_reply": 0
+                }
+              },
+              {
+                "payload_bytes": 1400,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed",
+                "return_status_counts": {
+                  "sized_reply_received": 1,
+                  "small_ack_only": 0,
+                  "no_reply": 0
+                }
+              }
+            ],
+            "icmp_feedback": {
+              "observation_state": "complete",
+              "size_feedback_events": 0,
+              "token_matched_size_feedback_events": 0,
+              "local_error_events": 0,
+              "other_or_unparsed_events": 0
+            },
+            "search": {
+              "method": "bounded_binary_search",
+              "requested_min_payload_bytes": 1200,
+              "requested_max_payload_bytes": 1400,
+              "max_tested_sizes": 4,
+              "tested_payload_sizes": [
+                1200,
+                1400
+              ],
+              "largest_acknowledged_payload_bytes": 1400,
+              "smallest_packet_too_large_payload_bytes": null,
+              "ambiguous_payload_sizes": [],
+              "observed_interval_payload_bytes": null,
+              "assessment": "no_explicit_bracket"
+            }
+          },
+          "evidence": {
+            "observations": [
+              {
+                "payload_bytes": 1200,
+                "status": "acknowledged",
+                "attempts": 1
+              },
+              {
+                "payload_bytes": 1400,
+                "status": "acknowledged",
+                "attempts": 1
+              }
+            ],
+            "hypotheses": [],
+            "missing_evidence": []
+          },
+          "results": [
+            {
+              "payload_bytes": 1200,
+              "attempt": 1,
+              "probe_id": "5ef453e591b3bad33b75a0c8c49bf871",
+              "send_attempted_at_utc": "2000-01-01T00:00:02.758444+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 1.215,
+              "ack_received_at_utc": "2000-01-01T00:00:02.759673+00:00",
+              "reply_bytes": 1200,
+              "return_status": "sized_reply_received",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            },
+            {
+              "payload_bytes": 1400,
+              "attempt": 1,
+              "probe_id": "c6bbdcad09fefed6e8e1b3092a1ff46a",
+              "send_attempted_at_utc": "2000-01-01T00:00:02.810535+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 2.333,
+              "ack_received_at_utc": "2000-01-01T00:00:02.812876+00:00",
+              "reply_bytes": 1400,
+              "return_status": "sized_reply_received",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            }
+          ]
+        }
+      },
+      "sanitization": {
+        "tool": "tunnelscope sanitize 0.9.1",
+        "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+        "replaced_addresses": 2,
+        "interfaces": "replaced with if-N labels; loopback kept",
+        "replaced_interfaces": 1,
+        "hostnames": "host fields that are not addresses replaced with host-N.example",
+        "replaced_hostnames": 0,
+        "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+        "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+      }
+    },
+    "receiver": {
+      "schema_version": 1,
+      "kind": "receiver_observations",
+      "tunnelscope_version": "0.9.1",
+      "receiver": {
+        "bind_ipv4": "192.0.2.2",
+        "port": 50629,
+        "sized_reply": true,
+        "reply_fragmentation": "disabled: Windows IP_DONTFRAGMENT"
+      },
+      "started_at_utc": "2000-01-01T00:00:02.060056+00:00",
+      "finished_at_utc": "2000-01-01T00:00:07.823095+00:00",
+      "exit_reason": "idle_timeout",
+      "observations": [
+        {
+          "probe_id": "8eb122d74fbd078024a20332cd2c88cc",
+          "run_id": "7190a5662db2dab6",
+          "payload_bytes": 1200,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.391332+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1200,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "06a9b3247000fc3ee04cbeeb15a5fe56",
+          "run_id": "7190a5662db2dab6",
+          "payload_bytes": 1300,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.444388+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1300,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "6a8fe8f3aabbfa4c556c53125ee22371",
+          "run_id": "7190a5662db2dab6",
+          "payload_bytes": 1400,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.496899+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1400,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "47906607c45fc483f9ae9a8e9c81c46c",
+          "run_id": "11bc9e4f92759d3f",
+          "payload_bytes": 1200,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.550825+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1200,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "b66b67c52cdece44c3b725be94f500a2",
+          "run_id": "11bc9e4f92759d3f",
+          "payload_bytes": 1300,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.604256+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1300,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "079f27edf4fbbee74046993a86b3c872",
+          "run_id": "11bc9e4f92759d3f",
+          "payload_bytes": 1400,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.656404+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1400,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "5ef453e591b3bad33b75a0c8c49bf871",
+          "run_id": "8139e0a23ad11ddd",
+          "payload_bytes": 1200,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.756477+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1200,
+          "ack_send_status": "sent"
+        },
+        {
+          "probe_id": "c6bbdcad09fefed6e8e1b3092a1ff46a",
+          "run_id": "8139e0a23ad11ddd",
+          "payload_bytes": 1400,
+          "source_ipv4": "192.0.2.1",
+          "received_at_utc": "2000-01-01T00:00:02.809902+00:00",
+          "reply_kind": "sized",
+          "reply_bytes": 1400,
+          "ack_send_status": "sent"
+        }
+      ],
+      "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
+      "sanitization": {
+        "tool": "tunnelscope sanitize 0.9.1",
+        "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+        "replaced_addresses": 2,
+        "interfaces": "replaced with if-N labels; loopback kept",
+        "replaced_interfaces": 1,
+        "hostnames": "host fields that are not addresses replaced with host-N.example",
+        "replaced_hostnames": 0,
+        "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+        "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+      }
+    },
+    "correlation": {
+      "schema_version": 1,
+      "kind": "diagnosis",
+      "tunnelscope_version": "0.9.1",
+      "input_versions": {
+        "fragmentation_comparison": "0.9.1",
+        "size_search": "0.9.1"
+      },
+      "scope": "single_sender_direction",
+      "target": {
+        "host": "192.0.2.2",
+        "ipv4": "192.0.2.2",
+        "port": 50629
+      },
+      "started_at_utc": "2000-01-01T00:00:02.388596+00:00",
+      "finished_at_utc": "2000-01-01T00:00:02.863740+00:00",
+      "settings": {
+        "compared_payload_sizes": [
+          1200,
+          1300,
+          1400
+        ],
+        "requested_min_payload_bytes": 1200,
+        "requested_max_payload_bytes": 1400,
+        "count_per_size_per_run": 1,
+        "timeout_seconds": 1,
+        "max_search_sizes": 4,
+        "run_order": [
+          "df",
+          "fragmentation_permitted",
+          "size_search"
+        ],
+        "observe_icmp": true,
+        "sized_reply": true
+      },
+      "consistency": {
+        "comparison_source_check": "matched",
+        "search_target_check": "matched",
+        "search_source_check": "matched"
+      },
+      "summary": {
+        "attempts": 8,
+        "icmp_size_feedback_events": 0,
+        "search": {
+          "method": "bounded_binary_search",
+          "requested_min_payload_bytes": 1200,
+          "requested_max_payload_bytes": 1400,
+          "max_tested_sizes": 4,
+          "tested_payload_sizes": [
+            1200,
+            1400
+          ],
+          "largest_acknowledged_payload_bytes": 1400,
+          "smallest_packet_too_large_payload_bytes": null,
+          "ambiguous_payload_sizes": [],
+          "observed_interval_payload_bytes": null,
+          "assessment": "no_explicit_bracket"
+        },
+        "return": {
+          "sized_reply_received": 8,
+          "small_ack_only": 0,
+          "no_reply": 0
+        }
+      },
+      "interpretation": "One sender with same-sized replies: an acknowledged attempt carried its size in both directions, so the search interval reflects the smaller of the two directions. small_ack_only means the receiver did not send same-sized replies. Runs are sequential and may be affected by route or PMTU-cache changes. Missing ACKs and absent ICMP are inconclusive; observed ICMP is untrusted feedback. A reported interval is not an independently measured end-to-end path MTU.",
+      "runs": {
+        "fragmentation_comparison": {
+          "schema_version": 1,
+          "kind": "fragmentation_comparison",
+          "tunnelscope_version": "0.9.1",
+          "input_versions": {
+            "df": "0.9.1",
+            "fragmentation_permitted": "0.9.1"
+          },
+          "target": {
+            "host": "192.0.2.2",
+            "ipv4": "192.0.2.2",
+            "port": 50629
+          },
+          "source_check": "matched",
+          "settings": {
+            "payload_sizes": [
+              1200,
+              1300,
+              1400
+            ],
+            "count_per_mode": 1,
+            "timeout_seconds": 1,
+            "run_order": [
+              "df",
+              "fragmentation_permitted"
+            ],
+            "sized_reply": true
+          },
+          "interpretation": "Two sequential sender-side experiments. The second permits source fragmentation but does not prove fragments traversed the path. Different results suggest a useful follow-up, not a root cause. Timeouts are missing ACKs, not proven packet loss.",
+          "comparison": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1200,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              },
+              {
+                "payload_bytes": 1300,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              },
+              {
+                "payload_bytes": 1400,
+                "df": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "fragmentation_permitted": {
+                  "assessment": "delivery_observed",
+                  "status_counts": {
+                    "acknowledged": 1,
+                    "packet_too_large": 0,
+                    "timeout": 0,
+                    "socket_error": 0
+                  },
+                  "no_ack_measurement": {
+                    "sent_attempts": 1,
+                    "no_ack_count": 0,
+                    "no_ack_rate": 0.0,
+                    "no_ack_wilson_95": [
+                      0,
+                      0.7935
+                    ]
+                  },
+                  "return_status_counts": {
+                    "sized_reply_received": 1,
+                    "small_ack_only": 0,
+                    "no_reply": 0
+                  }
+                },
+                "outcomes_differ": false
+              }
+            ]
+          },
+          "runs": {
+            "df": {
+              "schema_version": 1,
+              "kind": "probe",
+              "tunnelscope_version": "0.9.1",
+              "run_id": "7190a5662db2dab6",
+              "started_at_utc": "2000-01-01T00:00:02.388596+00:00",
+              "finished_at_utc": "2000-01-01T00:00:02.551192+00:00",
+              "source": {
+                "ipv4": "192.0.2.1",
+                "kernel_route_mtu_bytes": 1500,
+                "interface": "if-1",
+                "interface_mtu_bytes": 1500
+              },
+              "target": {
+                "host": "192.0.2.2",
+                "ipv4": "192.0.2.2",
+                "port": 50629
+              },
+              "settings": {
+                "payload_sizes": [
+                  1200,
+                  1300,
+                  1400
+                ],
+                "count": 1,
+                "timeout_seconds": 1,
+                "dont_fragment": true,
+                "observe_icmp": true,
+                "sized_reply": true
+              },
+              "fragmentation_mode": "df",
+              "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+              "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+              "summary": {
+                "by_payload_size": [
+                  {
+                    "payload_bytes": 1200,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  }
+                ],
+                "icmp_feedback": {
+                  "observation_state": "complete",
+                  "size_feedback_events": 0,
+                  "token_matched_size_feedback_events": 0,
+                  "local_error_events": 0,
+                  "other_or_unparsed_events": 0
+                }
+              },
+              "evidence": {
+                "observations": [
+                  {
+                    "payload_bytes": 1200,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  }
+                ],
+                "hypotheses": [],
+                "missing_evidence": []
+              },
+              "results": [
+                {
+                  "payload_bytes": 1200,
+                  "attempt": 1,
+                  "probe_id": "8eb122d74fbd078024a20332cd2c88cc",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.392540+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.446,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.393992+00:00",
+                  "reply_bytes": 1200,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1300,
+                  "attempt": 1,
+                  "probe_id": "06a9b3247000fc3ee04cbeeb15a5fe56",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.444897+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.197,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.447108+00:00",
+                  "reply_bytes": 1300,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1400,
+                  "attempt": 1,
+                  "probe_id": "6a8fe8f3aabbfa4c556c53125ee22371",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.498022+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.148,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.500179+00:00",
+                  "reply_bytes": 1400,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                }
+              ]
+            },
+            "fragmentation_permitted": {
+              "schema_version": 1,
+              "kind": "probe",
+              "tunnelscope_version": "0.9.1",
+              "run_id": "11bc9e4f92759d3f",
+              "started_at_utc": "2000-01-01T00:00:02.551273+00:00",
+              "finished_at_utc": "2000-01-01T00:00:02.710010+00:00",
+              "source": {
+                "ipv4": "192.0.2.1",
+                "kernel_route_mtu_bytes": 1500,
+                "interface": "if-1",
+                "interface_mtu_bytes": 1500
+              },
+              "target": {
+                "host": "192.0.2.2",
+                "ipv4": "192.0.2.2",
+                "port": 50629
+              },
+              "settings": {
+                "payload_sizes": [
+                  1200,
+                  1300,
+                  1400
+                ],
+                "count": 1,
+                "timeout_seconds": 1,
+                "dont_fragment": false,
+                "observe_icmp": true,
+                "sized_reply": true
+              },
+              "fragmentation_mode": "permitted",
+              "fragmentation": "permitted: Linux IP_PMTUDISC_DONT",
+              "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+              "summary": {
+                "by_payload_size": [
+                  {
+                    "payload_bytes": 1200,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status_counts": {
+                      "acknowledged": 1,
+                      "packet_too_large": 0,
+                      "timeout": 0,
+                      "socket_error": 0
+                    },
+                    "no_ack_measurement": {
+                      "sent_attempts": 1,
+                      "no_ack_count": 0,
+                      "no_ack_rate": 0.0,
+                      "no_ack_wilson_95": [
+                        0,
+                        0.7935
+                      ]
+                    },
+                    "assessment": "delivery_observed",
+                    "return_status_counts": {
+                      "sized_reply_received": 1,
+                      "small_ack_only": 0,
+                      "no_reply": 0
+                    }
+                  }
+                ],
+                "icmp_feedback": {
+                  "observation_state": "complete",
+                  "size_feedback_events": 0,
+                  "token_matched_size_feedback_events": 0,
+                  "local_error_events": 0,
+                  "other_or_unparsed_events": 0
+                }
+              },
+              "evidence": {
+                "observations": [
+                  {
+                    "payload_bytes": 1200,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1300,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  },
+                  {
+                    "payload_bytes": 1400,
+                    "status": "acknowledged",
+                    "attempts": 1
+                  }
+                ],
+                "hypotheses": [],
+                "missing_evidence": [
+                  "controlled_fragmentation_behavior"
+                ]
+              },
+              "results": [
+                {
+                  "payload_bytes": 1200,
+                  "attempt": 1,
+                  "probe_id": "47906607c45fc483f9ae9a8e9c81c46c",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.551863+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.899,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.553773+00:00",
+                  "reply_bytes": 1200,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1300,
+                  "attempt": 1,
+                  "probe_id": "b66b67c52cdece44c3b725be94f500a2",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.604852+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 2.525,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.607387+00:00",
+                  "reply_bytes": 1300,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                },
+                {
+                  "payload_bytes": 1400,
+                  "attempt": 1,
+                  "probe_id": "079f27edf4fbbee74046993a86b3c872",
+                  "send_attempted_at_utc": "2000-01-01T00:00:02.658007+00:00",
+                  "status": "acknowledged",
+                  "rtt_ms": 1.174,
+                  "ack_received_at_utc": "2000-01-01T00:00:02.659191+00:00",
+                  "reply_bytes": 1400,
+                  "return_status": "sized_reply_received",
+                  "icmp_observation": {
+                    "state": "completed",
+                    "events": []
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "size_search": {
+          "schema_version": 1,
+          "kind": "probe",
+          "tunnelscope_version": "0.9.1",
+          "run_id": "8139e0a23ad11ddd",
+          "started_at_utc": "2000-01-01T00:00:02.758057+00:00",
+          "finished_at_utc": "2000-01-01T00:00:02.863740+00:00",
+          "source": {
+            "ipv4": "192.0.2.1",
+            "kernel_route_mtu_bytes": 1500,
+            "interface": "if-1",
+            "interface_mtu_bytes": 1500
+          },
+          "target": {
+            "host": "192.0.2.2",
+            "ipv4": "192.0.2.2",
+            "port": 50629
+          },
+          "settings": {
+            "payload_sizes": [
+              1200,
+              1400
+            ],
+            "count": 1,
+            "timeout_seconds": 1,
+            "dont_fragment": true,
+            "observe_icmp": true,
+            "sized_reply": true
+          },
+          "fragmentation_mode": "df",
+          "fragmentation": "disabled: Linux IP_PMTUDISC_DO",
+          "interpretation": "Acknowledgement confirms delivery and a same-sized reply when return_status is sized_reply_received; small_ack_only means the receiver sent only a small reply. Timeout is inconclusive. packet_too_large records EMSGSIZE in DF mode; a kernel-reported MTU is current kernel knowledge, not an independently measured path MTU. ICMP error-queue observations are untrusted network feedback, not independent proof of the path or sender identity.",
+          "summary": {
+            "by_payload_size": [
+              {
+                "payload_bytes": 1200,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed",
+                "return_status_counts": {
+                  "sized_reply_received": 1,
+                  "small_ack_only": 0,
+                  "no_reply": 0
+                }
+              },
+              {
+                "payload_bytes": 1400,
+                "status_counts": {
+                  "acknowledged": 1,
+                  "packet_too_large": 0,
+                  "timeout": 0,
+                  "socket_error": 0
+                },
+                "no_ack_measurement": {
+                  "sent_attempts": 1,
+                  "no_ack_count": 0,
+                  "no_ack_rate": 0.0,
+                  "no_ack_wilson_95": [
+                    0,
+                    0.7935
+                  ]
+                },
+                "assessment": "delivery_observed",
+                "return_status_counts": {
+                  "sized_reply_received": 1,
+                  "small_ack_only": 0,
+                  "no_reply": 0
+                }
+              }
+            ],
+            "icmp_feedback": {
+              "observation_state": "complete",
+              "size_feedback_events": 0,
+              "token_matched_size_feedback_events": 0,
+              "local_error_events": 0,
+              "other_or_unparsed_events": 0
+            },
+            "search": {
+              "method": "bounded_binary_search",
+              "requested_min_payload_bytes": 1200,
+              "requested_max_payload_bytes": 1400,
+              "max_tested_sizes": 4,
+              "tested_payload_sizes": [
+                1200,
+                1400
+              ],
+              "largest_acknowledged_payload_bytes": 1400,
+              "smallest_packet_too_large_payload_bytes": null,
+              "ambiguous_payload_sizes": [],
+              "observed_interval_payload_bytes": null,
+              "assessment": "no_explicit_bracket"
+            }
+          },
+          "evidence": {
+            "observations": [
+              {
+                "payload_bytes": 1200,
+                "status": "acknowledged",
+                "attempts": 1
+              },
+              {
+                "payload_bytes": 1400,
+                "status": "acknowledged",
+                "attempts": 1
+              }
+            ],
+            "hypotheses": [],
+            "missing_evidence": []
+          },
+          "results": [
+            {
+              "payload_bytes": 1200,
+              "attempt": 1,
+              "probe_id": "5ef453e591b3bad33b75a0c8c49bf871",
+              "send_attempted_at_utc": "2000-01-01T00:00:02.758444+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 1.215,
+              "ack_received_at_utc": "2000-01-01T00:00:02.759673+00:00",
+              "reply_bytes": 1200,
+              "return_status": "sized_reply_received",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            },
+            {
+              "payload_bytes": 1400,
+              "attempt": 1,
+              "probe_id": "c6bbdcad09fefed6e8e1b3092a1ff46a",
+              "send_attempted_at_utc": "2000-01-01T00:00:02.810535+00:00",
+              "status": "acknowledged",
+              "rtt_ms": 2.333,
+              "ack_received_at_utc": "2000-01-01T00:00:02.812876+00:00",
+              "reply_bytes": 1400,
+              "return_status": "sized_reply_received",
+              "icmp_observation": {
+                "state": "completed",
+                "events": []
+              }
+            }
+          ]
+        }
+      },
+      "receiver_evidence": {
+        "tunnelscope_version": "0.9.1",
+        "input_versions": {
+          "diagnosis": "0.9.1",
+          "receiver": "0.9.1"
+        },
+        "summary": {
+          "receiver_observed": 8,
+          "sent_probes": 8,
+          "unmatched_receiver_observations": 0,
+          "unassigned_receiver_observations": 0,
+          "capture_exit_reason": "idle_timeout",
+          "sized_reply_missing_after_arrival": 0,
+          "receiver_reply_send_failed": 0,
+          "receiver_reply_send_unverified": 0
+        },
+        "interpretation": "A receiver observation confirms forward arrival. Missing observations remain inconclusive unless capture coverage is independently established. Receiver and sender clocks are not compared.",
+        "correlations": {
+          "df": {
+            "schema_version": 1,
+            "kind": "probe_receiver_correlation",
+            "tunnelscope_version": "0.9.1",
+            "input_versions": {
+              "probe": "0.9.1",
+              "receiver": "0.9.1"
+            },
+            "pairing": {
+              "run_id_check": "matched",
+              "endpoint_checks": {
+                "target_port_matches_receiver": true,
+                "target_ipv4_matches_receiver_bind": true,
+                "target_ipv6_matches_receiver_bind": null
+              },
+              "probe_window_utc": [
+                "2000-01-01T00:00:02.388596+00:00",
+                "2000-01-01T00:00:02.551192+00:00"
+              ],
+              "receiver_window_utc": [
+                "2000-01-01T00:00:02.060056+00:00",
+                "2000-01-01T00:00:07.823095+00:00"
+              ],
+              "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized"
+            },
+            "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared. With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver had a same-sized reply accepted by its local socket, but the sender recorded none before its deadline. This does not identify where or why the return failed. receiver_reply_send_failed means the receiver's own socket rejected the attempted reply. receiver_reply_send_unverified means the receiver did not record the local send outcome; it does not establish that a reply was sent.",
+            "summary": {
+              "sent_probes": 3,
+              "receiver_observed": 3,
+              "timed_out_but_receiver_observed": 0,
+              "unmatched_receiver_observations": 0,
+              "sized_reply_missing_after_arrival": 0,
+              "receiver_reply_send_failed": 0,
+              "receiver_reply_send_unverified": 0
+            },
+            "results": [
+              {
+                "probe_id": "8eb122d74fbd078024a20332cd2c88cc",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1200,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.392540+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.391332+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.393992+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1200,
+                "return_evidence": "sized_reply_returned"
+              },
+              {
+                "probe_id": "06a9b3247000fc3ee04cbeeb15a5fe56",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1300,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.444897+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.444388+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.447108+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1300,
+                "return_evidence": "sized_reply_returned"
+              },
+              {
+                "probe_id": "6a8fe8f3aabbfa4c556c53125ee22371",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1400,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.498022+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.496899+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.500179+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1400,
+                "return_evidence": "sized_reply_returned"
+              }
+            ]
+          },
+          "fragmentation_permitted": {
+            "schema_version": 1,
+            "kind": "probe_receiver_correlation",
+            "tunnelscope_version": "0.9.1",
+            "input_versions": {
+              "probe": "0.9.1",
+              "receiver": "0.9.1"
+            },
+            "pairing": {
+              "run_id_check": "matched",
+              "endpoint_checks": {
+                "target_port_matches_receiver": true,
+                "target_ipv4_matches_receiver_bind": true,
+                "target_ipv6_matches_receiver_bind": null
+              },
+              "probe_window_utc": [
+                "2000-01-01T00:00:02.551273+00:00",
+                "2000-01-01T00:00:02.710010+00:00"
+              ],
+              "receiver_window_utc": [
+                "2000-01-01T00:00:02.060056+00:00",
+                "2000-01-01T00:00:07.823095+00:00"
+              ],
+              "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized"
+            },
+            "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared. With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver had a same-sized reply accepted by its local socket, but the sender recorded none before its deadline. This does not identify where or why the return failed. receiver_reply_send_failed means the receiver's own socket rejected the attempted reply. receiver_reply_send_unverified means the receiver did not record the local send outcome; it does not establish that a reply was sent.",
+            "summary": {
+              "sent_probes": 3,
+              "receiver_observed": 3,
+              "timed_out_but_receiver_observed": 0,
+              "unmatched_receiver_observations": 0,
+              "sized_reply_missing_after_arrival": 0,
+              "receiver_reply_send_failed": 0,
+              "receiver_reply_send_unverified": 0
+            },
+            "results": [
+              {
+                "probe_id": "47906607c45fc483f9ae9a8e9c81c46c",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1200,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.551863+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.550825+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.553773+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1200,
+                "return_evidence": "sized_reply_returned"
+              },
+              {
+                "probe_id": "b66b67c52cdece44c3b725be94f500a2",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1300,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.604852+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.604256+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.607387+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1300,
+                "return_evidence": "sized_reply_returned"
+              },
+              {
+                "probe_id": "079f27edf4fbbee74046993a86b3c872",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1400,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.658007+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.656404+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.659191+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1400,
+                "return_evidence": "sized_reply_returned"
+              }
+            ]
+          },
+          "size_search": {
+            "schema_version": 1,
+            "kind": "probe_receiver_correlation",
+            "tunnelscope_version": "0.9.1",
+            "input_versions": {
+              "probe": "0.9.1",
+              "receiver": "0.9.1"
+            },
+            "pairing": {
+              "run_id_check": "matched",
+              "endpoint_checks": {
+                "target_port_matches_receiver": true,
+                "target_ipv4_matches_receiver_bind": true,
+                "target_ipv6_matches_receiver_bind": null
+              },
+              "probe_window_utc": [
+                "2000-01-01T00:00:02.758057+00:00",
+                "2000-01-01T00:00:02.863740+00:00"
+              ],
+              "receiver_window_utc": [
+                "2000-01-01T00:00:02.060056+00:00",
+                "2000-01-01T00:00:07.823095+00:00"
+              ],
+              "clock_comparison": "not_performed; clocks on different hosts may be unsynchronized"
+            },
+            "interpretation": "Receiver observation confirms forward arrival. No matching observation is inconclusive unless capture coverage is independently established. A sent acknowledgement does not prove return delivery. Per-attempt timestamps are shown side by side but clocks on different hosts are not compared. With sized replies, receiver_observed_sized_reply_missing means the probe arrived and the receiver had a same-sized reply accepted by its local socket, but the sender recorded none before its deadline. This does not identify where or why the return failed. receiver_reply_send_failed means the receiver's own socket rejected the attempted reply. receiver_reply_send_unverified means the receiver did not record the local send outcome; it does not establish that a reply was sent.",
+            "summary": {
+              "sent_probes": 2,
+              "receiver_observed": 2,
+              "timed_out_but_receiver_observed": 0,
+              "unmatched_receiver_observations": 0,
+              "sized_reply_missing_after_arrival": 0,
+              "receiver_reply_send_failed": 0,
+              "receiver_reply_send_unverified": 0
+            },
+            "results": [
+              {
+                "probe_id": "5ef453e591b3bad33b75a0c8c49bf871",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1200,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.758444+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.756477+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.759673+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1200,
+                "return_evidence": "sized_reply_returned"
+              },
+              {
+                "probe_id": "c6bbdcad09fefed6e8e1b3092a1ff46a",
+                "direction": "192.0.2.1 -> 192.0.2.2",
+                "payload_bytes": 1400,
+                "send_attempted_at_utc": "2000-01-01T00:00:02.810535+00:00",
+                "receiver_received_at_utc": "2000-01-01T00:00:02.809902+00:00",
+                "sender_ack_received_at_utc": "2000-01-01T00:00:02.812876+00:00",
+                "sender_status": "acknowledged",
+                "receiver_observed": true,
+                "ack_send_status": "sent",
+                "evidence_case": "acknowledged_and_receiver_observed",
+                "return_status": "sized_reply_received",
+                "receiver_reply_bytes": 1400,
+                "return_evidence": "sized_reply_returned"
+              }
+            ]
+          }
+        }
+      },
+      "sanitization": {
+        "tool": "tunnelscope sanitize 0.9.1",
+        "addresses": "replaced with documentation addresses (RFC 5737, RFC 3849); loopback, unspecified and documentation addresses kept",
+        "replaced_addresses": 2,
+        "interfaces": "replaced with if-N labels; loopback kept",
+        "replaced_interfaces": 1,
+        "hostnames": "host fields that are not addresses replaced with host-N.example",
+        "replaced_hostnames": 0,
+        "timestamps": "shifted by one constant offset per batch; the earliest becomes 2000-01-01T00:00:00+00:00",
+        "retained": "payload sizes, outcomes, RTTs, probe and run IDs, ICMP event fields"
+      }
+    }
+  },
+  "cleanup": {
+    "receiver_processes_stopped": true,
+    "test_created_firewall_rules": 0
+  },
+  "limitations": [
+    "Controlled Windows/WSL2 host/guest path, not independent operator evidence or physical multi-host validation.",
+    "Healthy sizes through 1400 bytes; no exact path-MTU boundary or oversized Windows reply was measured.",
+    "IPv4 and existing virtual-network policy only; remote Windows firewall profiles and IPv6 cross-host paths need separate evidence.",
+    "Related report files were batch-sanitized together; this wrapper adds only reviewed non-private OS/version and scope metadata.",
+    "No comparison of clocks across kernels; the probe protocol and receiver logs remain unauthenticated."
+  ]
+}

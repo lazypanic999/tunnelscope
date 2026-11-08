@@ -39,3 +39,6 @@ evidence and report sanitization; the
 [v0.8.0](releases/v0.8.0.md) adds Windows receivers for sized replies, an IPv6
 asymmetric lab, CI lab artifacts and a [field report guide](field-reports.md).
 [v0.8.1](releases/v0.8.1.md) makes joined HTML tables readable.
+[v0.8.2](releases/v0.8.2.md) fixes sanitization identity and UTC display,
+completes the routed IPv6 blocked-feedback experiment, and checks the field
+report sharing workflow through real CLI processes.

@@ -6,7 +6,7 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.8.1 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.1/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.1) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.8.2 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.2/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.2) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
@@ -37,7 +37,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.8.1
+python -m pip install tunnelscope==0.8.2
 ```
 
 In terminal 1, start the loopback receiver:
@@ -132,7 +132,7 @@ shows how to collect and share a sanitized report.
 - [Usage and JSON reference](https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md), [size search](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md), [fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md) and [ICMP feedback](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
 - [Sanitize reports before sharing](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sanitize.md) and [same-sized replies for return-path evidence](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sized-reply.md).
 - [Receiver observations](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md), [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md), [Kubernetes lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md) and [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md).
-- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.7 plan](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.7.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
+- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
 Contributions welcome. CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with

@@ -1,6 +1,7 @@
 """Bounded single-sender workflow using existing evidence-producing probes."""
 
 from copy import deepcopy
+from ._version import VERSION, declared_version
 
 from .icmp import require_icmp_support
 from .network import SIZED_REPLY_MIN_BYTES, compare_fragmentation, probe, require_df_support
@@ -53,6 +54,8 @@ def build_diagnosis(comparison, search):
     return {
         "schema_version": 1,
         "kind": "diagnosis",
+        "tunnelscope_version": VERSION,
+        "input_versions": {"fragmentation_comparison": declared_version(comparison), "size_search": declared_version(search)},
         "scope": "single_sender_direction",
         "target": comparison.get("target"),
         "started_at_utc": runs["df"].get("started_at_utc"),
@@ -166,6 +169,8 @@ def correlate_diagnosis(diagnosis, receiver_report):
         if any(key in item["summary"] for item in correlations.values()):
             evidence_summary[key] = sum(item["summary"].get(key, 0) for item in correlations.values())
     result["receiver_evidence"] = {
+        "tunnelscope_version": VERSION,
+        "input_versions": {"diagnosis": declared_version(diagnosis), "receiver": declared_version(receiver_report)},
         "summary": evidence_summary,
         "interpretation": "A receiver observation confirms forward arrival. Missing observations remain inconclusive unless capture coverage is independently established. Receiver and sender clocks are not compared.",
         "correlations": correlations,

@@ -1,5 +1,7 @@
 """Conservative comparison of two fragmentation-mode experiments."""
 
+from ._version import VERSION, declared_version
+
 
 def compare_fragmentation_reports(df_report, permitted_report):
     """Keep both runs and their observed outcomes, without a causal diagnosis."""
@@ -50,6 +52,9 @@ def compare_fragmentation_reports(df_report, permitted_report):
     return {
         "schema_version": 1,
         "kind": "fragmentation_comparison",
+        "tunnelscope_version": VERSION,
+        "input_versions": {"df": declared_version(df_report),
+                           "fragmentation_permitted": declared_version(permitted_report)},
         "target": df_report["target"],
         "source_check": source_check,
         "settings": {"payload_sizes": first["payload_sizes"], "count_per_mode": first["count"],

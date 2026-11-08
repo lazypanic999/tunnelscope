@@ -7,7 +7,7 @@ from importlib.resources import files
 import json
 import re
 
-from .reports import no_ack_measurement, no_ack_text
+from .reports import no_ack_measurement, no_ack_text, version_details
 from .tables import _records, _table_data, _lab_data, report_table
 from .timestamps import parse_timestamp
 
@@ -87,6 +87,12 @@ def render_report_html(report):
             f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>" for label, value in fields
         ) + "<p>Timeouts and mixed outcomes do not establish a boundary.</p></section>"
     measurement_html = ""
+    versions = version_details(search_report)
+    if versions:
+        search_html += ("<section class='search-summary'><h2>Declared producer versions</h2>"
+                        + "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                  for label, value in versions)
+                        + "<p>Recorded metadata is not authentication. Missing legacy versions remain unknown.</p></section>")
     sanitization = report.get("sanitization")
     if isinstance(sanitization, dict):
         search_html = ("<section class='search-summary'><h2>Sanitized report</h2>"

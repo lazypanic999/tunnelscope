@@ -5,6 +5,7 @@ import re
 import string
 
 from .tables import report_table
+from .reports import version_details
 from .timestamps import parse_timestamp
 
 MAX_ROWS = 50
@@ -49,7 +50,7 @@ def render_report_markdown(report):
     else:
         lines.extend(["**No sanitization record.** Use `tunnelscope sanitize` and review the copies before sharing.", ""])
 
-    facts = []
+    facts = version_details(detail)
     if "scope" in detail:
         facts.append(("Scope", detail["scope"]))
     pairing = detail.get("pairing")

@@ -17,10 +17,21 @@ values cannot add active markup; large captures are visibly truncated; the
 Linux/Windows Python 3.10/3.12 matrix passes; installed distributions include
 the new renderer and table module. The source JSON remains the full evidence.
 
+## Producer versions and offline views
+
+[#40](https://github.com/lazypanic999/tunnelscope/issues/40) records producer
+versions and immediate input versions for new reports. Existing diagnoses
+keep their original measurement producer when receiver evidence is joined
+later. Missing legacy versions remain unknown; see
+[report versions](report-versions.md).
+
+Text views also support the named visible/blocked cases and separate
+directions in checked-in lab examples, alongside HTML and Markdown.
+
 ## Validation still needing separate endpoints
 
-Controlled [OpenVPN routed validation](validation/openvpn-routed.md) is also
-being added under [#36](https://github.com/lazypanic999/tunnelscope/issues/36),
+Controlled [OpenVPN routed validation](validation/openvpn-routed.md) was
+added under [#36](https://github.com/lazypanic999/tunnelscope/issues/36),
 with temporary TLS peers and visible/blocked feedback. This adds lab coverage
 without closing the independent evidence below.
 

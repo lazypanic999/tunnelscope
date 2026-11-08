@@ -2,7 +2,6 @@
 
 from datetime import timezone
 import re
-import string
 
 from .tables import report_table
 from .reports import version_details
@@ -13,20 +12,65 @@ MAX_CELL_CHARACTERS = 160
 MAX_OUTPUT_CHARACTERS = 24000
 
 
+NEWLINE = " [newline] "
+# Characters that can start Markdown or HTML structure, links or strikethrough
+# anywhere in a table cell.
+ALWAYS_ENCODED = set("\\`|*[]<&~")
+WORD = re.compile(r"[A-Za-z0-9]")
+# GitHub links @mentions and #123 / GH-123 references and renders $math$ after
+# character references are decoded, so those need a different break: a zero
+# width space after the reference trigger and before every dollar sign.
+ZERO_WIDTH_SPACE = "&#8203;"
+REFERENCE_TRIGGER = re.compile(r"[@#][A-Za-z0-9_-]")
+GH_REFERENCE = re.compile(r"(?<![A-Za-z0-9])GH-[0-9]", re.IGNORECASE)
+# A colon followed by an emoji-shortcode-like token (":abc:", ":+1:", ":100:")
+# or by "//" (scheme links). Plain timestamps and IPv4 addresses stay readable.
+COLON_HAZARD = re.compile(r"//|[A-Za-z0-9_+-]*[A-Za-z_][A-Za-z0-9_+-]*:|(?:100|1234|[+-]1):")
+
+
+def _encode(char):
+    return f"&#{ord(char)};"
+
+
+def _escape(text):
+    """Encode only characters that could add Markdown structure; keep the rest readable."""
+    out = []
+    for index, char in enumerate(text):
+        before = text[index - 1] if index else ""
+        after = text[index + 1] if index + 1 < len(text) else ""
+        if char == "$":
+            # GitHub renders "\$" and "&#36;" as math inside tables; a leading
+            # zero width space is the break that held in a rendering check.
+            out.append(ZERO_WIDTH_SPACE + "$")
+            continue
+        if (char in "@#" and REFERENCE_TRIGGER.match(text, index)) or (
+                char == "-" and index >= 2 and GH_REFERENCE.match(text, index - 2)):
+            out.append(char + ZERO_WIDTH_SPACE)
+            continue
+        if (char in ALWAYS_ENCODED or not 32 <= ord(char) <= 126
+                # Intraword underscores never emphasize in GFM; boundary ones can.
+                or (char == "_" and not (WORD.match(before) and WORD.match(after)))
+                or (char == ":" and COLON_HAZARD.match(text, index + 1))
+                # "www." starts an automatic link.
+                or (char == "." and text[max(0, index - 3):index].lower() == "www")):
+            out.append(_encode(char))
+        else:
+            out.append(char)
+    return "".join(out)
+
+
 def _text(value):
-    text = "—" if value is None else str(value)
-    text = " [newline] ".join(text.splitlines()).replace("\t", " ").replace("\x00", "�")
+    text = "-" if value is None else str(value)
+    text = NEWLINE.join(text.splitlines()).replace("\t", " ").replace("\x00", "\ufffd")
     if len(text) > MAX_CELL_CHARACTERS:
-        text = text[:MAX_CELL_CHARACTERS - 1] + "…"
-    # Numeric references display as text, but cannot introduce GFM structure.
-    # Encoding punctuation also prevents automatic links from report values.
-    return "".join(f"&#{ord(char)};" if char in string.punctuation or not 32 <= ord(char) <= 126
-                   else char for char in text)
+        text = text[:MAX_CELL_CHARACTERS - 3] + "..."
+    # The [newline] marker is ours; brackets alone cannot form a link.
+    return _escape(text).replace("&#91;newline&#93;", "[newline]")
 
 
 def _display(value, header):
     if header == "Probe ID" and isinstance(value, str) and re.fullmatch(r"[0-9a-f]{32}", value):
-        return value[:8] + "…"
+        return value[:8] + "..."
     if "(UTC)" in header:
         moment = parse_timestamp(value)
         if moment is not None:

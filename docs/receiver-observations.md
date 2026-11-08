@@ -75,3 +75,8 @@ pair the files from the same run. Reports created before v0.2 do not contain
 probe IDs and cannot be correlated. v0.2 reports can still be correlated by
 probe ID, but their run ID check is unavailable. Receiver observation is complementary to
 running probes in the reverse direction; it does not replace that test.
+
+The sender input must be a raw `probe` report (or a `diagnosis` report for the
+CLI diagnosis workflow), not an already joined correlation report. Legacy probe
+reports without a `kind` field remain supported; an explicit non-probe kind
+is rejected before correlation output files are written.

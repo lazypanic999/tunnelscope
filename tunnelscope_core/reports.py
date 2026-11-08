@@ -136,6 +136,8 @@ def correlate_reports(probe_report, receiver_report):
     """Match sent probe IDs to receiver observations without claiming a cause for loss."""
     if not isinstance(probe_report, dict) or probe_report.get("schema_version") != 1 or not isinstance(probe_report.get("results"), list):
         raise ValueError("expected a schema_version 1 probe report")
+    if "kind" in probe_report and probe_report["kind"] != "probe":
+        raise ValueError("expected a schema_version 1 probe report")
     if not isinstance(receiver_report, dict) or receiver_report.get("schema_version") != 1 or receiver_report.get("kind") != "receiver_observations" or not isinstance(receiver_report.get("observations"), list):
         raise ValueError("expected a schema_version 1 receiver observations report")
     sent = probe_report["results"]

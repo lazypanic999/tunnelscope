@@ -164,6 +164,53 @@ class SanitizeTests(unittest.TestCase):
         self.assertEqual(clean["recorded_at_utc"], "2000-01-01T00:00:00Z")
         self.assert_clean(clean)
 
+    def test_generated_labels_do_not_cascade_into_other_original_names(self):
+        first = probe_report("10.77.0.1", "10.77.0.2", "wg0", host="vpn.internal")
+        second = probe_report("10.77.0.9", "10.77.0.2", "if-1", host="host-1.example")
+        first["notes"] = "via wg0 at vpn.internal; scope fe80::1%wg0"
+        clean, other = sanitize_reports([first, second])
+        interface, host = clean["source"]["interface"], clean["target"]["host"]
+        self.assertEqual(clean["notes"], f"via {interface} at {host}; scope 2001:db8::1%{interface}")
+        self.assertNotEqual(interface, other["source"]["interface"])
+        self.assertNotEqual(host, other["target"]["host"])
+
+    def test_longest_known_hostname_is_replaced_as_one_value(self):
+        first = probe_report("10.77.0.1", "10.77.0.2", "wg0", host="vpn")
+        second = probe_report("10.77.0.9", "10.77.0.2", "wg0", host="vpn.internal")
+        first["notes"] = "hosts vpn.internal and vpn."
+        clean, other = sanitize_reports([first, second])
+        self.assertEqual(clean["notes"],
+                         f"hosts {other['target']['host']} and {clean['target']['host']}.")
+
+    def test_unknown_ipv6_scopes_get_distinct_interface_labels(self):
+        report = copy.deepcopy(self.probe)
+        report["notes"] = "fe80::1%tunnel-a fe80::1%tunnel-b"
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["notes"], "2001:db8::1%if-2 2001:db8::1%if-3")
+        self.assertEqual(clean["sanitization"]["replaced_interfaces"], 3)
+
+    def test_short_fractional_timestamps_work_on_supported_python_versions(self):
+        report = copy.deepcopy(self.probe)
+        report["recorded_at_utc"] = "2026-11-03T10:00:01.1Z"
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["recorded_at_utc"], "2000-01-01T00:00:00.850000Z")
+
+    def test_kept_interface_and_scope_are_not_reinterpreted_as_a_hostname(self):
+        report = probe_report("127.0.0.1", "127.0.0.2", "lo", host="lo")
+        report["notes"] = "scope fe80::1%lo"
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["source"]["interface"], "lo")
+        self.assertEqual(clean["target"]["host"], "host-1.example")
+        self.assertEqual(clean["notes"], "scope 2001:db8::1%lo")
+
+    def test_invalid_dates_and_empty_labels_do_not_break_the_batch(self):
+        report = probe_report("10.77.0.1", "10.77.0.2", "", host="localhost")
+        report["notes"] = ["2026-99-03T10:00:01Z", "2026-99-03", "unchanged"]
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["source"]["interface"], "")
+        self.assertEqual(clean["target"]["host"], "localhost")
+        self.assertEqual(clean["notes"], report["notes"])
+
     def test_replacements_avoid_documentation_addresses_already_present(self):
         report = probe_report("10.77.0.1", "192.0.2.1", "lo")
         clean, = sanitize_reports([report])

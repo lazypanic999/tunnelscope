@@ -11,6 +11,7 @@ import ipaddress
 import re
 
 from tunnelscope_core.network import VERSION
+from tunnelscope_core.timestamps import parse_timestamp
 
 TIME_BASE = datetime(2000, 1, 1, tzinfo=timezone.utc)
 KEPT_NETWORKS = tuple(ipaddress.ip_network(net) for net in (
@@ -25,7 +26,6 @@ INTERFACE_KEYS = {"interface"}
 
 IPV4_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\.?\d)")
 IPV6_TEXT = re.compile(r"(?<![\w.%])[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[\w.-]+)?")
-DATETIME_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:[+-]\d{2}:\d{2}|Z)$")
 DATE_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -80,6 +80,8 @@ class Sanitizer:
         self.names = {}
         self.time_offset = None
         self._reserved = set()
+        self._labels = {}
+        self._label_pattern = None
 
     def prepare(self, reports):
         """Scan every report first so mappings and the time offset cover the batch."""
@@ -90,15 +92,36 @@ class Sanitizer:
                 for address in self._addresses_in(text):
                     if _kept(address):
                         self._reserved.add(str(address))
-                if key in INTERFACE_KEYS and text not in KEPT_INTERFACES:
-                    self.interfaces.setdefault(text, f"if-{len(self.interfaces) + 1}")
-                if key in NAME_KEYS and text not in KEPT_NAMES and _parse_ip(text) is None:
-                    self.names.setdefault(text, f"host-{len(self.names) + 1}.example")
+                if key in INTERFACE_KEYS and text and text not in KEPT_INTERFACES:
+                    self.interfaces.setdefault(text, None)
+                for match in IPV6_TEXT.finditer(text):
+                    body, _, scope = match.group().rstrip(".").partition("%")
+                    address = _parse_ip(body)
+                    if scope and address is not None and address.version == 6 and scope not in KEPT_INTERFACES:
+                        self.interfaces.setdefault(scope, None)
+                if key in NAME_KEYS and text and text not in KEPT_NAMES and _parse_ip(text) is None:
+                    self.names.setdefault(text, None)
                 moment = self._moment(text)
                 if moment is not None and (earliest is None or moment < earliest):
                     earliest = moment
         if earliest is not None and not self.keep_timestamps:
             self.time_offset = TIME_BASE - earliest
+        # Generated labels must not be names that occur in the original batch:
+        # otherwise a later replacement could rename an already generated label.
+        original_names = set(self.interfaces) | set(self.names)
+        for mapping, prefix, suffix in ((self.interfaces, "if-", ""), (self.names, "host-", ".example")):
+            index = 1
+            for original in mapping:
+                while f"{prefix}{index}{suffix}" in original_names:
+                    index += 1
+                mapping[original] = f"{prefix}{index}{suffix}"
+                index += 1
+        self._labels = {**self.names, **self.interfaces}
+        if self._labels:
+            alternatives = "|".join(re.escape(name) for name in sorted(self._labels, key=len, reverse=True))
+            # IPv6 scopes have already been mapped with their address. Do not
+            # reinterpret a kept scope (for example %lo) as a hostname here.
+            self._label_pattern = re.compile(rf"(?<![\w.%-])(?:{alternatives})(?![\w-])")
 
     def sanitize(self, report):
         require_report(report)
@@ -124,9 +147,9 @@ class Sanitizer:
 
     @staticmethod
     def _moment(text):
-        if DATETIME_TEXT.match(text):
-            # Python 3.10's fromisoformat does not accept a trailing "Z".
-            return datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+        moment = parse_timestamp(text)
+        if moment is not None:
+            return moment
         if DATE_TEXT.match(text):
             try:
                 return datetime.combine(date.fromisoformat(text), datetime.min.time(), timezone.utc)
@@ -182,8 +205,10 @@ class Sanitizer:
         return match.group() if address is None else self._replacement(address)
 
     def _visit(self, key, text):
-        if key in INTERFACE_KEYS and text in self.interfaces:
-            return self.interfaces[text]
+        if key in INTERFACE_KEYS:
+            return self.interfaces.get(text, text)
+        if key in NAME_KEYS and text in KEPT_NAMES:
+            return text
         if key in NAME_KEYS and text in self.names:
             return self.names[text]
         moment = self._moment(text)
@@ -198,8 +223,8 @@ class Sanitizer:
             return shifted[:-6] + "Z" if text.endswith("Z") else shifted
         text = IPV6_TEXT.sub(self._replace_ipv6, text)
         text = IPV4_TEXT.sub(self._replace_ipv4, text)
-        for original, label in (*self.interfaces.items(), *self.names.items()):
-            text = re.sub(rf"(?<![\w.-]){re.escape(original)}(?![\w-])", label, text)
+        if self._label_pattern is not None:
+            text = self._label_pattern.sub(lambda match: self._labels[match.group()], text)
         return text
 
 

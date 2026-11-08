@@ -56,3 +56,8 @@ host, including the full sender/correlation/sanitization workflow.
 An [IPv6 link-local Windows/WSL2 follow-up](validation/windows-wsl2-receiver-ipv6.md)
 also retained 3/3 small ACKs, 6/6 sized replies and 8/8 diagnosis replies with
 Windows `IPV6_DONTFRAG`, local interface zones and no test-created rules.
+
+The [oversized Windows reply record](validation/windows-oversized-replies.md)
+then joined actual `WSAEMSGSIZE` failures for 1600-byte same-sized replies
+over IPv4 and IPv6. Small ACKs returned for those same forward payloads;
+the existing MTU 1500 and network policy were left unchanged.

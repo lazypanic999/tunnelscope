@@ -9,6 +9,8 @@ the earlier Windows-only loopback checks.
 A separate [IPv6 link-local follow-up](windows-wsl2-receiver-ipv6.md) records
 the same 3/6/8 successful experiment counts with local interface scopes.
 The results below remain the original IPv4 run.
+A further [oversized reply experiment](windows-oversized-replies.md) records
+actual Windows `WSAEMSGSIZE` replies over both IP families without MTU changes.
 
 Full reviewed evidence is in
 [examples/windows-wsl2-receiver-v09.json](../../examples/windows-wsl2-receiver-v09.json).

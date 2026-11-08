@@ -6,6 +6,10 @@ reached the native Windows host over their existing IPv6 link-local virtual
 network: **two kernels on one physical computer**. This is not a routed IPv6
 or physical multi-host validation.
 
+The later [oversized reply experiment](windows-oversized-replies.md) adds
+an actual Windows `WSAEMSGSIZE` observation over this IPv6 path and IPv4.
+The healthy results below remain a separate run.
+
 Full reviewed evidence is retained in
 [examples/windows-wsl2-receiver-ipv6-v09.json](../../examples/windows-wsl2-receiver-ipv6-v09.json).
 Eight related files were batch-sanitized before assembling the wrapper.

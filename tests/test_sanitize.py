@@ -218,6 +218,28 @@ class SanitizeTests(unittest.TestCase):
         self.assertEqual(clean["source"]["ipv4"], "192.0.2.2")
         self.assertEqual(clean["source"]["interface"], "lo")
 
+    def test_ipv4_mapped_documentation_addresses_are_kept_and_reserved(self):
+        report = probe_report("127.0.0.1", "127.0.0.2", "lo")
+        report["notes"] = ["kept ::ffff:192.0.2.1 and ::ffff:c000:202",
+                           "private ::ffff:10.77.0.1 and 10.77.0.2"]
+        clean, = sanitize_reports([report])
+        self.assert_clean(clean)
+        self.assertEqual(clean["notes"][0], "kept ::ffff:192.0.2.1 and ::ffff:192.0.2.2")
+        self.assertEqual(clean["notes"][1], "private ::ffff:192.0.2.3 and 192.0.2.4")
+        self.assertEqual(clean["sanitization"]["replaced_addresses"], 3)
+
+    def test_trailing_colon_ipv6_and_free_text_placeholders_do_not_collide(self):
+        report = probe_report("10.77.0.1", "10.77.0.2", "enp0s8", host="vpn-gw.internal")
+        report["notes"] = ("2001:db8::1: kept; fd00:77::1: timeout; "
+                           "existing if-1 and host-1.example vs enp0s8 and vpn-gw.internal")
+        clean, = sanitize_reports([report])
+        self.assert_clean(clean)
+        self.assertEqual(clean["source"]["interface"], "if-2")
+        self.assertEqual(clean["target"]["host"], "host-2.example")
+        self.assertEqual(clean["notes"],
+                         "2001:db8::1: kept; 2001:db8::2: timeout; "
+                         "existing if-1 and host-1.example vs if-2 and host-2.example")
+
     def test_keep_timestamps_and_refuse_resanitizing(self):
         clean, = sanitize_reports([self.probe], keep_timestamps=True)
         self.assertEqual(clean["started_at_utc"], self.probe["started_at_utc"])

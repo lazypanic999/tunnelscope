@@ -27,11 +27,21 @@ INTERFACE_KEYS = {"interface"}
 IPV4_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\.?\d)")
 IPV6_TEXT = re.compile(r"(?<![\w.%])[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[\w.-]+)?")
 DATE_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+PLACEHOLDER_TEXT = re.compile(r"(?<![\w.%-])(?:if-\d+|host-\d+\.example)(?![\w-])")
 
 
 def _kept(address):
+    if address.version == 6 and address.ipv4_mapped is not None:
+        return _kept(address.ipv4_mapped)
     return (address.is_loopback or address.is_unspecified
             or any(address.version == net.version and address in net for net in KEPT_NETWORKS))
+
+
+def _split_ipv6(token):
+    core = token.rstrip(".")
+    if core.endswith(":") and not core.endswith("::"):
+        core = core[:-1]
+    return core, token[len(core):]
 
 
 def _parse_ip(text):
@@ -86,16 +96,19 @@ class Sanitizer:
     def prepare(self, reports):
         """Scan every report first so mappings and the time offset cover the batch."""
         earliest = None
+        reserved_labels = set()
         for report in reports:
             require_report(report)
             for key, text in _strings(report):
                 for address in self._addresses_in(text):
                     if _kept(address):
-                        self._reserved.add(str(address))
+                        self._reserved.add(str(address.ipv4_mapped if address.version == 6 and address.ipv4_mapped is not None else address))
+                reserved_labels.update(PLACEHOLDER_TEXT.findall(text))
                 if key in INTERFACE_KEYS and text and text not in KEPT_INTERFACES:
                     self.interfaces.setdefault(text, None)
                 for match in IPV6_TEXT.finditer(text):
-                    body, _, scope = match.group().rstrip(".").partition("%")
+                    core, _ = _split_ipv6(match.group())
+                    body, _, scope = core.partition("%")
                     address = _parse_ip(body)
                     if scope and address is not None and address.version == 6 and scope not in KEPT_INTERFACES:
                         self.interfaces.setdefault(scope, None)
@@ -108,7 +121,7 @@ class Sanitizer:
             self.time_offset = TIME_BASE - earliest
         # Generated labels must not be names that occur in the original batch:
         # otherwise a later replacement could rename an already generated label.
-        original_names = set(self.interfaces) | set(self.names)
+        original_names = set(self.interfaces) | set(self.names) | reserved_labels
         for mapping, prefix, suffix in ((self.interfaces, "if-", ""), (self.names, "host-", ".example")):
             index = 1
             for original in mapping:
@@ -160,7 +173,8 @@ class Sanitizer:
     @staticmethod
     def _addresses_in(text):
         for match in IPV6_TEXT.finditer(text):
-            address = _parse_ip(match.group().split("%")[0].rstrip("."))
+            core, _ = _split_ipv6(match.group())
+            address = _parse_ip(core.partition("%")[0])
             if address is not None:
                 yield address
         for match in IPV4_TEXT.finditer(text):
@@ -170,6 +184,9 @@ class Sanitizer:
 
     def _replacement(self, address):
         if _kept(address):
+            # IPv6Address.__str__ changed mapped-address formatting in Python 3.13.
+            if address.version == 6 and address.ipv4_mapped is not None:
+                return "::ffff:" + str(address.ipv4_mapped)
             return str(address)
         original = str(address)
         if original not in self.addresses:
@@ -189,9 +206,8 @@ class Sanitizer:
 
     def _replace_ipv6(self, match):
         token = match.group()
-        trailing = "." if token.endswith(".") else ""
-        body = token[:-1] if trailing else token
-        text, _, scope = body.partition("%")
+        core, trailing = _split_ipv6(token)
+        text, _, scope = core.partition("%")
         address = _parse_ip(text)
         if address is None or address.version != 6:
             return token

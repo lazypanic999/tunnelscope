@@ -1,7 +1,8 @@
-# v0.9 development: sharing evidence
+# v0.9: sharing evidence
 
-Status: development work after [v0.8.2](releases/v0.8.2.md). This is not a
-published release plan with a promised date.
+Release scope: [v0.9.0](releases/v0.9.0.md), implemented after
+[v0.8.2](releases/v0.8.2.md). The independent endpoint checks below remain
+follow-ups; controlled lab evidence does not close them.
 
 ## Markdown evidence summaries
 
@@ -10,7 +11,7 @@ published release plan with a promised date.
 default stays available. HTML and Markdown share observation-table data, and
 the export is bounded, escapes report values, states sanitization metadata,
 and preserves conservative interpretation. See the
-[development guide](markdown-reports.md).
+[Markdown guide](markdown-reports.md).
 
 Release checks: all existing report kinds and examples render; untrusted
 values cannot add active markup; large captures are visibly truncated; the

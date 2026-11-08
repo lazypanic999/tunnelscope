@@ -6,9 +6,9 @@
 
 Collect sender and receiver evidence when packet size affects delivery.
 
-**v0.8.2 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.8.2/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.8.2) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
+**v0.9.0 alpha** · Python 3.10+ · [Install from PyPI](https://pypi.org/project/tunnelscope/0.9.0/) · [Release notes](https://github.com/lazypanic999/tunnelscope/releases/tag/v0.9.0) · [MIT license](https://github.com/lazypanic999/tunnelscope/blob/main/LICENSE)
 
-Development `main` is `0.9.0.dev0`, with [Markdown evidence export](https://github.com/lazypanic999/tunnelscope/blob/main/docs/markdown-reports.md).
+v0.9 adds [Markdown evidence export](https://github.com/lazypanic999/tunnelscope/blob/main/docs/markdown-reports.md).
 
 Small pings can succeed while larger traffic stalls. TunnelScope sends bounded
 UDP payloads to a cooperating receiver and keeps acknowledgements, explicit
@@ -39,7 +39,7 @@ On Linux or WSL2, create a virtual environment in an empty working directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.8.2
+python -m pip install tunnelscope==0.9.0
 ```
 
 In terminal 1, start the loopback receiver:
@@ -120,7 +120,7 @@ these observations.
 | --- | --- | --- |
 | [Ubuntu ↔ Debian WireGuard VMs](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/two-vm-wireguard.md) | Both directions, receiver pairing and a 1252/1253-byte boundary | Local tunnel MTU on a host-only link |
 | [Routed WireGuard lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/wireguard-routed.md) | Token-matched ICMP when visible; inconclusive timeouts when blocked | Four namespaces on one kernel |
-| [Routed OpenVPN lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/openvpn-routed.md) and [return-path case](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/openvpn-asymmetric-return.md) | Matched ICMP, blocked search and receiver-joined missing sized replies through TLS/TUN peers | Development labs; three namespaces on one kernel, IPv4 UDP |
+| [Routed OpenVPN lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/openvpn-routed.md) and [return-path case](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/openvpn-asymmetric-return.md) | Matched ICMP, blocked search and receiver-joined missing sized replies through TLS/TUN peers | Controlled labs; three namespaces on one kernel, IPv4 UDP |
 | [Routed IPv6 feedback](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/ipv6-routed-feedback.md) | Matched Packet Too Big versus blocked-feedback timeouts, receiver pairing and inconclusive search | Three namespaces on one kernel; runs in CI |
 | [Cross-node Kubernetes/Calico](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/kubernetes-calico.md) | 6/6 baseline deliveries per direction; policy block and recovery | Two Docker-based Minikube nodes, IPv4 IP-in-IP |
 | [Asymmetric return-path lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/validation/asymmetric-return.md) | 1400-byte probes arrive while same-sized replies are lost or rejected; a small ACK still returns | Three namespaces on one kernel, IPv4 and IPv6; runs in CI |
@@ -135,7 +135,7 @@ shows how to collect and share a sanitized report.
 - [Usage and JSON reference](https://github.com/lazypanic999/tunnelscope/blob/main/docs/usage-and-report-reference.md), [size search](https://github.com/lazypanic999/tunnelscope/blob/main/docs/size-search.md), [fragmentation comparison](https://github.com/lazypanic999/tunnelscope/blob/main/docs/fragmentation-comparison.md) and [ICMP feedback](https://github.com/lazypanic999/tunnelscope/blob/main/docs/icmp-feedback.md).
 - [Sanitize reports before sharing](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sanitize.md) and [same-sized replies for return-path evidence](https://github.com/lazypanic999/tunnelscope/blob/main/docs/sized-reply.md).
 - [Receiver observations](https://github.com/lazypanic999/tunnelscope/blob/main/docs/receiver-observations.md), [HTML report view](https://github.com/lazypanic999/tunnelscope/blob/main/docs/report-ui.md), [Kubernetes lab](https://github.com/lazypanic999/tunnelscope/blob/main/docs/kubernetes.md) and [deployment guidance](https://github.com/lazypanic999/tunnelscope/blob/main/docs/environments.md).
-- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.9 development](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.9.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
+- [Security boundaries](https://github.com/lazypanic999/tunnelscope/blob/main/docs/security-boundaries.md), [v0.9 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.9.md), [v0.8 status](https://github.com/lazypanic999/tunnelscope/blob/main/docs/roadmap-v0.8.md) and [project history](https://github.com/lazypanic999/tunnelscope/blob/main/docs/project-history.md).
 
 Contributions welcome. CI runs on Linux and Windows with Python 3.10 and 3.12. Read [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md); share synthetic or
 sanitized reports. Run unprivileged checks with

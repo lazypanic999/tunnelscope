@@ -1,8 +1,8 @@
 # Markdown report export
 
-Available on development `main` (`0.9.0.dev0`). Install that checkout with
-`python -m pip install .` to try it. The published v0.8.2 package provides
-the existing text and HTML views.
+Available in v0.9.0 and newer. Install with
+`python -m pip install --upgrade tunnelscope==0.9.0`. The existing text and
+HTML views remain available.
 
 After collecting a sender report and receiver capture, correlate and sanitize
 them as in the [field report guide](field-reports.md), then:

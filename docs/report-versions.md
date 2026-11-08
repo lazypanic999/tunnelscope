@@ -1,7 +1,7 @@
-# Report producer versions (v0.9 development)
+# Report producer versions
 
-This additive metadata is available from the development checkout after
-v0.8.2. The published v0.8.2 collectors do not write it.
+This additive metadata is available in v0.9.0 and newer. The v0.8.2
+collectors do not write it.
 
 New probe and receiver reports record `tunnelscope_version`. A newly built
 correlation, bidirectional comparison, fragmentation comparison or diagnosis
@@ -13,7 +13,7 @@ capture can produce:
 {
   "schema_version": 1,
   "kind": "probe_receiver_correlation",
-  "tunnelscope_version": "0.9.0.dev0",
+  "tunnelscope_version": "0.9.0",
   "input_versions": {"probe": "0.8.2", "receiver": null}
 }
 ```

@@ -1,6 +1,6 @@
 # Tracing retained lab evidence to a CI run
 
-Development CI artifacts include `manifest.json` beside retained lab reports.
+From v0.9.0, CI artifacts include `manifest.json` beside retained lab reports.
 The delivery matrix, WireGuard workflow and OpenVPN workflow record:
 
 - The workflow/run/attempt identifiers, event and repository.

@@ -42,3 +42,7 @@ asymmetric lab, CI lab artifacts and a [field report guide](field-reports.md).
 [v0.8.2](releases/v0.8.2.md) fixes sanitization identity and UTC display,
 completes the routed IPv6 blocked-feedback experiment, and checks the field
 report sharing workflow through real CLI processes.
+[v0.9.0](releases/v0.9.0.md) adds bounded Markdown evidence summaries,
+declared producer/input versions, controlled OpenVPN feedback and return-path
+labs, grouped lab views, BOM-aware JSON input and installed-package/CI
+artifact provenance checks.

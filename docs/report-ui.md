@@ -23,7 +23,7 @@ In v0.7 and newer, probe and correlation views add return-direction columns
 for `--sized-reply` runs, and sanitized reports show a "Sanitized report"
 section.
 
-Development `main` also preserves return status, joined return evidence and
+From v0.9.0, grouped lab views also preserve return status, joined return evidence and
 ACK-send status in grouped lab cases when same-sized replies are present.
 Small-ACK cases in the same table keep their return fields empty rather than
 claiming a same-sized reply. Text and Markdown use the same table data.

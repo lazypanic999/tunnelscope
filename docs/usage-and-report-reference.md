@@ -27,7 +27,7 @@ sizes; it is not an exact path-MTU measurement. See the [size sweep guide](https
 
 ## Probe and report details
 
-Development `main` also displays grouped lab JSON with the default text view:
+From v0.9.0, `show` also displays grouped lab JSON with the default text view:
 
 ```sh
 python tunnelscope.py show examples/ipv6-routed-feedback.json
@@ -46,13 +46,13 @@ By default, the receiver exits after 100 datagrams or 30 seconds without a
 datagram. Restart it if it has already exited. `--max-packets` and
 `--idle-timeout` change these limits.
 
-On development `main`, CLI commands check that an output's parent directory
+From v0.9.0, CLI commands check that an output's parent directory
 exists and its target is not a directory before starting collection. A typo
 there fails before a receiver listens or probes are sent. Choose output
 filenames deliberately: `diagnose` and `sanitize` require new files; the
 other commands retain their existing overwrite behavior for regular files.
 
-Development `main` reads JSON exports with a UTF-8 BOM or UTF-16/UTF-32
+From v0.9.0, offline commands read JSON exports with a UTF-8 BOM or UTF-16/UTF-32
 encoding as well as plain UTF-8. This includes BOM-marked output redirected
 by Windows PowerShell. Newly written report files remain UTF-8. Invalid JSON
 and a non-object top level produce a concise error naming the input file.
@@ -63,8 +63,8 @@ Probe sizes are **UDP payload bytes**, including TunnelScope's 24-byte header. T
 
 Each probe report includes a `source` snapshot taken from the first connected sender socket. It records the local IPv4 or IPv6 address. On Linux, it also records the selected interface and its link MTU when discoverable, plus `kernel_route_mtu_bytes` when the kernel supplies it. The link MTU and kernel route MTU are different facts; neither is an independently measured end-to-end path MTU. A failed connection may leave `source` as `null`, and optional fields may be absent.
 
-Development `main` preserves Unicode and raw OS-byte interface names in Linux
-source snapshots. JSON retains names that need surrogate escapes; HTML shows
+From v0.9.0, Linux source snapshots preserve Unicode and raw OS-byte
+interface names. JSON retains names that need surrogate escapes; HTML shows
 non-UTF-8 bytes as visible backslash escapes so the report remains writable
 as UTF-8. The interface and kernel route MTUs remain separate observations.
 

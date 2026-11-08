@@ -2,7 +2,7 @@
 
 import base64
 from datetime import timezone
-from html import escape
+from html import escape as html_escape
 from importlib.resources import files
 import json
 import re
@@ -10,6 +10,11 @@ import re
 from .reports import no_ack_measurement, no_ack_text
 from .tables import _records, _table_data, _lab_data, report_table
 from .timestamps import parse_timestamp
+
+
+def escape(value, quote=True):
+    """Escape markup and display non-UTF-8 OS bytes as visible backslash escapes."""
+    return html_escape(value, quote=quote).encode("utf-8", "backslashreplace").decode("utf-8")
 
 
 def _cell(value):

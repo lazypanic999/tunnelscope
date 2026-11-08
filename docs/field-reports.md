@@ -2,8 +2,9 @@
 
 Every TunnelScope validation so far comes from controlled labs and VMs. Reports
 from real VPN, overlay and routed paths are the evidence the project needs
-most (see [VPN field evidence #2](https://github.com/lazypanic999/tunnelscope/issues/2)
-and [Windows cross-host coverage #28](https://github.com/lazypanic999/tunnelscope/issues/28)). This guide shows
+most (see [VPN field evidence #2](https://github.com/lazypanic999/tunnelscope/issues/2)).
+The [Windows host/WSL2 guest record](validation/windows-wsl2-receiver.md) is a
+controlled two-kernel example; physical host links need their own evidence. This guide shows
 how to collect one report, sanitize it and share it with the
 [field report issue template](https://github.com/lazypanic999/tunnelscope/issues/new?template=field_report.md).
 
@@ -32,7 +33,7 @@ Replace `B_IP` below with the receiver's address on the path you are testing.
 tunnelscope receive --bind B_IP --sized-reply --max-packets 200 --idle-timeout 120 --output receiver.json
 ```
 
-It exits after 200 probes or 120 seconds without traffic and then writes
+It exits after 200 datagrams or 120 seconds without traffic and then writes
 `receiver.json`. After the sender finishes, you can press Ctrl+C once in the
 receiver terminal to save the capture immediately (`exit_reason: interrupted`);
 the command exits with code 130. Wait for that terminal to return to its prompt

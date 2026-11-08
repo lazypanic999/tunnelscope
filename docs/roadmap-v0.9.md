@@ -29,7 +29,7 @@ later. Missing legacy versions remain unknown; see
 Text views also support the named visible/blocked cases and separate
 directions in checked-in lab examples, alongside HTML and Markdown.
 
-## Validation still needing separate endpoints
+## Endpoint validation and remaining field work
 
 Controlled [OpenVPN routed validation](validation/openvpn-routed.md) was
 added under [#36](https://github.com/lazypanic999/tunnelscope/issues/36),
@@ -40,12 +40,16 @@ also joins receiver arrivals to missing same-sized replies, including
 separate local send failures, under [#44](https://github.com/lazypanic999/tunnelscope/issues/44).
 
 - Independent VPN evidence: [#2](https://github.com/lazypanic999/tunnelscope/issues/2).
-- A Windows receiver reached from a separate Linux host or VM:
-  [#28](https://github.com/lazypanic999/tunnelscope/issues/28).
-- A maintainer dry run of the field guide on two separate machines.
+- The Windows receiver's Linux-VM path is now recorded in
+  [#28](https://github.com/lazypanic999/tunnelscope/issues/28) and the
+  [Windows host/WSL2 guest validation](validation/windows-wsl2-receiver.md).
+  This is two kernels on one physical machine, using non-loopback IPv4.
+- A field-guide dry run with physically separate machines and network file
+  transfer still needs separate evidence. The host/guest run exercised
+  collection, joining, sanitization and Markdown using a shared directory.
 
 The new CLI integration tests check loopback collection and sharing; they
-do not claim to complete these path-validation tasks. Real field reports
+do not replace the host/guest record or complete the remaining physical-path tasks. Real field reports
 remain separate from controlled namespace, VM and loopback evidence.
 
 Authentication, internet-facing receivers, automatic root-cause diagnosis

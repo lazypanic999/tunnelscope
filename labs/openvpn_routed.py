@@ -4,6 +4,7 @@ Requires Linux root, OpenVPN 2.6+, OpenSSL, iproute2, iptables and /dev/net/tun.
 Certificates are created in a private temporary directory and never exported.
 """
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -89,7 +90,103 @@ def stop(process):
     process.stderr.close()
 
 
+def feedback_scenario(sender, router, receiver, script, directory):
+    firewall = ["netns", "exec", router, "iptables"]
+    rule = ["OUTPUT", "-p", "icmp", "--icmp-type", "fragmentation-needed", "-j", "DROP"]
+    ip(*firewall, "-A", *rule)
+    settings = {"target": "198.51.100.2", "sizes": "64,1252,1253,1300", "family": "ipv4",
+                "search_maximum": 1300}
+    blocked = run_case(sender, receiver, script, directory, "blocked", **settings)
+    counter_text = ip(*firewall, "-L", "OUTPUT", "-n", "-v", "-x", "--line-numbers").stdout
+    counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+DROP\b", counter_text, re.MULTILINE)
+    if counter is None or int(counter.group(1)) < 3:
+        raise RuntimeError(f"Expected blocked fragmentation-needed messages: {counter_text}")
+    blocked["blocked_fragmentation_needed_messages"] = int(counter.group(1))
+    ip(*firewall, "-D", *rule)
+    visible = run_case(sender, receiver, script, directory, "visible", **settings)
+    for case, failure in ((blocked, "timeout"), (visible, "packet_too_large")):
+        probe = case["probe"]
+        if [row["status"] for row in probe["results"]] != ["acknowledged"] * 2 + [failure] * 2:
+            raise RuntimeError(f"Unexpected OpenVPN outcomes: {probe}")
+        if probe["source"].get("interface") != "ts-ovpn" or probe["source"].get("interface_mtu_bytes") != 1400:
+            raise RuntimeError("The probe did not select the 1400-byte OpenVPN TUN interface")
+        if case["correlation"]["summary"]["receiver_observed"] != 2:
+            raise RuntimeError("Unexpected OpenVPN receiver observation count")
+    for probe in (blocked["probe"], blocked["search"]):
+        if probe["summary"]["icmp_feedback"]["size_feedback_events"]:
+            raise RuntimeError("Blocked feedback reached the OpenVPN sender")
+    search = blocked["search"]["summary"]["search"]
+    if search["assessment"] != "inconclusive" or search["observed_interval_payload_bytes"] is not None:
+        raise RuntimeError("Blocked OpenVPN search claimed a size boundary")
+    events = [event for row in visible["probe"]["results"] for event in row["icmp_observation"]["events"]]
+    if not any(event.get("message") == "fragmentation_needed" and event.get("quoted_probe_match") is True
+               and event.get("reported_mtu_bytes") == 1280 for event in events):
+        raise RuntimeError("No token-matched fragmentation-needed feedback crossed the OpenVPN tunnel")
+    report = {
+        "lab": "openvpn-routed-feedback", "tunnelscope_version": VERSION,
+        "openvpn_version": command("openvpn", "--version").stdout.splitlines()[0],
+        "transport": "IPv4 UDP; mutually verified temporary TLS certificates; user-space TUN",
+        "configured_data_cipher": "AES-256-GCM", "underlay_mtu_bytes": 1500,
+        "tunnel_mtu_bytes": 1400, "router_egress_mtu_bytes": 1280,
+        "known_egress_payload_boundary_bytes": 1252,
+        "cases": {"blocked": blocked, "visible": visible},
+        "limitations": ["Controlled namespaces and TLS peers on one kernel; not independent field evidence.",
+                        "The lower receiver LAN MTU is configured; this is not automatic PMTU discovery.",
+                        "Small ACKs do not establish same-sized reverse delivery.",
+                        "No observed ICMP on an unknown path does not prove filtering."],
+    }
+    return report
+
+
+def return_scenario(sender, router, receiver, script, directory):
+    """Contrast small ACKs with same-sized replies over a lower return egress."""
+    firewall = ["netns", "exec", router, "iptables"]
+    ip(*firewall, "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "fragmentation-needed", "-j", "ACCEPT")
+    settings = {"target": "198.51.100.2", "sizes": "64,1252,1253,1300", "family": "ipv4",
+                "search_maximum": 1300}
+    small = run_case(sender, receiver, script, directory, "small_ack", **settings)
+    sized = run_case(sender, receiver, script, directory, "sized_reply", **settings,
+                     sized_reply=True, search=True)
+    if [row["status"] for row in small["probe"]["results"]] != ["acknowledged"] * 4:
+        raise RuntimeError("Small ACKs did not return for every OpenVPN forward size")
+    if [row["status"] for row in sized["probe"]["results"]] != ["acknowledged"] * 2 + ["timeout"] * 2:
+        raise RuntimeError("Unexpected sized-reply outcomes across the lower OpenVPN return egress")
+    for case in (small, sized):
+        probe = case["probe"]
+        if probe["source"].get("interface_mtu_bytes") != 1400 or probe["source"].get("interface") != "ts-ovpn":
+            raise RuntimeError("OpenVPN forward probes selected an unexpected interface")
+        if case["correlation"]["summary"]["receiver_observed"] != 4:
+            raise RuntimeError("The receiver did not observe every forward probe")
+    summary = sized["correlation"]["summary"]
+    if summary["sized_reply_missing_after_arrival"] + summary["receiver_reply_send_failed"] != 2:
+        raise RuntimeError("Missing replies were not joined to receiver arrivals")
+    search = sized["search"]["summary"]["search"]
+    if search["assessment"] != "inconclusive" or search["observed_interval_payload_bytes"] is not None:
+        raise RuntimeError("The sized-reply search invented an explicit size-error boundary")
+    counters = ip(*firewall, "-L", "OUTPUT", "-n", "-v", "-x", "--line-numbers").stdout
+    counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+ACCEPT\b", counters, re.MULTILINE)
+    if counter is None or int(counter.group(1)) < 1:
+        raise RuntimeError("No router fragmentation-needed feedback was counted on the return path")
+    return {
+        "lab": "openvpn-asymmetric-return", "tunnelscope_version": VERSION,
+        "openvpn_version": command("openvpn", "--version").stdout.splitlines()[0],
+        "transport": "IPv4 UDP; mutually verified temporary TLS certificates; user-space TUN",
+        "configured_data_cipher": "AES-256-GCM", "underlay_mtu_bytes": 1500,
+        "sender_tunnel_mtu_bytes": 1400, "router_tunnel_egress_mtu_bytes": 1280,
+        "receiver_lan_mtu_bytes": 1500, "known_return_payload_boundary_bytes": 1252,
+        "router_fragmentation_needed_messages": int(counter.group(1)),
+        "cases": {"small_ack": small, "sized_reply": sized},
+        "limitations": ["Controlled temporary peers and namespaces on one kernel; not independent field evidence.",
+                        "The server's TUN link MTU is reduced after handshake; this is a deliberate asymmetric configuration.",
+                        "A successful receiver send does not prove return delivery; later sends may use learned PMTU state.",
+                        "Timeouts remain inconclusive on an unknown path; the search does not identify a failing direction alone."],
+    }
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--scenario", choices=("feedback", "asymmetric-return"), default="feedback")
+    scenario = parser.parse_args().scenario
     if (not sys.platform.startswith("linux") or os.geteuid() != 0
             or any(not shutil.which(tool) for tool in ("ip", "iptables", "sysctl", "openvpn", "openssl"))
             or not Path("/dev/net/tun").is_char_device()):
@@ -98,6 +195,7 @@ def main():
     sender, router, receiver = (f"ts-ov-{suffix}-{role}" for role in ("s", "r", "d"))
     created, processes = [], []
     script = str(Path(__file__).resolve().parents[1] / "tunnelscope.py")
+    lan_mtu = "1280" if scenario == "feedback" else "1500"
     with tempfile.TemporaryDirectory(prefix="tunnelscope-openvpn-") as temporary:
         directory = Path(temporary)
         try:
@@ -113,8 +211,8 @@ def main():
             for namespace, interface, address, mtu in (
                     (sender, "ts-under-a", "192.0.2.1/30", "1500"),
                     (router, "ts-under-r", "192.0.2.2/30", "1500"),
-                    (router, "ts-lan-r", "198.51.100.1/30", "1280"),
-                    (receiver, "ts-lan-d", "198.51.100.2/30", "1280")):
+                    (router, "ts-lan-r", "198.51.100.1/30", lan_mtu),
+                    (receiver, "ts-lan-d", "198.51.100.2/30", lan_mtu)):
                 ip("-n", namespace, "addr", "add", address, "dev", interface)
                 ip("-n", namespace, "link", "set", interface, "mtu", mtu, "up")
             ip("netns", "exec", router, "sysctl", "-qw", "net.ipv4.ip_forward=1")
@@ -126,50 +224,11 @@ def main():
             ip("-n", sender, "route", "add", "198.51.100.0/30", "via", "203.0.113.1", "dev", "ts-ovpn")
             ip("-n", receiver, "route", "add", "203.0.113.2/32", "via", "198.51.100.1")
 
-            firewall = ["netns", "exec", router, "iptables"]
-            rule = ["OUTPUT", "-p", "icmp", "--icmp-type", "fragmentation-needed", "-j", "DROP"]
-            ip(*firewall, "-A", *rule)
-            settings = {"target": "198.51.100.2", "sizes": "64,1252,1253,1300", "family": "ipv4",
-                        "search_maximum": 1300}
-            blocked = run_case(sender, receiver, script, directory, "blocked", **settings)
-            counter_text = ip(*firewall, "-L", "OUTPUT", "-n", "-v", "-x", "--line-numbers").stdout
-            counter = re.search(r"^\s*1\s+(\d+)\s+\d+\s+DROP\b", counter_text, re.MULTILINE)
-            if counter is None or int(counter.group(1)) < 3:
-                raise RuntimeError(f"Expected blocked fragmentation-needed messages: {counter_text}")
-            blocked["blocked_fragmentation_needed_messages"] = int(counter.group(1))
-            ip(*firewall, "-D", *rule)
-            visible = run_case(sender, receiver, script, directory, "visible", **settings)
-            for case, failure in ((blocked, "timeout"), (visible, "packet_too_large")):
-                probe = case["probe"]
-                if [row["status"] for row in probe["results"]] != ["acknowledged"] * 2 + [failure] * 2:
-                    raise RuntimeError(f"Unexpected OpenVPN outcomes: {probe}")
-                if probe["source"].get("interface") != "ts-ovpn" or probe["source"].get("interface_mtu_bytes") != 1400:
-                    raise RuntimeError("The probe did not select the 1400-byte OpenVPN TUN interface")
-                if case["correlation"]["summary"]["receiver_observed"] != 2:
-                    raise RuntimeError("Unexpected OpenVPN receiver observation count")
-            for probe in (blocked["probe"], blocked["search"]):
-                if probe["summary"]["icmp_feedback"]["size_feedback_events"]:
-                    raise RuntimeError("Blocked feedback reached the OpenVPN sender")
-            search = blocked["search"]["summary"]["search"]
-            if search["assessment"] != "inconclusive" or search["observed_interval_payload_bytes"] is not None:
-                raise RuntimeError("Blocked OpenVPN search claimed a size boundary")
-            events = [event for row in visible["probe"]["results"] for event in row["icmp_observation"]["events"]]
-            if not any(event.get("message") == "fragmentation_needed" and event.get("quoted_probe_match") is True
-                       and event.get("reported_mtu_bytes") == 1280 for event in events):
-                raise RuntimeError("No token-matched fragmentation-needed feedback crossed the OpenVPN tunnel")
-            report = {
-                "lab": "openvpn-routed-feedback", "tunnelscope_version": VERSION,
-                "openvpn_version": command("openvpn", "--version").stdout.splitlines()[0],
-                "transport": "IPv4 UDP; mutually verified temporary TLS certificates; user-space TUN",
-                "configured_data_cipher": "AES-256-GCM", "underlay_mtu_bytes": 1500,
-                "tunnel_mtu_bytes": 1400, "router_egress_mtu_bytes": 1280,
-                "known_egress_payload_boundary_bytes": 1252,
-                "cases": {"blocked": blocked, "visible": visible},
-                "limitations": ["Controlled namespaces and TLS peers on one kernel; not independent field evidence.",
-                                "The lower receiver LAN MTU is configured; this is not automatic PMTU discovery.",
-                                "Small ACKs do not establish same-sized reverse delivery.",
-                                "No observed ICMP on an unknown path does not prove filtering."],
-            }
+            if scenario == "feedback":
+                report = feedback_scenario(sender, router, receiver, script, directory)
+            else:
+                ip("-n", router, "link", "set", "ts-ovpn", "mtu", "1280")
+                report = return_scenario(sender, router, receiver, script, directory)
         finally:
             for process, _ in reversed(processes):
                 stop(process)

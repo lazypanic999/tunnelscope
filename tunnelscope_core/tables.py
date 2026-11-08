@@ -142,17 +142,25 @@ def _lab_data(report):
         directions = _records(report.get("directions"))
     headers = ["Case" if isinstance(cases, dict) else "Direction", "Bytes", "Status", "Receiver saw"]
     rows = []
+    sized = False
     for direction in directions:
         probe = direction.get("probe", direction)
         correlation = direction.get("correlation", {})
         if not isinstance(probe, dict) or not isinstance(correlation, dict):
             raise ValueError("lab report has invalid direction results")
-        observed = {row.get("probe_id"): row.get("receiver_observed")
+        observed = {row.get("probe_id"): row
                     for row in _records(correlation.get("results", []))}
         for row in _records(probe.get("results")):
-            seen = observed.get(row.get("probe_id"))
+            joined = observed.get(row.get("probe_id"), {})
+            seen = joined.get("receiver_observed")
+            sized = sized or "return_status" in row or "return_evidence" in joined
             rows.append([direction.get("direction"), row.get("payload_bytes"),
-                         row.get("status"), "yes" if seen else "no" if seen is False else None])
+                         row.get("status"), "yes" if seen else "no" if seen is False else None,
+                         row.get("return_status"), joined.get("return_evidence"), joined.get("ack_send_status")])
+    if sized:
+        headers.extend(("Return", "Return evidence", "ACK send"))
+    else:
+        rows = [row[:4] for row in rows]
     return headers, rows
 
 

@@ -23,6 +23,11 @@ In v0.7 and newer, probe and correlation views add return-direction columns
 for `--sized-reply` runs, and sanitized reports show a "Sanitized report"
 section.
 
+Development `main` also preserves return status, joined return evidence and
+ACK-send status in grouped lab cases when same-sized replies are present.
+Small-ACK cases in the same table keep their return fields empty rather than
+claiming a same-sized reply. Text and Markdown use the same table data.
+
 From v0.8.1, joined tables put the evidence columns first (sender status,
 receiver observation, evidence case and return evidence) and show probe IDs by
 their first 8 characters and timestamps by their UTC time of day. Hover a cell

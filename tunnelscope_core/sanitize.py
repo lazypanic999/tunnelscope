@@ -24,7 +24,7 @@ NAME_KEYS = {"host"}
 INTERFACE_KEYS = {"interface"}
 
 IPV4_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\.?\d)")
-IPV6_TEXT = re.compile(r"(?<![\w:.%])[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[\w.-]+)?")
+IPV6_TEXT = re.compile(r"(?<![\w.%])[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*(?:%[\w.-]+)?")
 DATETIME_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:[+-]\d{2}:\d{2}|Z)$")
 DATE_TEXT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 

@@ -41,6 +41,24 @@ class ReportTableTests(unittest.TestCase):
         # Values without a short form render unchanged.
         self.assertIn("<td>receiver_observed_sized_reply_missing</td>", self.html)
 
+    def test_timestamp_cells_normalize_offsets_and_keep_full_search_values(self):
+        for original, expected in (
+                ("2026-11-08T03:04:05+03:00", "00:04:05"),
+                ("2026-11-08T23:45:00-04:30", "04:15:00"),
+                ("2026-11-08T00:01:02.1Z", "00:01:02.100"),
+                ("2026-11-08T00:01:02.123456Z", "00:01:02.123")):
+            with self.subTest(timestamp=original):
+                self.correlation["results"][0]["send_attempted_at_utc"] = original
+                html = render_report_html(self.correlation)
+                self.assertTrue(f"<td title='{original}'>{expected}</td>" in html,
+                                f"Expected UTC cell {expected} for {original}")
+                self.assertRegex(html, rf"<tr data-search='[^']*{re.escape(original)}")
+
+    def test_invalid_timestamp_is_displayed_in_full(self):
+        original = "2026-99-08T03:04:05+03:00"
+        self.correlation["results"][0]["send_attempted_at_utc"] = original
+        self.assertTrue(f"<td>{original}</td>" in render_report_html(self.correlation))
+
     def test_shortened_values_are_escaped(self):
         report = json.loads(json.dumps(self.correlation))
         report["results"][0]["direction"] = "<b>x</b>"

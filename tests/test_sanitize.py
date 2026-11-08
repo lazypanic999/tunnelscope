@@ -139,6 +139,24 @@ class SanitizeTests(unittest.TestCase):
         self.assertEqual(clean["notes"][1], report["notes"][1])
         self.assertEqual(clean["notes"][2], "mapped ::ffff:192.0.2.2, version 0.6.0, time 10:00:01")
 
+    def test_label_prefixed_ipv6_addresses_are_sanitized_consistently(self):
+        report = copy.deepcopy(self.probe)
+        report["notes"] = ("src:fd00:77::1; scoped:fe80::1%enp0s8; "
+                           "dst:[fd00:77::2]:9471; mapped:[::ffff:10.77.0.2]")
+        report["source"]["ipv6"] = "fd00:77::1"
+        clean, = sanitize_reports([report])
+        self.assert_clean(clean)
+        self.assertEqual(clean["notes"],
+                         "src:2001:db8::1; scoped:2001:db8::2%if-1; "
+                         "dst:[2001:db8::3]:9471; mapped:[::ffff:192.0.2.2]")
+        self.assertEqual(clean["source"]["ipv6"], "2001:db8::1")
+
+    def test_label_prefixed_documentation_ipv6_is_reserved(self):
+        report = copy.deepcopy(self.probe)
+        report["notes"] = "kept:2001:db8::1 src:fd00:77::1"
+        clean, = sanitize_reports([report])
+        self.assertEqual(clean["notes"], "kept:2001:db8::1 src:2001:db8::2")
+
     def test_utc_z_timestamps_are_shifted_and_keep_their_form(self):
         report = probe_report("10.77.0.1", "10.77.0.2", "enp0s8")
         report["recorded_at_utc"] = "2026-11-03T10:00:01Z"

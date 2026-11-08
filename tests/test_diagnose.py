@@ -141,10 +141,12 @@ class DiagnoseTests(unittest.TestCase):
             output.write_text("keep", encoding="utf-8")
             argv = ["tunnelscope.py", "diagnose", "192.0.2.2", "--min", "1200",
                     "--max", "1400", "--output", str(output)]
-            with patch.object(sys, "argv", argv), patch.object(tunnelscope, "diagnose") as run:
+            with patch.object(sys, "argv", argv), patch.object(tunnelscope, "diagnose") as run, \
+                    patch.object(sys, "stderr", StringIO()) as errors:
                 with self.assertRaises(SystemExit) as stopped:
                     tunnelscope.main()
                 self.assertEqual(stopped.exception.code, 1)
+                self.assertIn("refusing to overwrite existing file", errors.getvalue())
                 run.assert_not_called()
             self.assertEqual(output.read_text(encoding="utf-8"), "keep")
 

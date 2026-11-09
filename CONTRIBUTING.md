@@ -49,6 +49,9 @@ legacy compatibility are described in [docs/report-versions.md](docs/report-vers
 4. Run `python -m unittest discover -s tests -v` before opening a pull request.
    The network namespace tests require Linux, root, `iproute2`, and an explicit
    `TUNNELSCOPE_RUN_NETNS_TESTS=1` setting.
+   `tests/test_mutated_examples.py` breaks example report fields one at a
+   time and expects only clean `ValueError`s; set
+   `TUNNELSCOPE_FULL_MUTATION_TESTS=1` to run it over every example (slow).
 5. Explain what changed and include a reproducible test or validation record
    for new measurement behavior.
 

@@ -27,6 +27,8 @@ blocking socket wait for it, so the capture was saved only when the idle
 timeout ran out (up to 120 seconds with the field-report settings). On Windows
 the receiver now waits in 0.25-second slices against its own idle deadline, so
 Ctrl+C saves the capture within a fraction of a second.
+The Windows sender waits for replies the same way, so Ctrl+C during a probe no
+longer waits for the reply timeout (up to 5 seconds).
 A second Ctrl+C while the capture is being written no longer loses it: the
 receiver finishes the write and then exits as interrupted.
 

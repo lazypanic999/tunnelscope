@@ -540,7 +540,15 @@ def format_report(report):
         values = [(run_id, size, item["observed"], item["ack_sent"], item["ack_errors"],
                    *([item["sized"]] if sized else []))
                   for (run_id, size), item in sorted(counts.items())]
+        endpoint = ""
+        if isinstance(receiver, dict):
+            address = receiver.get("bind_ipv6") or receiver.get("bind_ipv4")
+            port = receiver.get("port")
+            if isinstance(address, str) and address and isinstance(port, int) and not isinstance(port, bool):
+                host = f"[{address}]" if ":" in address else address
+                endpoint = f"; listening on {host}:{port}"
         return (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}"
+                + endpoint
                 + ("; sized replies enabled" if sized else "") + "\n"
                 + text_table(["Run ID", "Bytes", "Seen", "ACK sent", "ACK error", *(["Sized"] if sized else [])], values)
                 + "\nACK sent means the local socket accepted the reply, not that it arrived.")

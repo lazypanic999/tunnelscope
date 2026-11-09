@@ -148,10 +148,13 @@ def _lab_data(report):
         correlation = direction.get("correlation", {})
         if not isinstance(probe, dict) or not isinstance(correlation, dict):
             raise ValueError("lab report has invalid direction results")
-        observed = {row.get("probe_id"): row
-                    for row in _records(correlation.get("results", []))}
+        # Only string IDs can join; a malformed ID must not be used as a dict key.
+        observed = {row["probe_id"]: row
+                    for row in _records(correlation.get("results", []))
+                    if isinstance(row.get("probe_id"), str)}
         for row in _records(probe.get("results")):
-            joined = observed.get(row.get("probe_id"), {})
+            probe_id = row.get("probe_id")
+            joined = observed.get(probe_id, {}) if isinstance(probe_id, str) else {}
             seen = joined.get("receiver_observed")
             sized = sized or "return_status" in row or "return_evidence" in joined
             rows.append([direction.get("direction"), row.get("payload_bytes"),

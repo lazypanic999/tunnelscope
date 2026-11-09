@@ -84,7 +84,18 @@ def socket_failure(error, sock, dont_fragment):
 def udp_address(host, port, family="auto"):
     """Keep IPv4 as the hostname default while accepting explicit IPv6 targets."""
     chosen = socket.AF_INET6 if family == "ipv6" or (family == "auto" and ":" in host) else socket.AF_INET
-    resolved = socket.getaddrinfo(host, port, chosen, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    try:
+        resolved = socket.getaddrinfo(host, port, chosen, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    except socket.gaierror as error:
+        wanted = "IPv6" if chosen == socket.AF_INET6 else "IPv4"
+        hint = ""
+        try:
+            literal = ipaddress.ip_address(host.split("%")[0])
+        except ValueError:
+            literal = None
+        if literal is not None and literal.version != (6 if chosen == socket.AF_INET6 else 4):
+            hint = f"; {host} is an IPv{literal.version} address, so drop --family or use --family ipv{literal.version}"
+        raise ValueError(f"cannot resolve {host!r} to an {wanted} address ({error.strerror}){hint}") from error
     return resolved[0][0], resolved[0][4]
 
 

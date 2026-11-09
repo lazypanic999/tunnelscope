@@ -95,3 +95,5 @@ The sender input must be a raw `probe` report (or a `diagnosis` report for the
 CLI diagnosis workflow), not an already joined correlation report. Legacy probe
 reports without a `kind` field remain supported; an explicit non-probe kind
 is rejected before correlation output files are written.
+
+The `tunnelscope show receiver.json` text summary includes the receiver bind address and port when both are recorded (for example, `listening on 127.0.0.1:9471` or `listening on [::1]:9471`). Older reports without endpoint metadata retain their original summary.

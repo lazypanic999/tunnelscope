@@ -85,6 +85,9 @@ outcome. Stdout stays JSON. `--quiet` turns these off too.
 
 The HTML view of a receiver report now has a "Receiver capture" card with the
 exit reason, listening address, probe count and reply settings.
+The text summary from `show receiver.json` also names the listening address,
+for example `listening on 127.0.0.1:9471` or `listening on [::1]:9471`, when
+the report records it (#93, thanks to @jwalith4418-Mj).
 
 ## Testing
 

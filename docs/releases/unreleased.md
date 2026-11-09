@@ -35,7 +35,8 @@ receiver finishes the write and then exits as interrupted.
 Stopping a plain `probe` with Ctrl+C used to discard every attempt. The finished
 attempts are now saved with `"exit_reason": "interrupted"`, a new optional
 field that complete reports do not have. `search`, `compare-fragmentation` and
-`diagnose` are unchanged.
+`diagnose` are unchanged. `show` and the HTML view say how many of the planned
+attempts were recorded.
 
 ## Port unreachable is named
 
@@ -54,7 +55,10 @@ message.
 
 Hand-edited or truncated reports with a non-string probe ID in a lab case, or a
 non-integer status count, now fail with `Error: ...` instead of a Python
-traceback. These were found by mutating every field of the example reports.
+traceback. The same goes for non-integer `return_status_counts`, and for a
+missing stored no-ACK figure combined with a bad count in the HTML view. These
+were found by mutating every field of the example reports and of each report
+kind nested inside them.
 
 `correlate` and `combine` now say what each input file actually is when the
 kinds are wrong, and `correlate` recognises the receiver and sender reports

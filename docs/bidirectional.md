@@ -44,8 +44,8 @@ has anything to do with size:
   arrived.
 - **Every size times out, including 64:** not a size problem. Check the
   firewall rule above, the address and port, and that the receiver printed
-  `Listening on B_IP:9471`. If the receiver log shows nothing at all, the
-  probes are not reaching it.
+  `Listening on B_IP:9471`. The receiver prints a line for every probe it
+  gets; if none appear, the probes are not reaching it.
 - **`socket_error` with a "port unreachable" note:** the target answered that
   nothing is listening on that port. Usually the receiver was not running yet
   or was bound to a different address. A firewall can send the same answer.

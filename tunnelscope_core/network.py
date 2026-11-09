@@ -124,7 +124,20 @@ def disable_reply_fragmentation(sock):
     raise ValueError("--sized-reply currently requires Linux (including WSL2) or Windows")
 
 
-def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False):
+def live_line(observation):
+    """One terminal line per accepted probe, written after its reply attempt."""
+    source = observation.get("source_ipv4") or observation.get("source_ipv6")
+    kind = "sized reply" if observation.get("reply_kind") == "sized" else "ACK"
+    if observation.get("ack_send_status") == "sent":
+        outcome = f"{kind} sent ({observation['reply_bytes']} bytes)"
+    else:
+        outcome = f"{kind} send failed (errno {observation.get('ack_send_errno')})"
+    return (f"{observation['payload_bytes']:>5} bytes from {source}  run {observation['run_id'][:8]}  "
+            f"probe {observation['probe_id'][:8]}  {outcome}")
+
+
+def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False,
+            live=False):
     if sized_reply and not (sys.platform.startswith("linux") or sys.platform == "win32"):
         raise ValueError("--sized-reply currently requires Linux (including WSL2) or Windows")
     observations = []
@@ -194,6 +207,12 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                 except OSError as error:
                     observation["ack_send_status"] = "socket_error"
                     observation["ack_send_errno"] = error.errno
+                if live:
+                    try:
+                        print(live_line(observation), flush=True)
+                    except (OSError, ValueError):
+                        # A closed or broken stdout must not end the capture.
+                        live = False
         except KeyboardInterrupt:
             exit_reason = "interrupted"
             raise

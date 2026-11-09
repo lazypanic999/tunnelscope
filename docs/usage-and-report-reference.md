@@ -46,6 +46,12 @@ By default, the receiver exits after 100 datagrams or 30 seconds without a
 datagram. Restart it if it has already exited. `--max-packets` and
 `--idle-timeout` change these limits.
 
+While it runs, the receiver prints one line per accepted probe, after its reply
+attempt, for example
+`1400 bytes from 192.0.2.1  run 0a1b2c3d  probe 9f8e7d6c  sized reply sent (1400 bytes)`.
+Datagrams that are not TunnelScope probes get no line. `--quiet` keeps only the
+`Listening on` line. The saved JSON is the record; the lines are for watching.
+
 From v0.9.0, CLI commands check that an output's parent directory
 exists and its target is not a directory before starting collection. A typo
 there fails before a receiver listens or probes are sent. Choose output

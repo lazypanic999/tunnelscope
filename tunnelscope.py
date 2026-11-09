@@ -162,87 +162,102 @@ def main():
     parser.add_argument("--version", action="version", version=f"TunnelScope {VERSION}")
     commands = parser.add_subparsers(dest="command", required=True)
     receiver = commands.add_parser("receive", help="receive probes and send small acknowledgements")
-    receiver.add_argument("--bind", default="127.0.0.1")
+    receiver.add_argument("--bind", default="127.0.0.1",
+                          help="local address to listen on; wildcard addresses are refused (default: %(default)s)")
     receiver.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
                           help="address family; auto treats an IPv6 literal as IPv6")
-    receiver.add_argument("--port", type=bounded_int(0, 65535), default=9471)
-    receiver.add_argument("--max-packets", type=bounded_int(1, 1000), default=100)
-    receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30)
+    receiver.add_argument("--port", type=bounded_int(0, 65535), default=9471,
+                          help="UDP port; 0 picks a free one (default: %(default)s)")
+    receiver.add_argument("--max-packets", type=bounded_int(1, 1000), default=100,
+                          help="stop after this many datagrams, 1-1000 (default: %(default)s)")
+    receiver.add_argument("--idle-timeout", type=bounded_int(1, 300), default=30,
+                          help="stop after this many seconds without a datagram, 1-300 (default: %(default)s)")
     receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
     receiver.add_argument("--sized-reply", action="store_true",
                           help="Linux or Windows: answer probes that request it with a same-sized reply sent without fragmentation")
     receiver.add_argument("--quiet", action="store_true",
                           help="print only the listening address, not a line per received probe")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
-    sender.add_argument("--quiet", action="store_true",
-                      help="do not print a progress line per attempt on stderr")
     sender.add_argument("host")
     sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
                         help="address family; auto prefers IPv4 for hostnames")
-    sender.add_argument("--port", type=bounded_int(1, 65535), default=9471)
+    sender.add_argument("--port", type=bounded_int(1, 65535), default=9471, help="receiver UDP port (default: %(default)s)")
     size_options = sender.add_mutually_exclusive_group()
     size_options.add_argument("--sizes", type=sizes_arg, help="comma-separated UDP payload sizes (default: 64,512,1200,1400)")
     size_options.add_argument("--sweep", type=sweep_arg, metavar="START:STOP:STEP",
                               help="inclusive size grid with at most 16 points; always includes STOP")
-    sender.add_argument("--count", type=bounded_int(1, 10), default=3)
-    sender.add_argument("--timeout", type=bounded_int(1, 5), default=1)
-    sender.add_argument("--output", type=Path)
+    sender.add_argument("--count", type=bounded_int(1, 10), default=3, help="attempts per size, 1-10 (default: %(default)s)")
+    sender.add_argument("--timeout", type=bounded_int(1, 5), default=1, help="seconds to wait for each reply, 1-5 (default: %(default)s)")
+    sender.add_argument("--output", type=Path, help="also write the JSON report to this file")
     sender.add_argument("--dont-fragment", action="store_true", help="Linux: prevent IPv4 or IPv6 fragmentation")
     sender.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     sender.add_argument("--sized-reply", action="store_true",
                         help="ask a v0.7 receiver started with --sized-reply for same-sized replies")
-    search = commands.add_parser("search", help="search a bounded observed payload-size interval (Linux no-fragment)")
-    search.add_argument("--quiet", action="store_true",
+    sender.add_argument("--quiet", action="store_true",
                       help="do not print a progress line per attempt on stderr")
+    search = commands.add_parser("search", help="search a bounded observed payload-size interval (Linux no-fragment)")
     search.add_argument("host")
-    search.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
-    search.add_argument("--port", type=bounded_int(1, 65535), default=9471)
-    search.add_argument("--min", type=bounded_int(32, 8192), required=True, dest="minimum")
-    search.add_argument("--max", type=bounded_int(32, 8192), required=True, dest="maximum")
-    search.add_argument("--max-sizes", type=bounded_int(2, 16), default=12)
-    search.add_argument("--count", type=bounded_int(1, 10), default=3)
-    search.add_argument("--timeout", type=bounded_int(1, 5), default=1)
-    search.add_argument("--output", type=Path)
+    search.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
+                        help="address family; auto prefers IPv4 for hostnames")
+    search.add_argument("--port", type=bounded_int(1, 65535), default=9471, help="receiver UDP port (default: %(default)s)")
+    search.add_argument("--min", type=bounded_int(32, 8192), required=True, dest="minimum",
+                        help="smallest UDP payload size to test, 32-8192")
+    search.add_argument("--max", type=bounded_int(32, 8192), required=True, dest="maximum",
+                        help="largest UDP payload size to test, 32-8192")
+    search.add_argument("--max-sizes", type=bounded_int(2, 16), default=12,
+                        help="most sizes to try, 2-16 (default: %(default)s)")
+    search.add_argument("--count", type=bounded_int(1, 10), default=3, help="attempts per size, 1-10 (default: %(default)s)")
+    search.add_argument("--timeout", type=bounded_int(1, 5), default=1, help="seconds to wait for each reply, 1-5 (default: %(default)s)")
+    search.add_argument("--output", type=Path, help="also write the JSON report to this file")
     search.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     search.add_argument("--sized-reply", action="store_true",
                         help="request same-sized replies; acknowledged then means both directions carried the size")
-    comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
-    comparison.add_argument("--quiet", action="store_true",
+    search.add_argument("--quiet", action="store_true",
                       help="do not print a progress line per attempt on stderr")
+    comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
     comparison.add_argument("host")
-    comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
-    comparison.add_argument("--port", type=bounded_int(1, 65535), default=9471)
+    comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
+                        help="address family; auto prefers IPv4 for hostnames")
+    comparison.add_argument("--port", type=bounded_int(1, 65535), default=9471, help="receiver UDP port (default: %(default)s)")
     comparison_sizes = comparison.add_mutually_exclusive_group()
-    comparison_sizes.add_argument("--sizes", type=sizes_arg, help="comma-separated UDP payload sizes")
-    comparison_sizes.add_argument("--sweep", type=sweep_arg, metavar="START:STOP:STEP")
-    comparison.add_argument("--count", type=bounded_int(1, 10), default=5)
-    comparison.add_argument("--timeout", type=bounded_int(1, 5), default=1)
-    comparison.add_argument("--output", type=Path)
+    comparison_sizes.add_argument("--sizes", type=sizes_arg,
+                                  help="comma-separated UDP payload sizes (default: 64,1200,1400)")
+    comparison_sizes.add_argument("--sweep", type=sweep_arg, metavar="START:STOP:STEP",
+                                  help="inclusive size grid with at most 16 points; always includes STOP")
+    comparison.add_argument("--count", type=bounded_int(1, 10), default=5, help="attempts per size, 1-10 (default: %(default)s)")
+    comparison.add_argument("--timeout", type=bounded_int(1, 5), default=1, help="seconds to wait for each reply, 1-5 (default: %(default)s)")
+    comparison.add_argument("--output", type=Path, help="also write the JSON report to this file")
     comparison.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     comparison.add_argument("--sized-reply", action="store_true", help="request same-sized replies in both runs")
-    diagnosis_command = commands.add_parser("diagnose", help="run one bounded Linux sender-side diagnostic workflow")
-    diagnosis_command.add_argument("--quiet", action="store_true",
+    comparison.add_argument("--quiet", action="store_true",
                       help="do not print a progress line per attempt on stderr")
+    diagnosis_command = commands.add_parser("diagnose", help="run one bounded Linux sender-side diagnostic workflow")
     diagnosis_command.add_argument("host")
-    diagnosis_command.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
-    diagnosis_command.add_argument("--port", type=bounded_int(1, 65535), default=9471)
-    diagnosis_command.add_argument("--min", type=bounded_int(32, 8192), required=True, dest="minimum")
-    diagnosis_command.add_argument("--max", type=bounded_int(32, 8192), required=True, dest="maximum")
-    diagnosis_command.add_argument("--max-sizes", type=bounded_int(2, 16), default=8)
-    diagnosis_command.add_argument("--count", type=bounded_int(1, 10), default=2)
-    diagnosis_command.add_argument("--timeout", type=bounded_int(1, 5), default=1)
+    diagnosis_command.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
+                        help="address family; auto prefers IPv4 for hostnames")
+    diagnosis_command.add_argument("--port", type=bounded_int(1, 65535), default=9471, help="receiver UDP port (default: %(default)s)")
+    diagnosis_command.add_argument("--min", type=bounded_int(32, 8192), required=True, dest="minimum",
+                        help="smallest UDP payload size to test, 32-8192")
+    diagnosis_command.add_argument("--max", type=bounded_int(32, 8192), required=True, dest="maximum",
+                        help="largest UDP payload size to test, 32-8192")
+    diagnosis_command.add_argument("--max-sizes", type=bounded_int(2, 16), default=8,
+                                   help="most sizes the search run tries, 2-16 (default: %(default)s)")
+    diagnosis_command.add_argument("--count", type=bounded_int(1, 10), default=2, help="attempts per size, 1-10 (default: %(default)s)")
+    diagnosis_command.add_argument("--timeout", type=bounded_int(1, 5), default=1, help="seconds to wait for each reply, 1-5 (default: %(default)s)")
     diagnosis_command.add_argument("--output", type=Path, required=True, help="new JSON report path")
     diagnosis_command.add_argument("--html", type=Path, help="new HTML report path (default: JSON stem with .html)")
     diagnosis_command.add_argument("--sized-reply", action="store_true",
                                    help="request same-sized replies in all three runs")
+    diagnosis_command.add_argument("--quiet", action="store_true",
+                      help="do not print a progress line per attempt on stderr")
     combined = commands.add_parser("combine", help="combine two independently measured directions")
     combined.add_argument("a_to_b", type=Path, help="probe JSON from endpoint A to B")
     combined.add_argument("b_to_a", type=Path, help="probe JSON from endpoint B to A")
-    combined.add_argument("--output", type=Path)
+    combined.add_argument("--output", type=Path, help="also write the combined JSON to this file")
     correlated = commands.add_parser("correlate", help="match probe or diagnosis runs with receiver observations")
-    correlated.add_argument("probe_report", type=Path)
-    correlated.add_argument("receiver_report", type=Path)
-    correlated.add_argument("--output", type=Path)
+    correlated.add_argument("probe_report", type=Path, help="sender JSON from probe or diagnose")
+    correlated.add_argument("receiver_report", type=Path, help="receiver JSON from receive --output")
+    correlated.add_argument("--output", type=Path, help="also write the joined JSON to this file")
     correlated.add_argument("--html", type=Path, help="also write a local HTML view")
     shown = commands.add_parser("show", help="print a concise summary of a JSON report")
     shown.add_argument("report", type=Path)

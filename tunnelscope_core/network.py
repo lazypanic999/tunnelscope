@@ -34,6 +34,7 @@ IPV6_MTU = getattr(socket, "IPV6_MTU", 24)
 # Winsock values (ws2ipdef.h); Python does not export IP_DONTFRAGMENT on Windows.
 WINDOWS_IP_DONTFRAGMENT = 14
 WINDOWS_IPV6_DONTFRAG = 14
+WSAEMSGSIZE = 10040
 SIOCGIFADDR = 0x8915
 SIOCGIFMTU = 0x8921
 
@@ -146,6 +147,14 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     # out) as WSAECONNRESET on the next receive. It is not a probe.
                     if sys.platform != "win32":
                         raise
+                    continue
+                except OSError as error:
+                    # Windows fails a receive with WSAEMSGSIZE when a datagram is
+                    # larger than the buffer, where Linux truncates it. Either way
+                    # it is too large to be a probe; count it and keep listening.
+                    if sys.platform != "win32" or getattr(error, "winerror", None) != WSAEMSGSIZE:
+                        raise
+                    received += 1
                     continue
                 received += 1
                 if not 32 <= len(data) <= 8192:

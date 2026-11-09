@@ -1,4 +1,4 @@
-"""A Windows receiver keeps listening after an earlier reply hit a closed port."""
+"""A Windows receiver keeps listening after receive errors that are not about probes."""
 
 from contextlib import redirect_stdout
 from io import StringIO
@@ -56,6 +56,27 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(report["exit_reason"], "idle_timeout")
         self.assertEqual(report["observations"], [])
+
+    def test_windows_oversized_datagram_is_counted_and_skipped(self):
+        oversized = OSError(10040, "message too long")
+        oversized.winerror = 10040
+        effects = [oversized, (probe_bytes(1), self.peer), socket.timeout()]
+        report, error, sock = run_receiver(effects, 5, "win32")
+        self.assertIsNone(error)
+        self.assertEqual(report["exit_reason"], "idle_timeout")
+        self.assertEqual(len(report["observations"]), 1)
+        # Like a truncated datagram on Linux, it uses one of the --max-packets slots.
+        report, error, _ = run_receiver([oversized, (probe_bytes(1), self.peer)], 1, "win32")
+        self.assertIsNone(error)
+        self.assertEqual(report["exit_reason"], "max_packets")
+        self.assertEqual(report["observations"], [])
+
+    def test_other_windows_receive_errors_still_stop_the_receiver(self):
+        failure = OSError(10050, "network is down")
+        failure.winerror = 10050
+        report, error, _ = run_receiver([failure], 5, "win32")
+        self.assertIs(error, failure)
+        self.assertEqual(report["exit_reason"], "socket_error")
 
     def test_reset_on_other_platforms_is_still_a_socket_error(self):
         effects = [(probe_bytes(1), self.peer), ConnectionResetError(104, "reset")]

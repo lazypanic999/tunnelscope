@@ -78,6 +78,36 @@ class ProbeInterruptTests(unittest.TestCase):
         self.assertNotIsInstance(caught.exception, network.ProbeInterrupted)
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows-only: Ctrl+C does not wake a socket wait there")
+class WindowsProbeWaitTests(unittest.TestCase):
+    def test_interrupt_does_not_wait_for_the_reply_deadline(self):
+        import _thread
+        import threading
+        import time
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as silent:
+            silent.bind(("127.0.0.1", 0))
+            timer = threading.Timer(0.5, _thread.interrupt_main)
+            started = time.monotonic()
+            timer.start()
+            try:
+                with self.assertRaises(KeyboardInterrupt):
+                    network.probe("127.0.0.1", silent.getsockname()[1], [64], 1, 5)
+            finally:
+                timer.cancel()
+            self.assertLess(time.monotonic() - started, 3)
+
+    def test_sliced_wait_still_times_out_at_the_deadline(self):
+        import time
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as silent:
+            silent.bind(("127.0.0.1", 0))
+            started = time.monotonic()
+            report = network.probe("127.0.0.1", silent.getsockname()[1], [64], 1, 1)
+            elapsed = time.monotonic() - started
+        self.assertEqual(report["results"][0]["status"], "timeout")
+        self.assertGreaterEqual(elapsed, 0.95)
+        self.assertLess(elapsed, 2)
+
+
 class ProbeInterruptCliTests(unittest.TestCase):
     def run_cli(self, *extra):
         partial = {"schema_version": 1, "kind": "probe", "exit_reason": "interrupted",

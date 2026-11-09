@@ -418,8 +418,16 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                             remaining = deadline - time.monotonic()
                             if remaining <= 0:
                                 raise socket.timeout()
-                            sock.settimeout(remaining)
-                            reply = sock.recv(8193)
+                            if sys.platform == "win32":
+                                # Short waits so Ctrl+C is not held until the deadline.
+                                sock.settimeout(min(remaining, WINDOWS_RECV_SLICE_SECONDS))
+                                try:
+                                    reply = sock.recv(8193)
+                                except socket.timeout:
+                                    continue
+                            else:
+                                sock.settimeout(remaining)
+                                reply = sock.recv(8193)
                             if reply == small_ack or (sized_ack is not None and reply == sized_ack):
                                 result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3),
                                               ack_received_at_utc=utc_now())

@@ -188,7 +188,7 @@ Starter tasks are tagged
 and a field report counts as a contribution too. Read
 [CONTRIBUTING.md](https://github.com/lazypanic999/tunnelscope/blob/main/CONTRIBUTING.md)
 first and only share synthetic or sanitized reports. CI runs on Linux and
-Windows with Python 3.10, 3.12 and 3.13. The unprivileged checks run with:
+Windows with Python 3.10, 3.12, 3.13 and 3.14. The unprivileged checks run with:
 
 ```sh
 python -m unittest discover -s tests -v

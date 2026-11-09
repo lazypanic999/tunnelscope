@@ -46,6 +46,10 @@ run and probe ID prefixes, and whether the reply send succeeded. This makes a
 firewall or address mistake obvious during the run instead of after it.
 `--quiet` turns it off. Calling `receive()` from Python stays quiet by default.
 
+The sender commands (`probe`, `search`, `compare-fragmentation`, `diagnose`)
+print one line per attempt on stderr with the size, attempt number, mode and
+outcome. Stdout stays JSON. `--quiet` turns these off too.
+
 ## Testing
 
 CI now runs on Python 3.14 as well (#81). A mutation test breaks every field

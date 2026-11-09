@@ -52,6 +52,11 @@ attempt, for example
 Datagrams that are not TunnelScope probes get no line. `--quiet` keeps only the
 `Listening on` line. The saved JSON is the record; the lines are for watching.
 
+`probe`, `search`, `compare-fragmentation` and `diagnose` likewise print one line
+per attempt on stderr, such as
+`1400 bytes  attempt 2/3  DF          timeout`, so redirecting stdout to a file
+still gives clean JSON. `--quiet` turns these lines off.
+
 From v0.9.0, CLI commands check that an output's parent directory
 exists and its target is not a directory before starting collection. A typo
 there fails before a receiver listens or probes are sent. Choose output

@@ -79,7 +79,7 @@ def build_diagnosis(comparison, search):
 
 
 def diagnose(host, port, minimum, maximum, count=2, timeout=1,
-             max_sizes=8, family="auto", sized_reply=False):
+             max_sizes=8, family="auto", sized_reply=False, progress=None):
     """Run three bounded Linux experiments against an already controlled target."""
     require_df_support(True)
     require_icmp_support(True)
@@ -94,9 +94,11 @@ def diagnose(host, port, minimum, maximum, count=2, timeout=1,
     if max_attempts > 100 or max_attempts * timeout > 120:
         raise ValueError("diagnose budget exceeds 100 probes or 120 seconds of timeout allowance")
     comparison = compare_fragmentation(host, port, compared_sizes, count,
-                                       timeout, family, observe_icmp=True, sized_reply=sized_reply)
+                                       timeout, family, observe_icmp=True, sized_reply=sized_reply,
+                                       progress=progress)
     search = probe(host, port, None, count, timeout, True, family,
-                   (minimum, maximum), max_sizes, observe_icmp=True, sized_reply=sized_reply)
+                   (minimum, maximum), max_sizes, observe_icmp=True, sized_reply=sized_reply,
+                   progress=progress)
     return build_diagnosis(comparison, search)
 
 

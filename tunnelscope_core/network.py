@@ -133,12 +133,21 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
         started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
         try:
-            for _ in range(max_packets):
+            received = 0
+            while received < max_packets:
                 try:
                     data, peer = sock.recvfrom(8193)
                 except socket.timeout:
                     exit_reason = "idle_timeout"
                     break
+                except ConnectionResetError:
+                    # Windows reports an ICMP port unreachable for an earlier reply
+                    # (for example a late ACK to a probe socket that already timed
+                    # out) as WSAECONNRESET on the next receive. It is not a probe.
+                    if sys.platform != "win32":
+                        raise
+                    continue
+                received += 1
                 if not 32 <= len(data) <= 8192:
                     continue
                 magic, token, declared_size = HEADER.unpack_from(data)

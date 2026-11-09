@@ -2,7 +2,8 @@
 
 Changes on `main` since [v0.9.6](v0.9.6.md). They are not on PyPI yet. When
 the next version is prepared, rename this file to that version and start a new
-empty one.
+empty one. Also search the docs for "after v0.9.6" and drop those qualifiers,
+and update the version in the README install line.
 
 There is no wire-protocol or JSON schema change so far.
 

@@ -46,7 +46,7 @@ By default, the receiver exits after 100 datagrams or 30 seconds without a
 datagram. Restart it if it has already exited. `--max-packets` and
 `--idle-timeout` change these limits.
 
-While it runs, the receiver prints one line per accepted probe, after its reply
+In releases after v0.9.6, the receiver prints one line per accepted probe while it runs, after its reply
 attempt, for example
 `1400 bytes from 192.0.2.1  run 0a1b2c3d  probe 9f8e7d6c  sized reply sent (1400 bytes)`.
 Datagrams that are not TunnelScope probes get no line. `--quiet` keeps only the
@@ -79,7 +79,7 @@ interface names. JSON retains names that need surrogate escapes; HTML shows
 non-UTF-8 bytes as visible backslash escapes so the report remains writable
 as UTF-8. The interface and kernel route MTUs remain separate observations.
 
-`acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error with its `errno`. A connection-refused error (`errno` 111 on Linux, 10054 or 10061 on Windows) means a port unreachable came back: usually nothing was listening on the target address and port, though a firewall can send the same reply. `show` and `probe` point this out. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
+`acknowledged` means that the receiver got that payload and its acknowledgement returned. `timeout` means no matching acknowledgement arrived before the deadline; it does not prove an MTU issue. `socket_error` records a socket error with its `errno`. A connection-refused error (`errno` 111 on Linux, 10054 or 10061 on Windows) means a port unreachable came back: usually nothing was listening on the target address and port, though a firewall can send the same reply. Releases after v0.9.6 point this out in `show` and `probe`. Without `--dont-fragment`, fragmentation follows OS defaults; the tool does not force it on or off. The CLI exits successfully when it produces a report; inspect per-probe statuses for delivery outcomes.
 
 JSON reports also include `summary.by_payload_size`. Each entry counts `acknowledged`, `packet_too_large`, `timeout` and `socket_error` attempts separately. Its `assessment` is `delivery_observed`, `kernel_rejected_df_payload`, `inconclusive`, `socket_error` or `mixed_observations`. Repeated payload sizes share one entry, while individual attempts remain in `results`. The summary does not infer an exact path MTU or turn a timeout into a diagnosis.
 

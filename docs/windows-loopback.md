@@ -34,6 +34,7 @@ Wait for `Listening on 127.0.0.1:9471`, then run in terminal 2:
 .\.venv\Scripts\tunnelscope.exe probe 127.0.0.1 --sizes 64,1200 --count 1 --output probe.json
 ```
 
+Each terminal prints a line per probe as it goes (from releases after v0.9.6).
 The receiver exits after two probes and writes `receiver.json`. If it does not
 exit, stop it with Ctrl+C before inspecting its saved report. A timeout means
 that no matching acknowledgement arrived; it does not establish an MTU problem.

@@ -50,6 +50,17 @@ class MalformedReportTests(unittest.TestCase):
         text = format_report(report)
         self.assertIn("Receiver saw", text)
 
+    def test_html_rejects_bad_counts_without_a_stored_measurement(self):
+        # Two fields at once: no precomputed no_ack_measurement, so the HTML view
+        # recomputes it from status_counts.
+        report = copy.deepcopy(blackhole_lab()["probe"])
+        report["kind"] = "probe"
+        row = report["summary"]["by_payload_size"][0]
+        row.pop("no_ack_measurement", None)
+        row["status_counts"]["acknowledged"] = "x"
+        with self.assertRaisesRegex(ValueError, "invalid probe status counts"):
+            render_report_html(report)
+
     def test_non_integer_status_counts_are_rejected_clearly(self):
         base = blackhole_lab()
         for value in ("x", 1.5, None, True, -1, [1]):

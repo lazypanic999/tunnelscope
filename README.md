@@ -38,7 +38,7 @@ With `--sized-reply`, the receiver answers with a packet as big as the probe,
 so one run checks both directions. That catches paths where large packets go
 out fine and can't come back.
 
-**Status:** alpha (v0.9.5), Python 3.10+, MIT. Reports are plain JSON plus an
+**Status:** alpha (v0.9.6), Python 3.10+, MIT. Reports are plain JSON plus an
 offline HTML view; nothing is uploaded anywhere.
 
 ![tunnelscope show output: 64- and 1200-byte probes return same-sized replies; 1400-byte probes reach the receiver but their replies are lost or rejected](https://raw.githubusercontent.com/lazypanic999/tunnelscope/main/docs/images/v07-terminal.png)
@@ -70,7 +70,7 @@ instead. On Linux or WSL2, in an empty directory:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install tunnelscope==0.9.5
+python -m pip install tunnelscope==0.9.6
 ```
 
 Terminal 1, start the receiver:

@@ -77,3 +77,10 @@ the recorded v0.9.1 captures are preserved without retroactive fields.
 [v0.9.4](releases/v0.9.4.md) keeps Markdown summaries readable and breaks
 GitHub mentions, issue references and math that encoded report values could
 still produce after pasting.
+
+[v0.9.5](releases/v0.9.5.md) tightens probe and run identifier checks,
+sanitization boundaries and exclusive output creation.
+
+[v0.9.6](releases/v0.9.6.md) rewrites the README around the problem it
+solves, gives the HTML report light and dark themes, and fixes an extra
+cell in diagnosis "DF vs permitted" rows.

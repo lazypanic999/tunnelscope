@@ -48,6 +48,10 @@ Hand-edited or truncated reports with a non-string probe ID in a lab case, or a
 non-integer status count, now fail with `Error: ...` instead of a Python
 traceback. These were found by mutating every field of the example reports.
 
+`correlate` and `combine` now say what each input file actually is when the
+kinds are wrong, and `correlate` recognises the receiver and sender reports
+given in the wrong order.
+
 ## Receiver shows probes as they arrive
 
 `tunnelscope receive` prints one line per accepted probe with its size, source,

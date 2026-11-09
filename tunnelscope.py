@@ -128,6 +128,26 @@ def sweep_arg(value):
     return sizes
 
 
+def describe_kind(report):
+    """Name what a JSON file holds, for error messages about wrong inputs."""
+    if not isinstance(report, dict):
+        return "not a JSON object"
+    if isinstance(report.get("lab"), str):
+        return "a lab report"
+    kind = report.get("kind")
+    if isinstance(kind, str):
+        return f"a {kind} report"
+    return "a report without a kind (legacy probe?)" if "results" in report else "not a TunnelScope report"
+
+
+def explain_inputs(error, first, second):
+    """Add what each input actually was to a wrong-input error."""
+    return ValueError(f"{error} (first file is {describe_kind(first)}, second is {describe_kind(second)})")
+
+
+SENDER_KINDS = ("probe", "diagnosis")
+
+
 def stderr_progress(line):
     """Progress goes to stderr so stdout stays a JSON report."""
     try:
@@ -287,7 +307,10 @@ def main():
             require_distinct_output(args.output, args.a_to_b, args.b_to_a)
             a_to_b = read_report(args.a_to_b)
             b_to_a = read_report(args.b_to_a)
-            report = combine_reports(a_to_b, b_to_a)
+            try:
+                report = combine_reports(a_to_b, b_to_a)
+            except ValueError as error:
+                raise explain_inputs(error, a_to_b, b_to_a) from None
         elif args.command == "sanitize":
             write_sanitized(args.reports, args.output_dir, args.html, args.keep_timestamps)
         elif args.command == "show":
@@ -323,9 +346,18 @@ def main():
                 require_output_target(args.html)
             probe_report = read_report(args.probe_report)
             receiver_report = read_report(args.receiver_report)
-            report = (correlate_diagnosis(probe_report, receiver_report)
-                      if isinstance(probe_report, dict) and probe_report.get("kind") == "diagnosis"
-                      else correlate_reports(probe_report, receiver_report))
+            if (isinstance(probe_report, dict) and probe_report.get("kind") == "receiver_observations"
+                    and isinstance(receiver_report, dict) and receiver_report.get("kind") in SENDER_KINDS):
+                raise ValueError("the two files look swapped: give the sender report (probe or diagnosis) "
+                                 "first and the receiver report second")
+            try:
+                report = (correlate_diagnosis(probe_report, receiver_report)
+                          if isinstance(probe_report, dict) and probe_report.get("kind") == "diagnosis"
+                          else correlate_reports(probe_report, receiver_report))
+            except ValueError as error:
+                if not str(error).startswith("expected a schema_version 1"):
+                    raise
+                raise explain_inputs(error, probe_report, receiver_report) from None
             if args.html:
                 from tunnelscope_view import render_report_html
                 html_content = render_report_html(report)

@@ -57,6 +57,12 @@ the command exits with code 130. Wait for that terminal to return to its prompt
 before copying the file. Do not close or kill the terminal before the capture
 has been saved.
 
+In releases after v0.9.6, the receiver prints a line for every probe
+it accepts and `diagnose` prints a line per attempt, so you can watch both ends
+while it runs. If the sender shows timeouts and the receiver shows no lines at
+all, check the firewall and address first (see the
+[two-endpoint guide](bidirectional.md#when-nothing-comes-back)).
+
 ## 2. Run the sender (endpoint A)
 
 ```sh

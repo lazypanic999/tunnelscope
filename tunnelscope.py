@@ -7,6 +7,7 @@ import socket
 import sys
 
 from tunnelscope_core.network import (
+    ProbeInterrupted,
     ACK, HEADER, IP_MTU, IP_MTU_DISCOVER, IP_PMTUDISC_DO, IP_PMTUDISC_DONT, IPV6_DONTFRAG,
     IPV6_MTU, MAGIC, VERSION, compare_fragmentation, configure_fragmentation, probe, receive,
     require_df_support, socket_failure, source_snapshot, udp_address, utc_now,
@@ -268,10 +269,20 @@ def main():
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
             sizes = args.sweep if args.sweep is not None else args.sizes
-            report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
-                           args.count, args.timeout, args.dont_fragment, args.family,
-                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply,
-                           progress=progress)
+            try:
+                report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
+                               args.count, args.timeout, args.dont_fragment, args.family,
+                               observe_icmp=args.observe_icmp, sized_reply=args.sized_reply,
+                               progress=progress)
+            except ProbeInterrupted as stopped:
+                # Keep the attempts that finished, then exit as interrupted.
+                rendered = json.dumps(stopped.report, indent=2)
+                if args.output:
+                    args.output.write_text(rendered + "\n", encoding="utf-8")
+                print(rendered)
+                done = len(stopped.report["results"])
+                parser.exit(130, f"Stopped after {done} attempt{'' if done == 1 else 's'}"
+                                 + (f"; saved {args.output}" if args.output else "") + ".\n")
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
                            args.family, (args.minimum, args.maximum), args.max_sizes,

@@ -26,6 +26,10 @@ lab examples. Both HTML and Markdown use the same observation-table data.
 
 - Scope, run-ID pairing, observed search bounds and receiver counts when the
   report supplies them.
+- A `Port unreachable attempts` count when probe rows carry a
+  connection-refused errno, matching the text summary. The count names the
+  answer observed on the socket; a firewall can send the same answer, so it
+  does not say whether a receiver was listening.
 - Per-attempt or per-size observations, including same-sized return evidence
   in joined reports.
 - The sanitization record's presence and timestamp policy. A record is

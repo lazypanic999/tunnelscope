@@ -4,7 +4,7 @@ from datetime import timezone
 import re
 
 from .tables import report_table
-from .reports import version_details
+from .reports import refused_attempts, version_details
 from .timestamps import parse_timestamp
 
 MAX_ROWS = 50
@@ -81,6 +81,19 @@ def _display(value, header):
     return value
 
 
+def _result_lists(report, detail):
+    """Collect distinct result lists from a probe report or a lab report that wraps one."""
+    seen = set()
+    sections = [report, report.get("probe"), report.get("correlation"), detail]
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        rows = section.get("results")
+        if isinstance(rows, list) and id(rows) not in seen:
+            seen.add(id(rows))
+            yield rows
+
+
 def render_report_markdown(report):
     """Return observations only; keep the source JSON unchanged and complete."""
     title, headers, rows, detail = report_table(report)
@@ -117,6 +130,9 @@ def render_report_markdown(report):
     send_summary = receiver.get("summary", {}) if isinstance(receiver, dict) else summary
     if isinstance(send_summary, dict) and send_summary.get("receiver_reply_send_unverified"):
         facts.append(("Receiver reply sends without recorded outcome", send_summary["receiver_reply_send_unverified"]))
+    refused = sum(refused_attempts(rows) for rows in _result_lists(report, detail))
+    if refused:
+        facts.append(("Port unreachable attempts", refused))
     for label, value in facts:
         lines.append(f"- {label}: {_text(value)}")
     if facts:

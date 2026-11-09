@@ -46,7 +46,10 @@ A probe to a port with nothing listening came back as a bare `socket_error`
 with the OS message. For connection-refused errno values (111 and 61 on Linux
 and macOS, 10054 and 10061 on Windows), `show` now adds a line saying no
 receiver was likely listening, and that a firewall can send the same answer.
-`probe` prints a short note on stderr so stdout stays JSON (#78).
+`probe` prints a short note on stderr so stdout stays JSON (#78). The
+Markdown export now adds a `Port unreachable attempts` fact line for probe
+reports and lab reports that wrap one, so a pasted report shows the count
+too (#82).
 
 ## Clearer errors
 

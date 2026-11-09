@@ -48,6 +48,38 @@ def field_paths(value, prefix=()):
             yield from field_paths(child, prefix + (index,))
 
 
+def without_derived(value):
+    """Drop stored figures that renderers recompute when missing (no_ack_measurement),
+    so the fallback paths see the broken fields too."""
+    if isinstance(value, dict):
+        return {key: without_derived(child) for key, child in value.items() if key != "no_ack_measurement"}
+    if isinstance(value, list):
+        return [without_derived(child) for child in value]
+    return value
+
+
+def embedded_reports(value, found):
+    """First standalone report of each kind inside an example (labs nest them).
+
+    Legacy probe reports have no kind; give them one so the renderers take the
+    probe path rather than the generic table.
+    """
+    if isinstance(value, dict):
+        kind = value.get("kind")
+        if (kind is None and isinstance(value.get("results"), list)
+                and isinstance(value.get("summary"), dict) and value.get("schema_version") == 1):
+            kind = "probe"
+            value = {**value, "kind": "probe"}
+        if isinstance(kind, str) and value.get("schema_version") == 1 and kind not in found:
+            found[kind] = value
+        for child in value.values():
+            embedded_reports(child, found)
+    elif isinstance(value, list):
+        for child in value:
+            embedded_reports(child, found)
+    return found
+
+
 def replaced(report, path, value):
     if not path:
         return value
@@ -72,8 +104,17 @@ class MutatedExampleTests(unittest.TestCase):
         if not FULL:
             examples = [path for path in examples if path.name in DEFAULT_EXAMPLES]
             self.assertEqual(len(examples), len(DEFAULT_EXAMPLES))
+        bases, embedded = [], {}
         for example in examples:
             report = json.loads(example.read_text(encoding="utf-8"))
+            bases.append((example.name, report))
+            embedded_reports(report, embedded)
+        bases.extend((f"embedded {kind}", report) for kind, report in sorted(embedded.items()))
+        for name, report in list(bases):
+            stripped = without_derived(report)
+            if stripped != report:
+                bases.append((f"{name} without no_ack_measurement", stripped))
+        for name, report in bases:
             for path in field_paths(report):
                 for value in WRONG:
                     broken = replaced(report, path, value)
@@ -85,7 +126,7 @@ class MutatedExampleTests(unittest.TestCase):
                         except ValueError:
                             pass
                         except Exception as error:  # noqa: BLE001 - collecting all
-                            failures.append(f"{example.name} {list(path)} = "
+                            failures.append(f"{name} {list(path)} = "
                                             f"{'<deleted>' if value is DELETE else value!r}: "
                                             f"{render.__name__} raised {type(error).__name__}: {error}")
         self.assertEqual(failures[:20], [], f"{len(failures)} renderer failures")

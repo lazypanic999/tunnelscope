@@ -105,6 +105,24 @@ class ReportTableTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid case results"):
             render_report_html(report)
 
+    def test_receiver_capture_card(self):
+        receiver = json.loads((EXAMPLE.parent / "receiver-v06.json").read_text(encoding="utf-8"))
+        html = render_report_html(receiver)
+        self.assertIn("<h2>Receiver capture</h2>", html)
+        self.assertIn("<strong>Exit reason:</strong> idle_timeout", html)
+        self.assertIn("<strong>Listening on:</strong> 198.51.100.2:9471", html)
+        self.assertIn("<strong>Sized replies:</strong> off", html)
+        self.assertNotIn("Reply fragmentation", html)
+        receiver["receiver"] = {"bind_ipv6": "fd00::2", "port": 9471, "sized_reply": True,
+                                "reply_fragmentation": "disabled: Linux IPV6_DONTFRAG"}
+        html = render_report_html(receiver)
+        self.assertIn("<strong>Listening on:</strong> [fd00::2]:9471", html)
+        self.assertIn("<strong>Reply fragmentation:</strong> disabled: Linux IPV6_DONTFRAG", html)
+        receiver["receiver"] = {"bind_ipv4": "<b>x</b>", "port": True}
+        html = render_report_html(receiver)
+        self.assertIn("<strong>Listening on:</strong> —", html)
+        self.assertNotIn("<b>x</b>", html.split("<details>")[0])
+
     def test_diagnosis_join_without_sized_replies_keeps_alignment(self):
         from tunnelscope_core.view import _table_data
         result = dict(self.correlation["results"][0])

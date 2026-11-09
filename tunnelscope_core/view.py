@@ -176,6 +176,26 @@ def render_report_html(report):
                                  f"{escape(_cell(total))} planned</p>"
                                  "<p>The run was stopped with Ctrl+C. Sizes it did not reach are not listed; "
                                  "missing sizes say nothing about the path.</p></section>")
+    elif search_report.get("kind") == "receiver_observations":
+        receiver = search_report.get("receiver")
+        receiver = receiver if isinstance(receiver, dict) else {}
+        address = receiver.get("bind_ipv6") or receiver.get("bind_ipv4")
+        port = receiver.get("port")
+        listening = None
+        if isinstance(address, str) and address and isinstance(port, int) and not isinstance(port, bool):
+            listening = f"[{address}]:{port}" if ":" in address else f"{address}:{port}"
+        observations = search_report.get("observations")
+        fields = (("Exit reason", search_report.get("exit_reason")),
+                  ("Listening on", listening),
+                  ("Probes recorded", len(observations) if isinstance(observations, list) else None),
+                  ("Sized replies", "enabled" if receiver.get("sized_reply") is True else "off"),
+                  *((("Reply fragmentation", receiver.get("reply_fragmentation")),)
+                    if receiver.get("reply_fragmentation") is not None else ()))
+        measurement_html = ("<section class='search-summary'><h2>Receiver capture</h2>" +
+                            "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                    for label, value in fields) +
+                            "<p>idle_timeout after the sender finished is the clearest coverage claim; "
+                            "max_packets can mean later probes were never read.</p></section>")
     elif search_report.get("kind") == "fragmentation_comparison":
         measurement_html = ("<section class='search-summary'><h2>Fragmentation modes</h2>"
                             "<p>DF first, source fragmentation permitted second. Fragment arrival was not "

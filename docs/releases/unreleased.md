@@ -78,6 +78,9 @@ The sender commands (`probe`, `search`, `compare-fragmentation`, `diagnose`)
 print one line per attempt on stderr with the size, attempt number, mode and
 outcome. Stdout stays JSON. `--quiet` turns these off too.
 
+The HTML view of a receiver report now has a "Receiver capture" card with the
+exit reason, listening address, probe count and reply settings.
+
 ## Testing
 
 CI now runs on Python 3.14 as well (#81). A mutation test breaks every field

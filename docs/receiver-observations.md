@@ -18,6 +18,15 @@ how many acknowledgement sends succeeded or failed locally. An empty capture
 still displays its exit reason and a zero count. A successful send call does not
 confirm that the acknowledgement reached the sender.
 
+Windows reports can include a `skipped_receive_errors` object with
+`connection_reset` (WSAECONNRESET) and `oversized_datagram` (WSAEMSGSIZE)
+counts. The object is present only if at least one count is nonzero, and
+`tunnelscope show receiver.json` displays both counts. A reset notice indicates
+a port-unreachable response to an earlier reply, such as a late ACK to a
+probe that had already timed out. The specific reply is unknown. An oversized
+datagram uses one `--max-packets` slot, while a reset notice leaves the packet
+count unchanged.
+
 Run the sender on endpoint A:
 
 ```sh

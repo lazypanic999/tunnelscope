@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tunnelscope_core import network
+from tunnelscope_core import network, reports
 
 
 def then_idle(effects):
@@ -61,6 +61,7 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         self.assertEqual([row["probe_id"] for row in report["observations"]],
                          [(bytes([1]) * 16).hex(), (bytes([2]) * 16).hex()])
         self.assertEqual(sock.sendto.call_count, 2)
+        self.assertEqual(report["skipped_receive_errors"], {"connection_reset": 2, "oversized_datagram": 0})
 
     def test_windows_reset_then_idle_timeout_ends_normally(self):
         effects = [ConnectionResetError(10054, "reset"), socket.timeout()]
@@ -82,6 +83,19 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(report["exit_reason"], "max_packets")
         self.assertEqual(report["observations"], [])
+        self.assertEqual(report["skipped_receive_errors"], {"connection_reset": 0, "oversized_datagram": 1})
+
+    def test_text_summary_explains_both_skipped_receive_error_counts(self):
+        oversized = OSError(10040, "message too long")
+        oversized.winerror = 10040
+        effects = [ConnectionResetError(10054, "reset"), oversized, oversized]
+        report, error, _ = run_receiver(effects, 2, "win32")
+        self.assertIsNone(error)
+        self.assertEqual(report["skipped_receive_errors"], {"connection_reset": 1, "oversized_datagram": 2})
+        summary = reports.format_report(report)
+        self.assertIn("Skipped receive errors: connection resets=1, oversized datagrams=2.", summary)
+        self.assertIn("port-unreachable response to an earlier reply", summary)
+        self.assertIn("The specific reply is unknown.", summary)
 
     def test_other_windows_receive_errors_still_stop_the_receiver(self):
         failure = OSError(10050, "network is down")
@@ -89,6 +103,7 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         report, error, _ = run_receiver([failure], 5, "win32")
         self.assertIs(error, failure)
         self.assertEqual(report["exit_reason"], "socket_error")
+        self.assertNotIn("skipped_receive_errors", report)
 
     def test_reset_on_other_platforms_is_still_a_socket_error(self):
         effects = [(probe_bytes(1), self.peer), ConnectionResetError(104, "reset")]
@@ -96,6 +111,8 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         self.assertIsInstance(error, ConnectionResetError)
         self.assertEqual(report["exit_reason"], "socket_error")
         self.assertEqual(len(report["observations"]), 1)
+        self.assertNotIn("skipped_receive_errors", report)
+        self.assertNotIn("Skipped receive errors", reports.format_report(report))
 
 
 class WindowsSlicedWaitTests(unittest.TestCase):
@@ -105,6 +122,7 @@ class WindowsSlicedWaitTests(unittest.TestCase):
         elapsed = time.monotonic() - started
         self.assertIsNone(error)
         self.assertEqual(report["exit_reason"], "idle_timeout")
+        self.assertNotIn("skipped_receive_errors", report)
         self.assertGreaterEqual(elapsed, 0.9)  # run_receiver uses a 1-second idle timeout
         waits = [call.args[0] for call in sock.settimeout.call_args_list[1:]]
         self.assertTrue(waits and all(0 < wait <= network.WINDOWS_RECV_SLICE_SECONDS for wait in waits))

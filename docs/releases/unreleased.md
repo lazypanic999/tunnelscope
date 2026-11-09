@@ -20,7 +20,8 @@ does not count it toward `--max-packets` (#76).
 Windows also fails `recvfrom` with `WSAEMSGSIZE` (10040) when a datagram is
 larger than the 8193-byte buffer, where Linux truncates it. One stray large
 datagram stopped a Windows receiver. It is now counted and skipped, as on
-Linux (#77). Other receive errors still stop the receiver.
+Linux (#77). Other receive errors still stop the receiver. If either skipped
+error occurs, the report records both counts and `show` displays them (#84).
 
 Ctrl+C did not interrupt a waiting Windows receiver: Windows does not wake a
 blocking socket wait for it, so the capture was saved only when the idle

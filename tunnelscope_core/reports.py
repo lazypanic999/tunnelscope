@@ -556,10 +556,21 @@ def format_report(report):
         values = [(run_id, size, item["observed"], item["ack_sent"], item["ack_errors"],
                    *([item["sized"]] if sized else []))
                   for (run_id, size), item in sorted(counts.items())]
-        return (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}"
+        text = (f"Receiver observations: {len(observations)} probes; exit: {report.get('exit_reason', 'unknown')}"
                 + ("; sized replies enabled" if sized else "") + "\n"
                 + text_table(["Run ID", "Bytes", "Seen", "ACK sent", "ACK error", *(["Sized"] if sized else [])], values)
                 + "\nACK sent means the local socket accepted the reply, not that it arrived.")
+        skipped = report.get("skipped_receive_errors")
+        if skipped is not None:
+            if not isinstance(skipped, dict):
+                raise ValueError("invalid skipped receive error counts")
+            resets, oversized = skipped.get("connection_reset"), skipped.get("oversized_datagram")
+            if any(type(count) is not int or count < 0 for count in (resets, oversized)):
+                raise ValueError("invalid skipped receive error counts")
+            text += f"\nSkipped receive errors: connection resets={resets}, oversized datagrams={oversized}."
+            if resets:
+                text += "\nA reset notice indicates a port-unreachable response to an earlier reply. The specific reply is unknown."
+        return text
     if kind == "bidirectional_comparison":
         comparison = report.get("comparison")
         rows = comparison.get("by_payload_size") if isinstance(comparison, dict) else None

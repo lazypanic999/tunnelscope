@@ -35,6 +35,9 @@ IPV6_MTU = getattr(socket, "IPV6_MTU", 24)
 WINDOWS_IP_DONTFRAGMENT = 14
 WINDOWS_IPV6_DONTFRAG = 14
 WSAEMSGSIZE = 10040
+# Windows does not interrupt a blocking socket wait for Ctrl+C, so the receiver
+# waits in short slices there and checks its own idle deadline.
+WINDOWS_RECV_SLICE_SECONDS = 0.25
 SIOCGIFADDR = 0x8915
 SIOCGIFMTU = 0x8921
 
@@ -154,15 +157,25 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
             # Oversized replies must fail visibly instead of being fragmented.
             reply_fragmentation = disable_reply_fragmentation(sock)
         sock.bind(bind_address)
+        sliced = sys.platform == "win32"
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
         try:
             received = 0
+            idle_deadline = time.monotonic() + idle_timeout
             while received < max_packets:
+                if sliced:
+                    remaining = idle_deadline - time.monotonic()
+                    if remaining <= 0:
+                        exit_reason = "idle_timeout"
+                        break
+                    sock.settimeout(min(WINDOWS_RECV_SLICE_SECONDS, remaining))
                 try:
                     data, peer = sock.recvfrom(8193)
                 except socket.timeout:
+                    if sliced:
+                        continue  # the deadline check above decides
                     exit_reason = "idle_timeout"
                     break
                 except ConnectionResetError:
@@ -179,8 +192,10 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     if sys.platform != "win32" or getattr(error, "winerror", None) != WSAEMSGSIZE:
                         raise
                     received += 1
+                    idle_deadline = time.monotonic() + idle_timeout
                     continue
                 received += 1
+                idle_deadline = time.monotonic() + idle_timeout
                 if not 32 <= len(data) <= 8192:
                     continue
                 magic, token, declared_size = HEADER.unpack_from(data)

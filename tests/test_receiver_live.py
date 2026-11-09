@@ -15,6 +15,17 @@ from tunnelscope_core import network
 from tunnelscope_core.network import live_line
 
 
+def then_idle(effects):
+    """Mocked receive results followed by endless idle timeouts.
+
+    On Windows the receiver waits in slices and treats one timeout as "keep
+    waiting" until its own idle deadline passes, so a finite list would run out.
+    """
+    yield from effects
+    while True:
+        yield socket.timeout()
+
+
 def probe_bytes(index, size=64):
     data = network.HEADER.pack(network.MAGIC, bytes([index]) * 16, size) + bytes([index]) * 8
     return data + bytes(size - len(data))
@@ -25,7 +36,7 @@ def fake_socket(recv_effects, send_effect=None):
     sock.__enter__.return_value = sock
     sock.family = socket.AF_INET
     sock.getsockname.return_value = ("127.0.0.1", 9471)
-    sock.recvfrom.side_effect = recv_effects
+    sock.recvfrom.side_effect = then_idle(recv_effects)
     sock.sendto.side_effect = send_effect
     return sock
 

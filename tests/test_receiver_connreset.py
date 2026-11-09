@@ -7,11 +7,23 @@ from pathlib import Path
 import socket
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tunnelscope_core import network
+
+
+def then_idle(effects):
+    """Mocked receive results followed by endless idle timeouts.
+
+    On Windows the receiver waits in slices and treats one timeout as "keep
+    waiting" until its own idle deadline passes, so a finite list would run out.
+    """
+    yield from effects
+    while True:
+        yield socket.timeout()
 
 
 def probe_bytes(index, size=64):
@@ -24,7 +36,7 @@ def run_receiver(recv_effects, max_packets, platform):
     sock.__enter__.return_value = sock
     sock.family = socket.AF_INET
     sock.getsockname.return_value = ("127.0.0.1", 9471)
-    sock.recvfrom.side_effect = recv_effects
+    sock.recvfrom.side_effect = then_idle(recv_effects)
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "receiver.json"
         with patch.object(network.socket, "socket", return_value=sock), \
@@ -84,6 +96,42 @@ class ReceiverConnectionResetTests(unittest.TestCase):
         self.assertIsInstance(error, ConnectionResetError)
         self.assertEqual(report["exit_reason"], "socket_error")
         self.assertEqual(len(report["observations"]), 1)
+
+
+class WindowsSlicedWaitTests(unittest.TestCase):
+    def test_idle_deadline_is_kept_across_short_waits(self):
+        started = time.monotonic()
+        report, error, sock = run_receiver([], 5, "win32")
+        elapsed = time.monotonic() - started
+        self.assertIsNone(error)
+        self.assertEqual(report["exit_reason"], "idle_timeout")
+        self.assertGreaterEqual(elapsed, 0.9)  # run_receiver uses a 1-second idle timeout
+        waits = [call.args[0] for call in sock.settimeout.call_args_list[1:]]
+        self.assertTrue(waits and all(0 < wait <= network.WINDOWS_RECV_SLICE_SECONDS for wait in waits))
+
+    def test_other_platforms_wait_once_for_the_whole_idle_timeout(self):
+        report, _, sock = run_receiver([socket.timeout()], 5, "linux")
+        self.assertEqual(report["exit_reason"], "idle_timeout")
+        self.assertEqual([call.args[0] for call in sock.settimeout.call_args_list], [1])
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows-only: Ctrl+C does not wake a socket wait there")
+    def test_interrupt_on_windows_saves_the_capture_promptly(self):
+        import _thread
+        import threading
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receiver.json"
+            timer = threading.Timer(0.5, _thread.interrupt_main)
+            started = time.monotonic()
+            timer.start()
+            try:
+                with redirect_stdout(StringIO()), self.assertRaises(KeyboardInterrupt):
+                    network.receive("127.0.0.1", 0, 10, 20, path)
+            finally:
+                timer.cancel()
+            elapsed = time.monotonic() - started
+            report = json.loads(path.read_text(encoding="utf-8"))
+        self.assertLess(elapsed, 5)
+        self.assertEqual(report["exit_reason"], "interrupted")
 
 
 if __name__ == "__main__":

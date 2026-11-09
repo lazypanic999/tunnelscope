@@ -21,6 +21,12 @@ larger than the 8193-byte buffer, where Linux truncates it. One stray large
 datagram stopped a Windows receiver. It is now counted and skipped, as on
 Linux (#77). Other receive errors still stop the receiver.
 
+Ctrl+C did not interrupt a waiting Windows receiver: Windows does not wake a
+blocking socket wait for it, so the capture was saved only when the idle
+timeout ran out (up to 120 seconds with the field-report settings). On Windows
+the receiver now waits in 0.25-second slices against its own idle deadline, so
+Ctrl+C saves the capture within a fraction of a second.
+
 ## Port unreachable is named
 
 A probe to a port with nothing listening came back as a bare `socket_error`

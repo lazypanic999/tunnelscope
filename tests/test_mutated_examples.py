@@ -48,6 +48,16 @@ def field_paths(value, prefix=()):
             yield from field_paths(child, prefix + (index,))
 
 
+def without_derived(value):
+    """Drop stored figures that renderers recompute when missing (no_ack_measurement),
+    so the fallback paths see the broken fields too."""
+    if isinstance(value, dict):
+        return {key: without_derived(child) for key, child in value.items() if key != "no_ack_measurement"}
+    if isinstance(value, list):
+        return [without_derived(child) for child in value]
+    return value
+
+
 def replaced(report, path, value):
     if not path:
         return value
@@ -72,8 +82,14 @@ class MutatedExampleTests(unittest.TestCase):
         if not FULL:
             examples = [path for path in examples if path.name in DEFAULT_EXAMPLES]
             self.assertEqual(len(examples), len(DEFAULT_EXAMPLES))
+        bases = []
         for example in examples:
             report = json.loads(example.read_text(encoding="utf-8"))
+            bases.append((example.name, report))
+            stripped = without_derived(report)
+            if stripped != report:
+                bases.append((f"{example.name} without no_ack_measurement", stripped))
+        for name, report in bases:
             for path in field_paths(report):
                 for value in WRONG:
                     broken = replaced(report, path, value)
@@ -85,7 +101,7 @@ class MutatedExampleTests(unittest.TestCase):
                         except ValueError:
                             pass
                         except Exception as error:  # noqa: BLE001 - collecting all
-                            failures.append(f"{example.name} {list(path)} = "
+                            failures.append(f"{name} {list(path)} = "
                                             f"{'<deleted>' if value is DELETE else value!r}: "
                                             f"{render.__name__} raised {type(error).__name__}: {error}")
         self.assertEqual(failures[:20], [], f"{len(failures)} renderer failures")

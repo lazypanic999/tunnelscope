@@ -52,6 +52,12 @@ class ProbeInterruptTests(unittest.TestCase):
         text = format_report(self.interrupted_report().report)
         self.assertIn("Interrupted: 3 of 6 attempts were recorded before Ctrl+C", text)
 
+    def test_html_view_has_an_interrupted_run_card(self):
+        from tunnelscope_core.view import render_report_html
+        html = render_report_html(self.interrupted_report().report)
+        self.assertIn("<h2>Interrupted run</h2>", html)
+        self.assertIn("<strong>Attempts recorded:</strong> 3 of 6 planned", html)
+
     def test_complete_run_has_no_exit_reason(self):
         with patch.object(network.time, "sleep"):
             report = network.probe("127.0.0.1", closed_port(), [64], 1, 1)

@@ -128,6 +128,14 @@ def sweep_arg(value):
     return sizes
 
 
+def stderr_progress(line):
+    """Progress goes to stderr so stdout stays a JSON report."""
+    try:
+        print(line, file=sys.stderr, flush=True)
+    except (OSError, ValueError):
+        pass
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version=f"TunnelScope {VERSION}")
@@ -145,6 +153,8 @@ def main():
     receiver.add_argument("--quiet", action="store_true",
                           help="print only the listening address, not a line per received probe")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
+    sender.add_argument("--quiet", action="store_true",
+                      help="do not print a progress line per attempt on stderr")
     sender.add_argument("host")
     sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
                         help="address family; auto prefers IPv4 for hostnames")
@@ -161,6 +171,8 @@ def main():
     sender.add_argument("--sized-reply", action="store_true",
                         help="ask a v0.7 receiver started with --sized-reply for same-sized replies")
     search = commands.add_parser("search", help="search a bounded observed payload-size interval (Linux no-fragment)")
+    search.add_argument("--quiet", action="store_true",
+                      help="do not print a progress line per attempt on stderr")
     search.add_argument("host")
     search.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
     search.add_argument("--port", type=bounded_int(1, 65535), default=9471)
@@ -174,6 +186,8 @@ def main():
     search.add_argument("--sized-reply", action="store_true",
                         help="request same-sized replies; acknowledged then means both directions carried the size")
     comparison = commands.add_parser("compare-fragmentation", help="compare Linux DF and fragmentation-permitted probes")
+    comparison.add_argument("--quiet", action="store_true",
+                      help="do not print a progress line per attempt on stderr")
     comparison.add_argument("host")
     comparison.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
     comparison.add_argument("--port", type=bounded_int(1, 65535), default=9471)
@@ -186,6 +200,8 @@ def main():
     comparison.add_argument("--observe-icmp", action="store_true", help="Linux: record UDP error-queue ICMP feedback")
     comparison.add_argument("--sized-reply", action="store_true", help="request same-sized replies in both runs")
     diagnosis_command = commands.add_parser("diagnose", help="run one bounded Linux sender-side diagnostic workflow")
+    diagnosis_command.add_argument("--quiet", action="store_true",
+                      help="do not print a progress line per attempt on stderr")
     diagnosis_command.add_argument("host")
     diagnosis_command.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto")
     diagnosis_command.add_argument("--port", type=bounded_int(1, 65535), default=9471)
@@ -222,6 +238,7 @@ def main():
     html_view.add_argument("report", type=Path)
     html_view.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    progress = None if getattr(args, "quiet", True) else stderr_progress
     try:
         if args.command != "diagnose":
             require_output_target(getattr(args, "output", None))
@@ -233,17 +250,20 @@ def main():
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = probe(args.host, args.port, sizes if sizes is not None else [64, 512, 1200, 1400],
                            args.count, args.timeout, args.dont_fragment, args.family,
-                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
+                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply,
+                           progress=progress)
         elif args.command == "search":
             report = probe(args.host, args.port, None, args.count, args.timeout, True,
                            args.family, (args.minimum, args.maximum), args.max_sizes,
-                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
+                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply,
+                           progress=progress)
         elif args.command == "compare-fragmentation":
             sizes = args.sweep if args.sweep is not None else args.sizes
             report = compare_fragmentation(args.host, args.port,
                                            sizes if sizes is not None else [64, 1200, 1400],
                                            args.count, args.timeout, args.family,
-                                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply)
+                                           observe_icmp=args.observe_icmp, sized_reply=args.sized_reply,
+                                           progress=progress)
         elif args.command == "diagnose":
             if args.output.suffix.lower() != ".json":
                 raise ValueError("--output must name a .json file")
@@ -256,7 +276,7 @@ def main():
                 require_output_target(path)
             report = diagnose(args.host, args.port, args.minimum, args.maximum,
                               args.count, args.timeout, args.max_sizes, args.family,
-                              sized_reply=args.sized_reply)
+                              sized_reply=args.sized_reply, progress=progress)
             from tunnelscope_view import render_report_html
             rendered_html = render_report_html(report)
             args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

@@ -289,9 +289,28 @@ def source_snapshot(sock):
     return source
 
 
+def attempt_line(result, count, mode):
+    """One progress line per sender attempt; the JSON report stays the record."""
+    status = result.get("status")
+    if status == "acknowledged":
+        outcome = f"acknowledged in {result.get('rtt_ms')} ms"
+    elif status == "packet_too_large":
+        mtu = result.get("kernel_reported_mtu_bytes")
+        outcome = "packet_too_large" + (f" (kernel MTU {mtu})" if mtu is not None else "")
+    elif status == "socket_error":
+        outcome = f"socket_error (errno {result.get('errno')})"
+    else:
+        outcome = str(status)
+    return_status = {"sized_reply_received": "sized reply received", "small_ack_only": "small ACK only",
+                     "no_reply": None}.get(result.get("return_status"))
+    if return_status and status == "acknowledged":
+        outcome += f", {return_status}"
+    return (f"{result['payload_bytes']:>5} bytes  attempt {result['attempt']}/{count}  {mode:<10}  {outcome}")
+
+
 def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
           search_bounds=None, max_sizes=16, allow_fragmentation=False,
-          observe_icmp=False, sized_reply=False):
+          observe_icmp=False, sized_reply=False, progress=None):
     require_df_support(dont_fragment or allow_fragmentation)
     require_icmp_support(observe_icmp)
     if dont_fragment and allow_fragmentation:
@@ -374,6 +393,10 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
                             else "unknown"
                         )
             results.append(result)
+            if progress is not None:
+                progress(attempt_line(result, count, "search" if search_bounds is not None else
+                                      "DF" if dont_fragment else
+                                      "permitted" if allow_fragmentation else "OS default"))
             time.sleep(0.05)
         size_index += 1
         if search_bounds is not None:
@@ -432,7 +455,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
 
 
 def compare_fragmentation(host, port, sizes, count, timeout, family="auto",
-                          observe_icmp=False, sized_reply=False):
+                          observe_icmp=False, sized_reply=False, progress=None):
     """Measure each configured size with DF and source fragmentation permitted."""
     require_df_support(True)
     sizes = list(sizes)
@@ -445,8 +468,9 @@ def compare_fragmentation(host, port, sizes, count, timeout, family="auto",
     if 2 * len(sizes) * count > 100 or 2 * len(sizes) * count * timeout > 120:
         raise ValueError("comparison budget exceeds 100 probes or 120 seconds of timeout allowance")
     df = probe(host, port, sizes, count, timeout, True, family,
-               observe_icmp=observe_icmp, sized_reply=sized_reply)
+               observe_icmp=observe_icmp, sized_reply=sized_reply, progress=progress)
     permitted = probe(host, port, sizes, count, timeout, False, family,
-                      allow_fragmentation=True, observe_icmp=observe_icmp, sized_reply=sized_reply)
+                      allow_fragmentation=True, observe_icmp=observe_icmp, sized_reply=sized_reply,
+                      progress=progress)
     from .fragmentation import compare_fragmentation_reports
     return compare_fragmentation_reports(df, permitted)

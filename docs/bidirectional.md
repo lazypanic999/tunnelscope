@@ -9,6 +9,47 @@ environment where both sides can run Python 3.10+ and reach each other over UDP.
 Use the actual endpoint IPv4 addresses in place of `A_IP` and `B_IP`. Start each
 receiver shortly before its probe; by default it exits after 30 seconds idle.
 
+## Before the first run: open UDP 9471 to the sender only
+
+The receiver needs inbound UDP on port 9471 from the other endpoint. Allow just
+that address, and remove the rule when you are done. On the receiving endpoint
+(here B, accepting from A):
+
+```sh
+# ufw (Ubuntu, Debian)
+sudo ufw allow from A_IP to any port 9471 proto udp
+sudo ufw delete allow from A_IP to any port 9471 proto udp    # afterwards
+
+# firewalld (Fedora, RHEL); runtime only, gone after a reload or reboot
+sudo firewall-cmd --add-rich-rule='rule family="ipv4" source address="A_IP" port port="9471" protocol="udp" accept'
+```
+
+On a Windows receiver, in an administrator PowerShell:
+
+```powershell
+New-NetFirewallRule -DisplayName "TunnelScope test" -Direction Inbound -Protocol UDP -LocalPort 9471 -RemoteAddress A_IP -Action Allow
+Remove-NetFirewallRule -DisplayName "TunnelScope test"    # afterwards
+```
+
+Cloud VMs usually also need the port in the provider's security group or
+firewall. Do the same on A before the B-to-A run.
+
+### When nothing comes back
+
+Include a small size such as 64 in every run. It tells you whether the problem
+has anything to do with size:
+
+- **64 bytes is acknowledged, larger sizes time out:** the pattern this tool is
+  for. Add the receiver log (`receive --output`) to see whether the large probes
+  arrived.
+- **Every size times out, including 64:** not a size problem. Check the
+  firewall rule above, the address and port, and that the receiver printed
+  `Listening on B_IP:9471`. If the receiver log shows nothing at all, the
+  probes are not reaching it.
+- **`socket_error` with a "port unreachable" note:** the target answered that
+  nothing is listening on that port. Usually the receiver was not running yet
+  or was bound to a different address. A firewall can send the same answer.
+
 ## A to B
 
 On endpoint B:

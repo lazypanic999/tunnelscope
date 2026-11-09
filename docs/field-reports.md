@@ -23,7 +23,9 @@ restrict its port to the sender. See [security boundaries](security-boundaries.m
   UDP 9471 for the test. The sender for
   `diagnose` must be Linux (WSL2 works). With a Windows sender, use `probe`
   instead (below).
-- UDP port 9471 reachable from the sender to the receiver's address.
+- UDP port 9471 reachable from the sender to the receiver's address. The
+  [two-endpoint guide](bidirectional.md#before-the-first-run-open-udp-9471-to-the-sender-only)
+  has firewall commands for ufw, firewalld and Windows.
 
 ### Sender OS × receiver support
 

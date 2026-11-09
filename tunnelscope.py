@@ -12,7 +12,7 @@ from tunnelscope_core.network import (
     require_df_support, socket_failure, source_snapshot, udp_address, utc_now,
 )
 from tunnelscope_core.reports import (
-    combine_reports, correlate_reports, explain_evidence, format_report,
+    combine_reports, correlate_reports, explain_evidence, format_report, refused_attempts,
     summarize_results, text_table,
     version_details,
 )
@@ -313,6 +313,12 @@ def main():
             if args.output:
                 args.output.write_text(rendered + "\n", encoding="utf-8")
             print(rendered)
+            refused = refused_attempts(report.get("results")) if isinstance(report, dict) else 0
+            if refused:
+                # stderr, so stdout stays valid JSON for redirection.
+                print(f"Note: {refused} attempt{'s' if refused != 1 else ''} got port unreachable "
+                      "(connection refused). Is the receiver running on that address and port?",
+                      file=sys.stderr)
     except (OSError, ValueError) as error:
         parser.exit(1, f"Error: {error}\n")
     except KeyboardInterrupt:

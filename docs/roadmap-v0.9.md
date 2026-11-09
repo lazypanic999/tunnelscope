@@ -8,6 +8,10 @@ follow-ups; controlled lab evidence does not close them.
 sanitization without changing measurement behavior. Independent VPN
 operator reports remain the next evidence priority.
 
+[v0.9.6](releases/v0.9.6.md) is a presentation patch: README rewrite, light and
+dark HTML report, and a diagnosis row fix. Fixes merged since then are listed in
+[unreleased](releases/unreleased.md).
+
 ## Markdown evidence summaries
 
 [#32](https://github.com/lazypanic999/tunnelscope/issues/32) adds

@@ -456,6 +456,8 @@ def format_report(report):
             if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
                 raise ValueError("invalid probe size summary")
             counts = row["status_counts"]
+            if not all(is_payload_size(count) and count >= 0 for count in counts.values()):
+                raise ValueError("invalid probe status counts")
             measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
             value = [row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
                      counts.get("packet_too_large", 0), counts.get("timeout", 0),

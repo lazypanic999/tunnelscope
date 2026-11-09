@@ -495,7 +495,17 @@ def format_report(report):
         if sized:
             headers.append("Sized reply")
         headers.append("Assessment")
-        return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) +
+        interrupted_text = ""
+        if report.get("exit_reason") == "interrupted":
+            planned = settings.get("payload_sizes") if isinstance(settings, dict) else None
+            count = settings.get("count") if isinstance(settings, dict) else None
+            results = report.get("results")
+            attempts = len(results) if isinstance(results, list) else 0
+            total = (str(len(planned) * count) if isinstance(planned, list) and is_payload_size(count)
+                     else "the planned")
+            interrupted_text = (f"\nInterrupted: {attempts} of {total} attempts were recorded before "
+                                "Ctrl+C; sizes it did not reach are not listed.")
+        return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) + interrupted_text +
                 search_text + feedback_text + refused_text +
                 ("\nSized reply counts same-sized replies received per sent attempt; a missing reply does not show which direction failed."
                  if sized else "") +

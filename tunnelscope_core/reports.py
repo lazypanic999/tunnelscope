@@ -24,6 +24,14 @@ def is_payload_size(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def checked_status_counts(counts):
+    """Return per-status counts from a stored summary, or raise ValueError."""
+    if not isinstance(counts, dict) or not all(
+            is_payload_size(count) and count >= 0 for count in counts.values()):
+        raise ValueError("invalid probe status counts")
+    return counts
+
+
 def version_details(report):
     """Readable producer claims; legacy inputs remain explicitly unknown."""
     if not isinstance(report, dict):
@@ -455,9 +463,7 @@ def format_report(report):
         for row in rows:
             if not isinstance(row, dict) or not isinstance(row.get("status_counts"), dict):
                 raise ValueError("invalid probe size summary")
-            counts = row["status_counts"]
-            if not all(is_payload_size(count) and count >= 0 for count in counts.values()):
-                raise ValueError("invalid probe status counts")
+            counts = checked_status_counts(row["status_counts"])
             measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
             value = [row.get("payload_bytes", "?"), counts.get("acknowledged", 0),
                      counts.get("packet_too_large", 0), counts.get("timeout", 0),
@@ -465,7 +471,7 @@ def format_report(report):
             if isinstance(feedback, dict):
                 value.append(ptb_by_size.get(row.get("payload_bytes"), 0))
             if sized:
-                returns = row.get("return_status_counts") or {}
+                returns = checked_status_counts(row.get("return_status_counts") or {})
                 value.append(f"{returns.get('sized_reply_received', 0)}/{sum(returns.values())}"
                              + (" (small ACK)" if returns.get("small_ack_only") else ""))
             value.append(row.get("assessment", "?"))
@@ -495,7 +501,17 @@ def format_report(report):
         if sized:
             headers.append("Sized reply")
         headers.append("Assessment")
-        return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) +
+        interrupted_text = ""
+        if report.get("exit_reason") == "interrupted":
+            planned = settings.get("payload_sizes") if isinstance(settings, dict) else None
+            count = settings.get("count") if isinstance(settings, dict) else None
+            results = report.get("results")
+            attempts = len(results) if isinstance(results, list) else 0
+            total = (str(len(planned) * count) if isinstance(planned, list) and is_payload_size(count)
+                     else "the planned")
+            interrupted_text = (f"\nInterrupted: {attempts} of {total} attempts were recorded before "
+                                "Ctrl+C; sizes it did not reach are not listed.")
+        return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) + interrupted_text +
                 search_text + feedback_text + refused_text +
                 ("\nSized reply counts same-sized replies received per sent attempt; a missing reply does not show which direction failed."
                  if sized else "") +

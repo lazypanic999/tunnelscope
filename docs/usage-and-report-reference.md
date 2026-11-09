@@ -57,6 +57,12 @@ per attempt on stderr, such as
 `1400 bytes  attempt 2/3  DF          timeout`, so redirecting stdout to a file
 still gives clean JSON. `--quiet` turns these lines off.
 
+If you press Ctrl+C during a plain `probe`, the attempts that finished are kept:
+the report is written to `--output` (and stdout) with `"exit_reason": "interrupted"`,
+its summary lists only the sizes it reached, and the command exits with status
+130. `search`, `compare-fragmentation` and `diagnose` still stop without a report,
+because their assessments need the whole run.
+
 From v0.9.0, CLI commands check that an output's parent directory
 exists and its target is not a directory before starting collection. A typo
 there fails before a receiver listens or probes are sent. Choose output

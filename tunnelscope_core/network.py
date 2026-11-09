@@ -139,6 +139,18 @@ def live_line(observation):
             f"probe {observation['probe_id'][:8]}  {outcome}")
 
 
+def live_print(line):
+    """Print a progress line; return False if stdout is gone so callers stop trying.
+
+    A closed or broken stdout must never end a capture.
+    """
+    try:
+        print(line, flush=True)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False,
             live=False):
     if sized_reply and not (sys.platform.startswith("linux") or sys.platform == "win32"):
@@ -161,6 +173,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
+        if live and output is not None:
+            live = live_print(f"Saving to {output} on exit; press Ctrl+C once to stop early.")
         try:
             received = 0
             idle_deadline = time.monotonic() + idle_timeout
@@ -223,11 +237,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     observation["ack_send_status"] = "socket_error"
                     observation["ack_send_errno"] = error.errno
                 if live:
-                    try:
-                        print(live_line(observation), flush=True)
-                    except (OSError, ValueError):
-                        # A closed or broken stdout must not end the capture.
-                        live = False
+                    live = live_print(live_line(observation))
         except KeyboardInterrupt:
             exit_reason = "interrupted"
             raise
@@ -243,6 +253,10 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     try:
                         save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
                                              started_at_utc, exit_reason, observations)
+                        if live:
+                            count = len(observations)
+                            live_print(f"Saved {output}: {count} probe{'' if count == 1 else 's'}; "
+                                       f"exit: {exit_reason}")
                         break
                     except KeyboardInterrupt:
                         interrupted_while_saving = True
@@ -320,6 +334,13 @@ def source_snapshot(sock):
     return source
 
 
+class ProbeInterrupted(KeyboardInterrupt):
+    """Ctrl+C during a plain probe; .report holds the attempts completed so far."""
+
+    def __init__(self, report):
+        super().__init__()
+        self.report = report
+
 def attempt_line(result, count, mode):
     """One progress line per sender attempt; the JSON report stays the record."""
     status = result.get("status")
@@ -368,75 +389,95 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
     source = None
     size_index = 0
     search_summary = None
-    while size_index < len(sizes):
-        size = sizes[size_index]
-        for attempt in range(1, count + 1):
-            token = secrets.token_bytes(16)
-            payload = HEADER.pack(MAGIC, token, size) + run_id + (REPLY_REQUEST if sized_reply else b"")
-            payload += bytes(size - len(payload))
-            small_ack = HEADER.pack(ACK, token, size)
-            sized_ack = sized_reply_for(payload) if sized_reply else None
-            result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
-            # A new connected socket isolates replies from earlier attempts.
-            with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
-                # Configuration failures are fatal, not delivery observations.
-                configure_fragmentation(sock, dont_fragment, allow_fragmentation)
-                if observe_icmp:
-                    enable_error_queue(sock)
-                try:
-                    sock.connect(destination)
-                    if source is None:
-                        source = source_snapshot(sock)
-                    start = time.monotonic()
-                    deadline = start + timeout
-                    result["send_attempted_at_utc"] = utc_now()
-                    sock.send(payload)
-                    while True:
-                        remaining = deadline - time.monotonic()
-                        if remaining <= 0:
-                            raise socket.timeout()
-                        sock.settimeout(remaining)
-                        reply = sock.recv(8193)
-                        if reply == small_ack or (sized_ack is not None and reply == sized_ack):
-                            result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3),
-                                          ack_received_at_utc=utc_now())
-                            if sized_reply:
-                                result.update(reply_bytes=len(reply), return_status=(
-                                    "sized_reply_received" if reply == sized_ack else "small_ack_only"))
-                            break
-                except socket.timeout:
-                    result["status"] = "timeout"
-                    if sized_reply:
-                        result["return_status"] = "no_reply"
-                except OSError as error:
-                    result.update(socket_failure(error, sock, dont_fragment))
-                if observe_icmp:
-                    result["icmp_observation"] = drain_error_queue(
-                        sock, HEADER.pack(MAGIC, token, size)
-                    )
-                    if result.get("status") == "packet_too_large":
-                        events = result["icmp_observation"]["events"]
-                        result["size_error_origin"] = (
-                            "network_icmp_feedback" if any(
-                                event.get("message") in ("fragmentation_needed", "packet_too_big")
-                                and event.get("quoted_probe_match") is not False for event in events
-                            ) else "local" if any(event.get("origin") == "local" for event in events)
-                            else "unknown"
+    interrupted = False
+    try:
+        while size_index < len(sizes):
+            size = sizes[size_index]
+            for attempt in range(1, count + 1):
+                token = secrets.token_bytes(16)
+                payload = HEADER.pack(MAGIC, token, size) + run_id + (REPLY_REQUEST if sized_reply else b"")
+                payload += bytes(size - len(payload))
+                small_ack = HEADER.pack(ACK, token, size)
+                sized_ack = sized_reply_for(payload) if sized_reply else None
+                result = {"payload_bytes": size, "attempt": attempt, "probe_id": token.hex()}
+                # A new connected socket isolates replies from earlier attempts.
+                with socket.socket(address_family, socket.SOCK_DGRAM) as sock:
+                    # Configuration failures are fatal, not delivery observations.
+                    configure_fragmentation(sock, dont_fragment, allow_fragmentation)
+                    if observe_icmp:
+                        enable_error_queue(sock)
+                    try:
+                        sock.connect(destination)
+                        if source is None:
+                            source = source_snapshot(sock)
+                        start = time.monotonic()
+                        deadline = start + timeout
+                        result["send_attempted_at_utc"] = utc_now()
+                        sock.send(payload)
+                        while True:
+                            remaining = deadline - time.monotonic()
+                            if remaining <= 0:
+                                raise socket.timeout()
+                            if sys.platform == "win32":
+                                # Short waits so Ctrl+C is not held until the deadline.
+                                sock.settimeout(min(remaining, WINDOWS_RECV_SLICE_SECONDS))
+                                try:
+                                    reply = sock.recv(8193)
+                                except socket.timeout:
+                                    continue
+                            else:
+                                sock.settimeout(remaining)
+                                reply = sock.recv(8193)
+                            if reply == small_ack or (sized_ack is not None and reply == sized_ack):
+                                result.update(status="acknowledged", rtt_ms=round((time.monotonic() - start) * 1000, 3),
+                                              ack_received_at_utc=utc_now())
+                                if sized_reply:
+                                    result.update(reply_bytes=len(reply), return_status=(
+                                        "sized_reply_received" if reply == sized_ack else "small_ack_only"))
+                                break
+                    except socket.timeout:
+                        result["status"] = "timeout"
+                        if sized_reply:
+                            result["return_status"] = "no_reply"
+                    except OSError as error:
+                        result.update(socket_failure(error, sock, dont_fragment))
+                    if observe_icmp:
+                        result["icmp_observation"] = drain_error_queue(
+                            sock, HEADER.pack(MAGIC, token, size)
                         )
-            results.append(result)
-            if progress is not None:
-                progress(attempt_line(result, count, "search" if search_bounds is not None else
-                                      "DF" if dont_fragment else
-                                      "permitted" if allow_fragmentation else "OS default"))
-            time.sleep(0.05)
-        size_index += 1
+                        if result.get("status") == "packet_too_large":
+                            events = result["icmp_observation"]["events"]
+                            result["size_error_origin"] = (
+                                "network_icmp_feedback" if any(
+                                    event.get("message") in ("fragmentation_needed", "packet_too_big")
+                                    and event.get("quoted_probe_match") is not False for event in events
+                                ) else "local" if any(event.get("origin") == "local" for event in events)
+                                else "unknown"
+                            )
+                results.append(result)
+                if progress is not None:
+                    progress(attempt_line(result, count, "search" if search_bounds is not None else
+                                          "DF" if dont_fragment else
+                                          "permitted" if allow_fragmentation else "OS default"))
+                time.sleep(0.05)
+            size_index += 1
+            if search_bounds is not None:
+                next_size, search_summary = assess_search(
+                    minimum, maximum, summarize_results(sizes[:size_index], results), max_sizes
+                )
+                if next_size is not None:
+                    sizes.append(next_size)
+    except KeyboardInterrupt:
+        # A plain probe keeps what it measured; a search cannot assess a partial run.
         if search_bounds is not None:
-            next_size, search_summary = assess_search(
-                minimum, maximum, summarize_results(sizes[:size_index], results), max_sizes
-            )
-            if next_size is not None:
-                sizes.append(next_size)
-    by_payload_size = summarize_results(sizes, results)
+            raise
+        interrupted = True
+    if interrupted:
+        sizes_measured = [size for size in dict.fromkeys(sizes)
+                          if any(row["payload_bytes"] == size for row in results)]
+    else:
+        sizes_measured = sizes
+    by_payload_size = summarize_results(sizes_measured, results)
     summary = {"by_payload_size": by_payload_size}
     # The return direction counts as tested only if the receiver demonstrably sent
     # same-sized replies and never fell back to the small acknowledgement.
@@ -460,7 +501,7 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         }
     if search_summary is not None:
         summary["search"] = search_summary
-    return {
+    report = {
         "schema_version": 1,
         "kind": "probe",
         "tunnelscope_version": VERSION,
@@ -483,6 +524,10 @@ def probe(host, port, sizes, count, timeout, dont_fragment=False, family="auto",
         "evidence": explain_evidence(by_payload_size, dont_fragment, reverse_tested),
         "results": results,
     }
+    if interrupted:
+        report["exit_reason"] = "interrupted"
+        raise ProbeInterrupted(report)
+    return report
 
 
 def compare_fragmentation(host, port, sizes, count, timeout, family="auto",

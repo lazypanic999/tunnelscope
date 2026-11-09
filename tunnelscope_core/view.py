@@ -7,7 +7,7 @@ from importlib.resources import files
 import json
 import re
 
-from .reports import no_ack_measurement, no_ack_text, version_details
+from .reports import checked_status_counts, no_ack_measurement, no_ack_text, version_details
 from .tables import _records, _table_data, _lab_data, report_table
 from .timestamps import parse_timestamp
 
@@ -155,7 +155,7 @@ def render_report_html(report):
                 counts = row.get("status_counts")
                 if not isinstance(counts, dict):
                     raise ValueError("invalid probe size summary")
-                measurement = row.get("no_ack_measurement") or no_ack_measurement(counts)
+                measurement = row.get("no_ack_measurement") or no_ack_measurement(checked_status_counts(counts))
                 cells.append("<tr><td>" + escape(_cell(row.get("payload_bytes"))) +
                              "</td><td>" + escape(no_ack_text(measurement)) + "</td></tr>")
             measurement_html = ("<section class='search-summary'><h2>Repeated measurements</h2>"
@@ -163,6 +163,39 @@ def render_report_html(report):
                                 "</thead><tbody>" + "".join(cells) + "</tbody></table>"
                                 "<p>A timeout means no matching ACK arrived; it does not prove packet loss. "
                                 "Intervals use the Wilson method on sent probes only.</p></section>")
+        if search_report.get("exit_reason") == "interrupted":
+            results = search_report.get("results")
+            settings = search_report.get("settings")
+            planned = settings.get("payload_sizes") if isinstance(settings, dict) else None
+            count = settings.get("count") if isinstance(settings, dict) else None
+            total = (len(planned) * count if isinstance(planned, list) and isinstance(count, int)
+                     and not isinstance(count, bool) else "?")
+            measurement_html += ("<section class='search-summary'><h2>Interrupted run</h2>"
+                                 f"<p><strong>Attempts recorded:</strong> "
+                                 f"{escape(_cell(len(results) if isinstance(results, list) else '?'))} of "
+                                 f"{escape(_cell(total))} planned</p>"
+                                 "<p>The run was stopped with Ctrl+C. Sizes it did not reach are not listed; "
+                                 "missing sizes say nothing about the path.</p></section>")
+    elif search_report.get("kind") == "receiver_observations":
+        receiver = search_report.get("receiver")
+        receiver = receiver if isinstance(receiver, dict) else {}
+        address = receiver.get("bind_ipv6") or receiver.get("bind_ipv4")
+        port = receiver.get("port")
+        listening = None
+        if isinstance(address, str) and address and isinstance(port, int) and not isinstance(port, bool):
+            listening = f"[{address}]:{port}" if ":" in address else f"{address}:{port}"
+        observations = search_report.get("observations")
+        fields = (("Exit reason", search_report.get("exit_reason")),
+                  ("Listening on", listening),
+                  ("Probes recorded", len(observations) if isinstance(observations, list) else None),
+                  ("Sized replies", "enabled" if receiver.get("sized_reply") is True else "off"),
+                  *((("Reply fragmentation", receiver.get("reply_fragmentation")),)
+                    if receiver.get("reply_fragmentation") is not None else ()))
+        measurement_html = ("<section class='search-summary'><h2>Receiver capture</h2>" +
+                            "".join(f"<p><strong>{escape(label)}:</strong> {escape(_cell(value))}</p>"
+                                    for label, value in fields) +
+                            "<p>idle_timeout after the sender finished is the clearest coverage claim; "
+                            "max_packets can mean later probes were never read.</p></section>")
     elif search_report.get("kind") == "fragmentation_comparison":
         measurement_html = ("<section class='search-summary'><h2>Fragmentation modes</h2>"
                             "<p>DF first, source fragmentation permitted second. Fragment arrival was not "

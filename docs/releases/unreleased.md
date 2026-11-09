@@ -5,7 +5,8 @@ the next version is prepared, rename this file to that version and start a new
 empty one. Also search the docs for "after v0.9.6" and drop those qualifiers,
 and update the version in the README install line.
 
-There is no wire-protocol or JSON schema change so far.
+There is no wire-protocol change. Probe reports can carry one new optional field,
+`exit_reason`, when a run was interrupted.
 
 ## Windows receiver no longer stops on unrelated receive errors
 
@@ -26,8 +27,18 @@ blocking socket wait for it, so the capture was saved only when the idle
 timeout ran out (up to 120 seconds with the field-report settings). On Windows
 the receiver now waits in 0.25-second slices against its own idle deadline, so
 Ctrl+C saves the capture within a fraction of a second.
+The Windows sender waits for replies the same way, so Ctrl+C during a probe no
+longer waits for the reply timeout (up to 5 seconds).
 A second Ctrl+C while the capture is being written no longer loses it: the
 receiver finishes the write and then exits as interrupted.
+
+## Ctrl+C during a probe keeps what was measured
+
+Stopping a plain `probe` with Ctrl+C used to discard every attempt. The finished
+attempts are now saved with `"exit_reason": "interrupted"`, a new optional
+field that complete reports do not have. `search`, `compare-fragmentation` and
+`diagnose` are unchanged. `show` and the HTML view say how many of the planned
+attempts were recorded.
 
 ## Port unreachable is named
 
@@ -46,18 +57,31 @@ message.
 
 Hand-edited or truncated reports with a non-string probe ID in a lab case, or a
 non-integer status count, now fail with `Error: ...` instead of a Python
-traceback. These were found by mutating every field of the example reports.
+traceback. The same goes for non-integer `return_status_counts`, and for a
+missing stored no-ACK figure combined with a bad count in the HTML view. These
+were found by mutating every field of the example reports and of each report
+kind nested inside them.
+
+`correlate` and `combine` now say what each input file actually is when the
+kinds are wrong, and `correlate` recognises the receiver and sender reports
+given in the wrong order.
 
 ## Receiver shows probes as they arrive
 
 `tunnelscope receive` prints one line per accepted probe with its size, source,
 run and probe ID prefixes, and whether the reply send succeeded. This makes a
 firewall or address mistake obvious during the run instead of after it.
+With `--output`, it also says where the capture will be saved and that one
+Ctrl+C stops early, and prints `Saved receiver.json: N probes; exit: ...` once
+the file is written, so it is clear when the file is safe to copy.
 `--quiet` turns it off. Calling `receive()` from Python stays quiet by default.
 
 The sender commands (`probe`, `search`, `compare-fragmentation`, `diagnose`)
 print one line per attempt on stderr with the size, attempt number, mode and
 outcome. Stdout stays JSON. `--quiet` turns these off too.
+
+The HTML view of a receiver report now has a "Receiver capture" card with the
+exit reason, listening address, probe count and reply settings.
 
 ## Testing
 

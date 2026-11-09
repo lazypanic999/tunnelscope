@@ -338,6 +338,19 @@ def combine_reports(a_to_b, b_to_a):
     }
 
 
+# "Port unreachable" as a connected UDP socket reports it: ECONNREFUSED on Linux
+# (111) and macOS (61), WSAECONNRESET (10054) or WSAECONNREFUSED (10061) on Windows.
+PORT_UNREACHABLE_ERRNOS = {61, 111, 10054, 10061}
+
+
+def refused_attempts(results):
+    """Count socket errors that mean an ICMP port unreachable came back."""
+    if not isinstance(results, list):
+        return 0
+    return sum(isinstance(row, dict) and row.get("status") == "socket_error"
+               and row.get("errno") in PORT_UNREACHABLE_ERRNOS for row in results)
+
+
 def text_table(headers, rows):
     cells = [[str(value) for value in row] for row in rows]
     widths = [max([len(header), *(len(row[index]) for row in cells)]) for index, header in enumerate(headers)]
@@ -469,6 +482,11 @@ def format_report(report):
                              f"local errors: {feedback.get('local_error_events', '?')}; "
                              f"read: {feedback.get('observation_state', '?')}. "
                              "The legacy kernel_rejected_df_payload label covers local and ICMP-triggered EMSGSIZE.")
+        refused = refused_attempts(report.get("results"))
+        refused_text = (f"\nPort unreachable: {refused} attempt{'s' if refused != 1 else ''} got a "
+                        "connection-refused error. Usually no receiver was listening on the target "
+                        "address and port; a firewall can also answer with port unreachable."
+                        if refused else "")
         headers = ["Bytes", "Ack", "Too large", "Timeout", "Error", "No ACK (95% CI)"]
         if isinstance(feedback, dict):
             headers.append("ICMP size")
@@ -476,7 +494,7 @@ def format_report(report):
             headers.append("Sized reply")
         headers.append("Assessment")
         return ("Probe results (UDP payload bytes)\n" + text_table(headers, values) +
-                search_text + feedback_text +
+                search_text + feedback_text + refused_text +
                 ("\nSized reply counts same-sized replies received per sent attempt; a missing reply does not show which direction failed."
                  if sized else "") +
                 "\nNo ACK is a sender timeout, not proven packet loss. ICMP feedback may be spoofed or absent; no feedback does not prove blocking.")

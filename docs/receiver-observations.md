@@ -70,6 +70,21 @@ The two UTC capture windows and the receiver's `exit_reason` help review
 coverage, but the command does not compare clocks across hosts because they
 may be unsynchronized.
 
+The receiver's `exit_reason` is one of:
+
+| Value | Meaning |
+| --- | --- |
+| `max_packets` | It received `--max-packets` datagrams (probes or not) and stopped. |
+| `idle_timeout` | No datagram arrived for `--idle-timeout` seconds. |
+| `interrupted` | Ctrl+C. Everything received before it is in the file. |
+| `socket_error` | A receive failed; the error is printed and the capture is saved. |
+
+A capture that ended on `idle_timeout` after the sender finished is the
+clearest coverage claim. `max_packets` can mean later probes were never read.
+
+A sender `probe` report has an `exit_reason` only when it was interrupted
+(releases after v0.9.6); complete probe reports have no such field.
+
 The reports are unauthenticated. Use them only in a controlled environment and
 pair the files from the same run. Reports created before v0.2 do not contain
 probe IDs and cannot be correlated. v0.2 reports can still be correlated by

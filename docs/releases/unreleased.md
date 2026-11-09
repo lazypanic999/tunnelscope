@@ -26,6 +26,8 @@ blocking socket wait for it, so the capture was saved only when the idle
 timeout ran out (up to 120 seconds with the field-report settings). On Windows
 the receiver now waits in 0.25-second slices against its own idle deadline, so
 Ctrl+C saves the capture within a fraction of a second.
+A second Ctrl+C while the capture is being written no longer loses it: the
+receiver finishes the write and then exits as interrupted.
 
 ## Port unreachable is named
 

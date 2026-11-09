@@ -134,5 +134,32 @@ class WindowsSlicedWaitTests(unittest.TestCase):
         self.assertEqual(report["exit_reason"], "interrupted")
 
 
+class InterruptWhileSavingTests(unittest.TestCase):
+    def receive_with_output(self, output, effects):
+        sock = MagicMock()
+        sock.__enter__.return_value = sock
+        sock.family = socket.AF_INET
+        sock.getsockname.return_value = ("127.0.0.1", 9471)
+        sock.recvfrom.side_effect = then_idle(effects)
+        with patch.object(network.socket, "socket", return_value=sock), \
+                patch.object(network.sys, "platform", "linux"), redirect_stdout(StringIO()):
+            network.receive("127.0.0.1", 9471, 5, 1, output)
+
+    def test_second_ctrl_c_during_save_still_writes_the_capture(self):
+        output = MagicMock()
+        output.write_text.side_effect = [KeyboardInterrupt, None]
+        with self.assertRaises(KeyboardInterrupt):
+            self.receive_with_output(output, [(probe_bytes(1), ("127.0.0.1", 50000)), socket.timeout()])
+        self.assertEqual(output.write_text.call_count, 2)
+        saved = json.loads(output.write_text.call_args.args[0])
+        self.assertEqual(saved["exit_reason"], "idle_timeout")
+        self.assertEqual(len(saved["observations"]), 1)
+
+    def test_save_without_interrupt_returns_normally(self):
+        output = MagicMock()
+        self.receive_with_output(output, [socket.timeout()])
+        self.assertEqual(output.write_text.call_count, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

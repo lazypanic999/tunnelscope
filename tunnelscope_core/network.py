@@ -236,25 +236,41 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
             raise
         finally:
             if output is not None:
-                local = sock.getsockname()
-                receiver = {f"bind_{address_key}": local[0], "port": local[1]}
-                if sock.family == socket.AF_INET6 and local[3]:
-                    receiver["scope_id"] = local[3]
-                if sized_reply:
-                    receiver["sized_reply"] = True
-                    receiver["reply_fragmentation"] = reply_fragmentation
-                report = {
-                    "schema_version": 1,
-                    "kind": "receiver_observations",
-                    "tunnelscope_version": VERSION,
-                    "receiver": receiver,
-                    "started_at_utc": started_at_utc,
-                    "finished_at_utc": utc_now(),
-                    "exit_reason": exit_reason,
-                    "observations": observations,
-                    "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
-                }
-                output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+                # A second Ctrl+C while saving must not lose the capture. Finish
+                # the write, then let the interrupt through.
+                interrupted_while_saving = False
+                for _ in range(5):
+                    try:
+                        save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
+                                             started_at_utc, exit_reason, observations)
+                        break
+                    except KeyboardInterrupt:
+                        interrupted_while_saving = True
+                if interrupted_while_saving:
+                    raise KeyboardInterrupt
+
+
+def save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
+                         started_at_utc, exit_reason, observations):
+    local = sock.getsockname()
+    receiver = {f"bind_{address_key}": local[0], "port": local[1]}
+    if sock.family == socket.AF_INET6 and local[3]:
+        receiver["scope_id"] = local[3]
+    if sized_reply:
+        receiver["sized_reply"] = True
+        receiver["reply_fragmentation"] = reply_fragmentation
+    report = {
+        "schema_version": 1,
+        "kind": "receiver_observations",
+        "tunnelscope_version": VERSION,
+        "receiver": receiver,
+        "started_at_utc": started_at_utc,
+        "finished_at_utc": utc_now(),
+        "exit_reason": exit_reason,
+        "observations": observations,
+        "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
+    }
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
 def source_snapshot(sock):

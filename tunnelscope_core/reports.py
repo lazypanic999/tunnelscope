@@ -471,7 +471,7 @@ def format_report(report):
             if isinstance(feedback, dict):
                 value.append(ptb_by_size.get(row.get("payload_bytes"), 0))
             if sized:
-                returns = row.get("return_status_counts") or {}
+                returns = checked_status_counts(row.get("return_status_counts") or {})
                 value.append(f"{returns.get('sized_reply_received', 0)}/{sum(returns.values())}"
                              + (" (small ACK)" if returns.get("small_ack_only") else ""))
             value.append(row.get("assessment", "?"))

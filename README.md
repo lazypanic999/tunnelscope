@@ -86,7 +86,8 @@ Terminal 2 (same environment), once the receiver prints
 tunnelscope probe 127.0.0.1 --sizes 64,1200 --count 1 --output probe.json
 ```
 
-The receiver stops after two probes. Join the two logs and open the result:
+The receiver prints a line for each probe as it arrives and stops after two.
+Join the two logs and open the result:
 
 ```sh
 tunnelscope correlate probe.json receiver.json --output correlation.json --html correlation.html

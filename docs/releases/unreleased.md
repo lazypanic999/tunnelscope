@@ -39,6 +39,18 @@ Hand-edited or truncated reports with a non-string probe ID in a lab case, or a
 non-integer status count, now fail with `Error: ...` instead of a Python
 traceback. These were found by mutating every field of the example reports.
 
+## Receiver shows probes as they arrive
+
+`tunnelscope receive` prints one line per accepted probe with its size, source,
+run and probe ID prefixes, and whether the reply send succeeded. This makes a
+firewall or address mistake obvious during the run instead of after it.
+`--quiet` turns it off. Calling `receive()` from Python stays quiet by default.
+
+## Testing
+
+CI now runs on Python 3.14 as well (#81). A mutation test breaks every field
+of the example reports one at a time and requires a clean error (#85).
+
 ## Docs
 
 The [two-endpoint guide](../bidirectional.md) now covers opening UDP 9471 to

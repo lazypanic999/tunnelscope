@@ -142,6 +142,8 @@ def main():
     receiver.add_argument("--output", type=Path, help="save observed probe IDs as JSON when the receiver exits")
     receiver.add_argument("--sized-reply", action="store_true",
                           help="Linux or Windows: answer probes that request it with a same-sized reply sent without fragmentation")
+    receiver.add_argument("--quiet", action="store_true",
+                          help="print only the listening address, not a line per received probe")
     sender = commands.add_parser("probe", help="run a bounded delivery experiment")
     sender.add_argument("host")
     sender.add_argument("--family", choices=("auto", "ipv4", "ipv6"), default="auto",
@@ -225,7 +227,7 @@ def main():
             require_output_target(getattr(args, "output", None))
         if args.command == "receive":
             receive(args.bind, args.port, args.max_packets, args.idle_timeout, args.output, args.family,
-                    sized_reply=args.sized_reply)
+                    sized_reply=args.sized_reply, live=not args.quiet)
         elif args.command == "probe":
             require_df_support(args.dont_fragment)
             sizes = args.sweep if args.sweep is not None else args.sizes

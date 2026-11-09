@@ -53,6 +53,9 @@ traceback. These were found by mutating every field of the example reports.
 `tunnelscope receive` prints one line per accepted probe with its size, source,
 run and probe ID prefixes, and whether the reply send succeeded. This makes a
 firewall or address mistake obvious during the run instead of after it.
+With `--output`, it also says where the capture will be saved and that one
+Ctrl+C stops early, and prints `Saved receiver.json: N probes; exit: ...` once
+the file is written, so it is clear when the file is safe to copy.
 `--quiet` turns it off. Calling `receive()` from Python stays quiet by default.
 
 The sender commands (`probe`, `search`, `compare-fragmentation`, `diagnose`)

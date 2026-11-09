@@ -83,10 +83,27 @@ class ReceiverLiveOutputTests(unittest.TestCase):
         report = self.run_receiver(sock, True, out)
         lines = out.getvalue().splitlines()
         self.assertEqual(lines[0], "Listening on 127.0.0.1:9471")
-        self.assertEqual(len(lines), 3)  # the junk datagram gets no line
-        self.assertIn("   64 bytes from 127.0.0.1", lines[1])
-        self.assertIn("  200 bytes from 127.0.0.1", lines[2])
+        self.assertTrue(lines[1].startswith("Saving to "))
+        self.assertTrue(lines[1].endswith("receiver.json on exit; press Ctrl+C once to stop early."))
+        self.assertEqual(len(lines), 5)  # the junk datagram gets no line
+        self.assertIn("   64 bytes from 127.0.0.1", lines[2])
+        self.assertIn("  200 bytes from 127.0.0.1", lines[3])
+        self.assertTrue(lines[4].endswith("receiver.json: 2 probes; exit: idle_timeout"))
         self.assertEqual(len(report["observations"]), 2)
+
+    def test_saved_line_uses_singular_for_one_probe(self):
+        out = StringIO()
+        self.run_receiver(fake_socket([(probe_bytes(1), self.peer), socket.timeout()]), True, out)
+        self.assertTrue(out.getvalue().splitlines()[-1].endswith(": 1 probe; exit: idle_timeout"))
+
+    def test_no_output_file_means_no_saving_lines(self):
+        out = StringIO()
+        sock = fake_socket([(probe_bytes(1), self.peer), socket.timeout()])
+        with patch.object(network.socket, "socket", return_value=sock), redirect_stdout(out):
+            network.receive("127.0.0.1", 9471, 5, 1, None, live=True)
+        lines = out.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
+        self.assertFalse(any(line.startswith(("Saving", "Saved")) for line in lines))
 
     def test_library_default_stays_quiet(self):
         out = StringIO()

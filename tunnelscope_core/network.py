@@ -139,6 +139,18 @@ def live_line(observation):
             f"probe {observation['probe_id'][:8]}  {outcome}")
 
 
+def live_print(line):
+    """Print a progress line; return False if stdout is gone so callers stop trying.
+
+    A closed or broken stdout must never end a capture.
+    """
+    try:
+        print(line, flush=True)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", sized_reply=False,
             live=False):
     if sized_reply and not (sys.platform.startswith("linux") or sys.platform == "win32"):
@@ -161,6 +173,8 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
         sock.settimeout(idle_timeout)
         started_at_utc = utc_now()
         print(f"Listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}", flush=True)
+        if live and output is not None:
+            live = live_print(f"Saving to {output} on exit; press Ctrl+C once to stop early.")
         try:
             received = 0
             idle_deadline = time.monotonic() + idle_timeout
@@ -223,11 +237,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     observation["ack_send_status"] = "socket_error"
                     observation["ack_send_errno"] = error.errno
                 if live:
-                    try:
-                        print(live_line(observation), flush=True)
-                    except (OSError, ValueError):
-                        # A closed or broken stdout must not end the capture.
-                        live = False
+                    live = live_print(live_line(observation))
         except KeyboardInterrupt:
             exit_reason = "interrupted"
             raise
@@ -243,6 +253,10 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     try:
                         save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
                                              started_at_utc, exit_reason, observations)
+                        if live:
+                            count = len(observations)
+                            live_print(f"Saved {output}: {count} probe{'' if count == 1 else 's'}; "
+                                       f"exit: {exit_reason}")
                         break
                     except KeyboardInterrupt:
                         interrupted_while_saving = True

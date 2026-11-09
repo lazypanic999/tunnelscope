@@ -425,6 +425,14 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn("1111111111111111  64     2     1         1", rendered)
         self.assertIn("2222222222222222  1400   1     1         0", rendered)
         self.assertIn("not that it arrived", rendered)
+        report["receiver"] = {"bind_ipv4": "127.0.0.1", "port": 9471}
+        self.assertIn("exit: idle_timeout; listening on 127.0.0.1:9471", tunnelscope.format_report(report))
+        report["receiver"] = {"bind_ipv6": "::1", "port": 9471, "sized_reply": True}
+        self.assertIn("listening on [::1]:9471; sized replies enabled", tunnelscope.format_report(report))
+        report["receiver"] = {"port": 9471}
+        self.assertNotIn("listening on", tunnelscope.format_report(report))
+        report.pop("receiver")
+        self.assertNotIn("listening on", tunnelscope.format_report(report))
         report["observations"] = []
         self.assertIn("Receiver observations: 0 probes", tunnelscope.format_report(report))
 

@@ -7,7 +7,7 @@ from importlib.resources import files
 import json
 import re
 
-from .reports import checked_status_counts, no_ack_measurement, no_ack_text, version_details
+from .reports import checked_status_counts, no_ack_measurement, no_ack_text, refused_attempts, version_details
 from .tables import _records, _table_data, _lab_data, report_table
 from .timestamps import parse_timestamp
 
@@ -176,6 +176,13 @@ def render_report_html(report):
                                  f"{escape(_cell(total))} planned</p>"
                                  "<p>The run was stopped with Ctrl+C. Sizes it did not reach are not listed; "
                                  "missing sizes say nothing about the path.</p></section>")
+        refused = refused_attempts(search_report.get("results"))
+        if refused:
+            measurement_html += ("<section class='search-summary'><h2>Port unreachable</h2>"
+                                 f"<p><strong>Connection-refused attempts:</strong> {escape(_cell(refused))}</p>"
+                                 "<p>Usually no receiver was listening on the target address and port. "
+                                 "A firewall can send the same answer, so this does not prove the receiver was down.</p>"
+                                 "</section>")
     elif search_report.get("kind") == "receiver_observations":
         receiver = search_report.get("receiver")
         receiver = receiver if isinstance(receiver, dict) else {}

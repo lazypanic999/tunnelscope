@@ -86,6 +86,9 @@ The text summary from `show receiver.json` also names the listening address,
 for example `listening on 127.0.0.1:9471` or `listening on [::1]:9471`, when
 the report records it (#93, thanks to @jwalith4418-Mj).
 
+The HTML view of a probe report now has a "Port unreachable" card when any
+attempt got a connection-refused error, matching the line in `show`.
+
 ## Testing
 
 CI now runs on Python 3.14 as well (#81). A mutation test breaks every field

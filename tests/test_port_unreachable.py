@@ -43,6 +43,25 @@ class PortUnreachableTests(unittest.TestCase):
         self.assertEqual(refused_attempts(["x", failed(111), {"status": "socket_error", "errno": "111"}]), 1)
         self.assertIn("2 attempts", format_report(probe_report([failed(111), failed(111)])))
 
+    def test_html_view_has_a_port_unreachable_card(self):
+        from tunnelscope_core.view import render_report_html
+        html = render_report_html(probe_report([failed(10061), failed(111)]))
+        self.assertIn("<h2>Port unreachable</h2>", html)
+        self.assertIn("<strong>Connection-refused attempts:</strong> 2", html)
+        self.assertIn("does not prove the receiver was down", html)
+
+    def test_html_view_of_a_lab_report_wrapping_a_probe_has_the_card(self):
+        from tunnelscope_core.view import render_report_html
+        html = render_report_html({"lab": "closed-port", "probe": probe_report([failed(111)])})
+        self.assertIn("<strong>Connection-refused attempts:</strong> 1", html)
+
+    def test_html_view_without_refused_attempts_has_no_card(self):
+        from tunnelscope_core.view import render_report_html
+        timeout = {"payload_bytes": 64, "attempt": 1, "probe_id": "1" * 32, "status": "timeout"}
+        for rows in ([timeout], [failed(101)]):
+            with self.subTest(rows=rows):
+                self.assertNotIn("Port unreachable", render_report_html(probe_report(rows)))
+
     @unittest.skipUnless(sys.platform.startswith("linux") or sys.platform == "win32",
                          "loopback port unreachable is checked on Linux and Windows")
     def test_cli_probe_to_closed_port_notes_it_on_stderr_and_keeps_json_stdout(self):

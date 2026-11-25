@@ -30,6 +30,8 @@ lab examples. Both HTML and Markdown use the same observation-table data.
   in joined reports.
 - The sanitization record's presence and timestamp policy. A record is
   metadata; review is still needed. The exporter does not sanitize its input.
+- For a receiver log, its exit reason and listening address. For a probe
+  stopped with Ctrl+C, how many of the planned attempts were recorded.
 - Limits on interpretation: missing ACKs and receiver entries remain
   inconclusive, a small ACK does not test same-sized return delivery, and
   observed bounds are not a proven end-to-end path MTU.

@@ -156,6 +156,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
     if sized_reply and not (sys.platform.startswith("linux") or sys.platform == "win32"):
         raise ValueError("--sized-reply currently requires Linux (including WSL2) or Windows")
     observations = []
+    skipped_receive_errors = {"connection_reset": 0, "oversized_datagram": 0}
     exit_reason = "max_packets"
     address_family, bind_address = udp_address(bind, port, family)
     if ipaddress.ip_address(bind_address[0]).is_unspecified:
@@ -198,6 +199,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     # out) as WSAECONNRESET on the next receive. It is not a probe.
                     if sys.platform != "win32":
                         raise
+                    skipped_receive_errors["connection_reset"] += 1
                     continue
                 except OSError as error:
                     # Windows fails a receive with WSAEMSGSIZE when a datagram is
@@ -205,6 +207,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                     # it is too large to be a probe; count it and keep listening.
                     if sys.platform != "win32" or getattr(error, "winerror", None) != WSAEMSGSIZE:
                         raise
+                    skipped_receive_errors["oversized_datagram"] += 1
                     received += 1
                     idle_deadline = time.monotonic() + idle_timeout
                     continue
@@ -252,7 +255,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
                 for _ in range(5):
                     try:
                         save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
-                                             started_at_utc, exit_reason, observations)
+                                             started_at_utc, exit_reason, observations, skipped_receive_errors)
                         if live:
                             count = len(observations)
                             live_print(f"Saved {output}: {count} probe{'' if count == 1 else 's'}; "
@@ -265,7 +268,7 @@ def receive(bind, port, max_packets, idle_timeout, output=None, family="auto", s
 
 
 def save_receiver_report(output, sock, address_key, sized_reply, reply_fragmentation,
-                         started_at_utc, exit_reason, observations):
+                         started_at_utc, exit_reason, observations, skipped_receive_errors):
     local = sock.getsockname()
     receiver = {f"bind_{address_key}": local[0], "port": local[1]}
     if sock.family == socket.AF_INET6 and local[3]:
@@ -284,6 +287,8 @@ def save_receiver_report(output, sock, address_key, sized_reply, reply_fragmenta
         "observations": observations,
         "interpretation": "A received probe confirms arrival at this receiver. A successful send call does not confirm delivery of its acknowledgement.",
     }
+    if any(skipped_receive_errors.values()):
+        report["skipped_receive_errors"] = skipped_receive_errors
     output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 

@@ -174,4 +174,6 @@ if __name__ == "__main__":
         main(args.output_dir)
     except (RuntimeError, OSError, subprocess.SubprocessError) as error:
         print(f"WireGuard lab failed: {error}", file=sys.stderr)
+        if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+            print(error.stderr, file=sys.stderr)
         sys.exit(1)

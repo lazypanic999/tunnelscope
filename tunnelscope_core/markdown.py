@@ -110,6 +110,23 @@ def render_report_markdown(report):
     facts = version_details(detail)
     if "scope" in detail:
         facts.append(("Scope", detail["scope"]))
+    if detail.get("kind") == "receiver_observations":
+        capture = detail.get("receiver")
+        capture = capture if isinstance(capture, dict) else {}
+        address = capture.get("bind_ipv6") or capture.get("bind_ipv4")
+        port = capture.get("port")
+        facts.append(("Receiver exit reason", detail.get("exit_reason", "unknown")))
+        if isinstance(address, str) and address and isinstance(port, int) and not isinstance(port, bool):
+            facts.append(("Listening on", f"[{address}]:{port}" if ":" in address else f"{address}:{port}"))
+    elif detail.get("kind") == "probe" and detail.get("exit_reason") == "interrupted":
+        results = detail.get("results")
+        settings = detail.get("settings")
+        planned = settings.get("payload_sizes") if isinstance(settings, dict) else None
+        count = settings.get("count") if isinstance(settings, dict) else None
+        total = (len(planned) * count if isinstance(planned, list) and isinstance(count, int)
+                 and not isinstance(count, bool) else "?")
+        recorded = len(results) if isinstance(results, list) else "?"
+        facts.append(("Interrupted run", f"{recorded} of {total} planned attempts recorded before Ctrl+C"))
     pairing = detail.get("pairing")
     if isinstance(pairing, dict):
         facts.append(("Run ID pairing", pairing.get("run_id_check")))

@@ -37,8 +37,8 @@ receiver finishes the write and then exits as interrupted.
 Stopping a plain `probe` with Ctrl+C used to discard every attempt. The finished
 attempts are now saved with `"exit_reason": "interrupted"`, a new optional
 field that complete reports do not have. `search`, `compare-fragmentation` and
-`diagnose` are unchanged. `show` and the HTML view say how many of the planned
-attempts were recorded.
+`diagnose` are unchanged. `show`, the HTML view and the Markdown export say how
+many of the planned attempts were recorded.
 
 ## Port unreachable is named
 
@@ -87,12 +87,18 @@ The HTML view of a receiver report now has a "Receiver capture" card with the
 exit reason, listening address, probe count and reply settings.
 The text summary from `show receiver.json` also names the listening address,
 for example `listening on 127.0.0.1:9471` or `listening on [::1]:9471`, when
-the report records it (#93, thanks to @jwalith4418-Mj).
+the report records it (#93, thanks to @jwalith4418-Mj). The Markdown export
+lists the receiver's exit reason and listening address as well.
+
+The HTML view of a probe report now has a "Port unreachable" card when any
+attempt got a connection-refused error, matching the line in `show`.
 
 ## Testing
 
 CI now runs on Python 3.14 as well (#81). A mutation test breaks every field
 of the example reports one at a time and requires a clean error (#85).
+The WireGuard labs pass private keys on stdin, because the AppArmor profile
+for `wg` on Ubuntu 26.04 runners refuses key files under `/tmp` (#106).
 
 ## Docs
 
